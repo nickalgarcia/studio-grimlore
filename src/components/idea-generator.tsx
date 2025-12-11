@@ -13,7 +13,7 @@ import { Swords, BookMarked, Copy, Loader2, Skull, Scroll, User, Quote } from 'l
 import { Skeleton } from './ui/skeleton';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
-import type { Session } from '@/lib/types';
+import type { Session, Character } from '@/lib/types';
 
 type IdeaGeneratorProps = {
   onSave: (concept: Omit<SavedConcept, 'id' | 'createdAt' | 'userId'>) => void;
@@ -44,16 +44,28 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
   }, [user, campaignId, firestore]);
   
   const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
+  const charactersRef = useMemoFirebase(() => {
+    if (!user || !campaignId) return null;
+    return collection(firestore, 'users', user.uid, 'campaigns', campaignId, 'characters');
+  }, [user, campaignId, firestore]);
+  const { data: characters, isLoading: charactersLoading } = useCollection<Character>(charactersRef);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setGeneratedIdeas(null);
 
-    const campaignLog = sessions?.map(s => `Session ${s.sessionNumber}: ${s.summary}`).join('\n\n') || '';
+    const recentSessions = (sessions || []).slice(0, 5);
+    const campaignLog = recentSessions
+      .map(s => `Session ${s.sessionNumber}: ${s.summary}`)
+      .join('\n\n') || 'No sessions yet.';
+    const characterRoster = (characters || [])
+      .slice(0, 8)
+      .map(c => `- ${c.name}${c.class ? ` (${c.class})` : ''}${c.species ? ` [${c.species}]` : ''}: ${c.backstory}`)
+      .join('\n') || 'No characters recorded.';
     const campaignContext = campaign ? `Campaign: ${campaign.name}\nDescription: ${campaign.description}\n\n` : '';
 
-    let fullContext = `${campaignContext}Campaign Log:\n${campaignLog}\n\n`;
-    fullContext += `Recent Party Actions:\n${partyActions}`;
+    let fullContext = `${campaignContext}Characters:\n${characterRoster}\n\nRecent Sessions (most recent first):\n${campaignLog}\n\n`;
+    fullContext += `Recent Party Actions (PRIORITY - base your ideas mainly on this):\n${partyActions}`;
 
     startTransition(async () => {
       const { data, error } = await getContextualIdeas(fullContext);
@@ -81,7 +93,7 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
       return partyActions.substring(0, 50) + (partyActions.length > 50 ? '...' : '');
   }
 
-  const isLoading = isPending || sessionsLoading;
+  const isLoading = isPending || sessionsLoading || charactersLoading;
 
   return (
     <div className="space-y-8">

@@ -101,21 +101,26 @@ export function LocationManager({ campaign }: LocationManagerProps) {
 
   const { data: locations, isLoading: locationsLoading } = useCollection<Location>(locationsRef);
 
-  const handleCreateLocation = () => {
+  const handleCreateLocation = async () => {
     if (!locationsRef || !newLocationName.trim() || !newLocationDescription.trim()) return;
     setIsSubmitting(true);
 
-    addDocumentNonBlocking(locationsRef, {
+    try {
+      await addDocumentNonBlocking(locationsRef, {
         campaignId: campaign.id,
         name: newLocationName,
         description: newLocationDescription,
-    }).finally(() => {
-        setNewLocationName('');
-        setNewLocationDescription('');
-        toast({ title: 'Location added!' });
-        setIsCreateFormOpen(false);
-        setIsSubmitting(false);
-    });
+      });
+      setNewLocationName('');
+      setNewLocationDescription('');
+      toast({ title: 'Location added!' });
+      setIsCreateFormOpen(false);
+    } catch (error) {
+      console.error('Error adding location:', error);
+      toast({ variant: 'destructive', title: 'Could not add location', description: 'Check your connection or permissions and try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteLocation = (locationId: string) => {
@@ -132,20 +137,25 @@ export function LocationManager({ campaign }: LocationManagerProps) {
     setIsEditFormOpen(true);
   }
 
-  const handleUpdateLocation = () => {
+  const handleUpdateLocation = async () => {
     if (!user || !editingLocation || !editedName.trim() || !editedDescription.trim()) return;
     setIsSubmitting(true);
 
-    const charDocRef = doc(firestore, 'users', user.uid, 'campaigns', campaign.id, 'locations', editingLocation.id);
-    updateDocumentNonBlocking(charDocRef, {
+    try {
+      const charDocRef = doc(firestore, 'users', user.uid, 'campaigns', campaign.id, 'locations', editingLocation.id);
+      await updateDocumentNonBlocking(charDocRef, {
         name: editedName,
         description: editedDescription,
-    }).finally(() => {
-        toast({ title: 'Location updated!' });
-        setIsEditFormOpen(false);
-        setEditingLocation(null);
-        setIsSubmitting(false);
-    });
+      });
+      toast({ title: 'Location updated!' });
+      setIsEditFormOpen(false);
+      setEditingLocation(null);
+    } catch (error) {
+      console.error('Error updating location:', error);
+      toast({ variant: 'destructive', title: 'Could not update location', description: 'Check your connection or permissions and try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (

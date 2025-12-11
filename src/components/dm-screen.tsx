@@ -18,6 +18,44 @@ export function DMScreen() {
   const [result, setResult] = React.useState<LookupRuleOutput | null>(null);
   const [resultTitle, setResultTitle] = React.useState<string>('');
 
+  const escapeHtml = React.useCallback((input: string) => {
+    return input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }, []);
+
+  const sanitizeLimitedHtml = React.useCallback((html: string) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const allowed = new Set(['STRONG', 'EM', 'UL', 'LI', 'P', 'BR']);
+
+    const cleanNode = (node: Node) => {
+      node.childNodes.forEach(child => {
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          const el = child as HTMLElement;
+          if (!allowed.has(el.tagName)) {
+            const parent = el.parentNode;
+            while (el.firstChild) {
+              parent?.insertBefore(el.firstChild, el);
+            }
+            parent?.removeChild(el);
+            return;
+          }
+          while (el.attributes.length > 0) {
+            el.removeAttribute(el.attributes[0].name);
+          }
+        }
+        cleanNode(child);
+      });
+    };
+
+    cleanNode(doc.body);
+    return doc.body.innerHTML;
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -43,7 +81,7 @@ export function DMScreen() {
   const formattedExplanation = React.useMemo(() => {
     if (!result?.explanation) return '';
     
-    let html = result.explanation
+    let html = escapeHtml(result.explanation)
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>');
       
@@ -59,8 +97,9 @@ export function DMScreen() {
       return `<p>${paragraph}</p>`;
     }).join('');
 
-    return html.replace(/<p><br\/>/g, '<p>');
-  }, [result]);
+    html = html.replace(/<p><br\/>/g, '<p>');
+    return sanitizeLimitedHtml(html);
+  }, [result, escapeHtml, sanitizeLimitedHtml]);
 
   return (
     <div className="space-y-8">

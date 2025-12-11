@@ -116,7 +116,7 @@ export function CharacterManager({ campaign }: CharacterManagerProps) {
       setFormData(prev => ({...prev, [name]: parsedValue}));
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
       if(!charactersRef || !formData.name || !formData.backstory) {
           toast({ variant: 'destructive', title: "Missing fields", description: "Name and Backstory are required."});
           return;
@@ -127,19 +127,23 @@ export function CharacterManager({ campaign }: CharacterManagerProps) {
           ...formData
       }
 
-      if(editingCharacter) {
-          const charDocRef = doc(firestore, 'users', user!.uid, 'campaigns', campaign.id, 'characters', editingCharacter.id);
-          updateDocumentNonBlocking(charDocRef, dataToSave).finally(() => {
-              toast({ title: "Character updated!" });
-              setIsSubmitting(false);
-              setIsFormOpen(false);
-          });
-      } else {
-           addDocumentNonBlocking(charactersRef, dataToSave).finally(() => {
-              toast({ title: "Character added!" });
-              setIsSubmitting(false);
-              setIsFormOpen(false);
-          });
+      try {
+        if(editingCharacter) {
+            const charDocRef = doc(firestore, 'users', user!.uid, 'campaigns', campaign.id, 'characters', editingCharacter.id);
+            await updateDocumentNonBlocking(charDocRef, dataToSave);
+            toast({ title: "Character updated!" });
+        } else {
+            await addDocumentNonBlocking(charactersRef, dataToSave);
+            toast({ title: "Character added!" });
+        }
+        setIsFormOpen(false);
+        setEditingCharacter(null);
+        setFormData({});
+      } catch (error) {
+        console.error('Error saving character:', error);
+        toast({ variant: 'destructive', title: 'Could not save character', description: 'Check your connection or permissions and try again.' });
+      } finally {
+        setIsSubmitting(false);
       }
   }
 

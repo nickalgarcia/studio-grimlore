@@ -8,11 +8,14 @@
  * - LookupRuleOutput - The return type for the lookupRule function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import OpenAI from 'openai';
+import { z } from 'genkit';
 
 const LookupRuleInputSchema = z.object({
-  term: z.string().describe('The D&D 5e rule, condition, or term to be explained.'),
+  term: z
+    .string()
+    .min(1, 'Enter a rule, condition, or term to explain.')
+    .describe('The D&D 5e rule, condition, or term to be explained.'),
 });
 export type LookupRuleInput = z.infer<typeof LookupRuleInputSchema>;
 
@@ -21,32 +24,37 @@ const LookupRuleOutputSchema = z.object({
 });
 export type LookupRuleOutput = z.infer<typeof LookupRuleOutputSchema>;
 
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  project: process.env.OPENAI_PROJECT_ID,
+  organization: process.env.OPENAI_ORG_ID,
+});
+
+const MODEL = 'gpt-4';
+
 export async function lookupRule(
   input: LookupRuleInput
 ): Promise<LookupRuleOutput> {
-  return lookupRuleFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'lookupRulePrompt',
-  input: {schema: LookupRuleInputSchema},
-  output: {schema: LookupRuleOutputSchema},
-  prompt: `You are an expert D&D 5th Edition Dungeon Master. A user will provide a game term, rule, or condition, and you must provide a clear, concise, and accurate explanation for it based on the official rules.
-
-  Format your answer clearly, using markdown for structure if needed (like bullet points for lists).
-
-  Rule to explain: {{term}}
-  `,
-});
-
-const lookupRuleFlow = ai.defineFlow(
-  {
-    name: 'lookupRuleFlow',
-    inputSchema: LookupRuleInputSchema,
-    outputSchema: LookupRuleOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  const parsed = LookupRuleInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
-);
+
+  const term = parsed.data.term.trim();
+
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are an expert D&D 5th Edition Dungeon Master. Provide clear, concise, and accurate explanations of rules and terms. Use short paragraphs and bullet points where helpful.',
+      },
+      { role: 'user', content: `Explain the rule/term: ${term}` },
+    ],
+    temperature: 0,
+  });
+
+  const explanation = completion.choices[0]?.message?.content ?? '';
+  return { explanation };
+}

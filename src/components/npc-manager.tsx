@@ -112,23 +112,28 @@ export function NpcManager({ campaign }: NpcManagerProps) {
 
   const { data: npcs, isLoading: npcsLoading } = useCollection<Npc>(npcsRef);
 
-  const handleCreateNpc = () => {
+  const handleCreateNpc = async () => {
     if (!npcsRef || !newNpcName.trim() || !newNpcDescription.trim()) return;
     setIsSubmitting(true);
 
-    addDocumentNonBlocking(npcsRef, {
+    try {
+      await addDocumentNonBlocking(npcsRef, {
         campaignId: campaign.id,
         name: newNpcName,
         description: newNpcDescription,
         location: newNpcLocation,
-    }).finally(() => {
-        setNewNpcName('');
-        setNewNpcDescription('');
-        setNewNpcLocation('');
-        toast({ title: 'NPC added!' });
-        setIsCreateFormOpen(false);
-        setIsSubmitting(false);
-    });
+      });
+      setNewNpcName('');
+      setNewNpcDescription('');
+      setNewNpcLocation('');
+      toast({ title: 'NPC added!' });
+      setIsCreateFormOpen(false);
+    } catch (error) {
+      console.error('Error adding NPC:', error);
+      toast({ variant: 'destructive', title: 'Could not add NPC', description: 'Check your connection or permissions and try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteNpc = (npcId: string) => {
@@ -146,21 +151,26 @@ export function NpcManager({ campaign }: NpcManagerProps) {
     setIsEditFormOpen(true);
   }
 
-  const handleUpdateNpc = () => {
+  const handleUpdateNpc = async () => {
     if (!user || !editingNpc || !editedName.trim() || !editedDescription.trim()) return;
     setIsSubmitting(true);
 
-    const npcDocRef = doc(firestore, 'users', user.uid, 'campaigns', campaign.id, 'npcs', editingNpc.id);
-    updateDocumentNonBlocking(npcDocRef, {
+    try {
+      const npcDocRef = doc(firestore, 'users', user.uid, 'campaigns', campaign.id, 'npcs', editingNpc.id);
+      await updateDocumentNonBlocking(npcDocRef, {
         name: editedName,
         description: editedDescription,
         location: editedLocation,
-    }).finally(() => {
-        toast({ title: 'NPC updated!' });
-        setIsEditFormOpen(false);
-        setEditingNpc(null);
-        setIsSubmitting(false);
-    });
+      });
+      toast({ title: 'NPC updated!' });
+      setIsEditFormOpen(false);
+      setEditingNpc(null);
+    } catch (error) {
+      console.error('Error updating NPC:', error);
+      toast({ variant: 'destructive', title: 'Could not update NPC', description: 'Check your connection or permissions and try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const handleGenerateNpc = async () => {
@@ -176,19 +186,23 @@ export function NpcManager({ campaign }: NpcManagerProps) {
     setIsGenerating(false);
   }
 
-  const handleSaveGeneratedNpc = () => {
+  const handleSaveGeneratedNpc = async () => {
     if(!npcsRef || !generatedNpc) return;
-    addDocumentNonBlocking(npcsRef, {
+    try {
+      await addDocumentNonBlocking(npcsRef, {
         campaignId: campaign.id,
         name: generatedNpc.name,
         description: generatedNpc.description,
         location: generatedNpc.location || generationLocation,
-    }).then(() => {
+      });
       toast({ title: `Added ${generatedNpc.name} to your NPC list!` });
       setGeneratedNpc(null);
       setGenerationLocation('');
       setIsGenerateDialogOpen(false);
-    });
+    } catch (error) {
+      console.error('Error saving generated NPC:', error);
+      toast({ variant: 'destructive', title: 'Could not save NPC', description: 'Check your connection or permissions and try again.' });
+    }
   }
 
   return (

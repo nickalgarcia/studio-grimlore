@@ -46,21 +46,25 @@ export function CampaignManager({ activeCampaignId, setActiveCampaignId }: Campa
   const [isCreating, setIsCreating] = React.useState(false);
 
 
-  const handleCreateCampaign = () => {
+  const handleCreateCampaign = async () => {
     if (!campaignsRef || !newCampaignName.trim()) return;
     setIsCreating(true);
 
-    addDocumentNonBlocking(campaignsRef, {
-        name: newCampaignName,
-        description: newCampaignDescription,
-        createdAt: serverTimestamp(),
-    }).then(() => {
+    try {
+      await addDocumentNonBlocking(campaignsRef, {
+          name: newCampaignName,
+          description: newCampaignDescription,
+          createdAt: serverTimestamp(),
+      });
       setNewCampaignName('');
       setNewCampaignDescription('');
       toast({ title: 'Campaign created!' });
-    }).finally(() => {
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast({ variant: 'destructive', title: 'Could not create campaign', description: 'Check your connection or permissions and try again.' });
+    } finally {
       setIsCreating(false);
-    });
+    }
   };
 
   const handleDeleteCampaign = (campaignId: string) => {

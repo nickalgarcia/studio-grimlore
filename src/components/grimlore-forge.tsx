@@ -38,9 +38,11 @@ export function GrimloreForge() {
       userId: user.uid,
       createdAt: serverTimestamp(),
     }).then(() => {
-      // Instead of fetching here, we just increment the key to trigger a refetch in the child.
       setLibraryUpdateKey(key => key + 1);
       toast({ title: `Saved to Library!` });
+    }).catch((error) => {
+      console.error('Error saving concept:', error);
+      toast({ variant: 'destructive', title: 'Could not save concept', description: 'Check your connection or permissions and try again.' });
     });
   };
 

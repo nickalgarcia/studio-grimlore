@@ -52,7 +52,12 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
     return collection(firestore, 'users', user.uid, 'campaigns', campaign.id, 'sessions');
   }, [user, firestore, campaign.id]);
 
-  const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsCollectionRef, query(sessionsCollectionRef, orderBy('sessionNumber', 'asc')));
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!sessionsCollectionRef) return null;
+    return query(sessionsCollectionRef, orderBy('sessionNumber', 'asc'));
+  }, [sessionsCollectionRef]);
+
+  const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
 
   const conceptsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -85,10 +90,11 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
   const [isCreating, setIsCreating] = React.useState(false);
 
   const handleAddSession = () => {
-    if (!sessionsCollectionRef || !newSessionSummary.trim() || !user || !sessions || !characters || !campaignDocRef) return;
+    if (!sessionsCollectionRef || !sessionsQuery || !newSessionSummary.trim() || !user || !sessions || !characters || !campaignDocRef) return;
     setIsCreating(true);
 
-    const nextSessionNumber = (sessions[sessions.length - 1]?.sessionNumber || 0) + 1;
+    const highestSessionNumber = sessions.reduce((max, s) => Math.max(max, s.sessionNumber), 0);
+    const nextSessionNumber = highestSessionNumber + 1;
     const sessionData = {
         campaignId: campaign.id,
         sessionNumber: nextSessionNumber,
@@ -117,7 +123,10 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
                 aiSummary: summaryData.campaignSummary,
             }).then(() => {
                 toast({ title: "Campaign summary updated!", description: "The AI has chronicled the latest events." });
-            }) // Non-blocking update's error is handled globally
+            }).catch((err) => {
+                console.error('Error updating campaign summary:', err);
+                toast({ variant: 'destructive', title: 'Could not update campaign summary', description: 'Check your connection or permissions and try again.' });
+            });
         } else if (error) {
             throw new Error(error);
         }

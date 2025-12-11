@@ -66,11 +66,16 @@ export function CampaignDetails({ campaign, onBack }: CampaignDetailsProps) {
     toast({ title: 'Session deleted.' });
   }
 
-  const handleUpdateSession = (sessionId: string, newSummary: string) => {
+  const handleUpdateSession = async (sessionId: string, newSummary: string) => {
     if(!user || !sessionId || !newSummary.trim()) return;
     const sessionDocRef = doc(firestore, 'users', user.uid, 'campaigns', campaign.id, 'sessions', sessionId);
-    updateDocumentNonBlocking(sessionDocRef, { summary: newSummary });
-    toast({ title: 'Session updated!' });
+    try {
+      await updateDocumentNonBlocking(sessionDocRef, { summary: newSummary });
+      toast({ title: 'Session updated!' });
+    } catch (error) {
+      console.error('Error updating session:', error);
+      toast({ variant: 'destructive', title: 'Could not update session', description: 'Check your connection or permissions and try again.' });
+    }
   }
 
   return (

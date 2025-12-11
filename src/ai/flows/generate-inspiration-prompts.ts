@@ -7,33 +7,41 @@
  * - InspirationPromptOutput - The return type for the generateInspirationPrompt function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import OpenAI from 'openai';
+import { z } from 'genkit';
 
 const InspirationPromptOutputSchema = z.object({
   prompt: z.string().describe('A random prompt to inspire the Dungeon Master.'),
 });
 export type InspirationPromptOutput = z.infer<typeof InspirationPromptOutputSchema>;
 
+const MODEL = 'gpt-4';
+
 export async function generateInspirationPrompt(): Promise<InspirationPromptOutput> {
-  return generateInspirationPromptFlow();
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    project: process.env.OPENAI_PROJECT_ID,
+    organization: process.env.OPENAI_ORG_ID,
+  });
+
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    temperature: 0.9,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a D&D creative writing assistant for Dungeon Masters. Generate a single, vivid prompt that inspires plot hooks, encounter ideas, or NPC concepts. Return only JSON with a "prompt" field.',
+      },
+      { role: 'user', content: 'Give me one random prompt for a DM.' },
+    ],
+  });
+
+  const json = completion.choices[0]?.message?.content;
+  if (!json) throw new Error('No content returned from model');
+  try {
+    return InspirationPromptOutputSchema.parse(JSON.parse(json));
+  } catch {
+    return { prompt: json };
+  }
 }
-
-const prompt = ai.definePrompt({
-  name: 'inspirationPromptPrompt',
-  output: {schema: InspirationPromptOutputSchema},
-  prompt: `You are a D&D creative writing assistant for dungeon masters.
-
-Generate a random prompt to inspire the Dungeon Master. This prompt should be open-ended and encourage creative thinking about plot hooks, encounter ideas, or NPC concepts.
-
-Output:
-Prompt:`, // Ensure the output is prefixed with "Prompt:"
-});
-
-const generateInspirationPromptFlow = ai.defineFlow({
-  name: 'generateInspirationPromptFlow',
-  outputSchema: InspirationPromptOutputSchema,
-}, async () => {
-  const {output} = await prompt({});
-  return output!;
-});

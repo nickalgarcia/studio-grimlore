@@ -9,8 +9,10 @@
  * - GenerateCharacterOutput - The return type for the generateCharacter function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import OpenAI from 'openai';
+import { z } from 'genkit';
+
+const MODEL = 'gpt-4';
 
 const GenerateCharacterInputSchema = z.object({
   campaignContext: z
@@ -34,37 +36,45 @@ export type GenerateCharacterOutput = z.infer<typeof GenerateCharacterOutputSche
 export async function generateCharacter(
   input: GenerateCharacterInput
 ): Promise<GenerateCharacterOutput> {
-  return generateCharacterFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'generateCharacterPrompt',
-  input: {schema: GenerateCharacterInputSchema},
-  output: {schema: GenerateCharacterOutputSchema},
-  prompt: `You are an expert Dungeon Master tasked with co-creating a new Dungeons & Dragons character with a player.
-
-  The player has provided an initial concept. Your job is to expand upon it and generate a compelling character that fits into the specified campaign world.
-
-  Flesh out the narrative details of the character, including a creative name, species, class, origin city, and a rich backstory. Do not include game mechanics like stats.
-
-  Campaign Context:
-  {{{campaignContext}}}
-
-  Player's Character Concept:
-  "{{prompt}}"
-
-  Generate a character based on this information.
-  `,
-});
-
-const generateCharacterFlow = ai.defineFlow(
-  {
-    name: 'generateCharacterFlow',
-    inputSchema: GenerateCharacterInputSchema,
-    outputSchema: GenerateCharacterOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  const parsed = GenerateCharacterInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
-);
+
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    project: process.env.OPENAI_PROJECT_ID,
+    organization: process.env.OPENAI_ORG_ID,
+  });
+
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    temperature: 0.8,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are an expert Dungeon Master. Generate a D&D character with name, species, class, originCity, and a rich backstory. No mechanics or stats. Return only JSON with fields: name, species, class, backstory, originCity.',
+      },
+      {
+        role: 'user',
+        content: `Campaign Context:\n${parsed.data.campaignContext}\n\nPlayer concept:\n${parsed.data.prompt}\n\nReturn a JSON object with fields: name, species, class, backstory, originCity (optional).`,
+      },
+    ],
+  });
+
+  const json = completion.choices[0]?.message?.content;
+  if (!json) throw new Error('No content returned from model');
+  try {
+    return GenerateCharacterOutputSchema.parse(JSON.parse(json));
+  } catch {
+    // Fallback: best-effort parse into fields if the model did not return strict JSON.
+    return GenerateCharacterOutputSchema.parse({
+      name: 'Generated Character',
+      species: '',
+      class: '',
+      backstory: json,
+      originCity: undefined,
+    });
+  }
+}

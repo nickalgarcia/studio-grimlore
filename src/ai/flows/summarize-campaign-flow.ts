@@ -9,8 +9,10 @@
  * - SummarizeCampaignOutput - The return type for the summarizeCampaign function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import OpenAI from 'openai';
+import { z } from 'genkit';
+
+const MODEL = 'gpt-4';
 
 const SummarizeCampaignInputSchema = z.object({
   campaignName: z.string().describe("The name of the campaign."),
@@ -36,44 +38,47 @@ export type SummarizeCampaignOutput = z.infer<typeof SummarizeCampaignOutputSche
 export async function summarizeCampaign(
   input: SummarizeCampaignInput
 ): Promise<SummarizeCampaignOutput> {
-  return summarizeCampaignFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'summarizeCampaignPrompt',
-  input: {schema: SummarizeCampaignInputSchema},
-  output: {schema: SummarizeCampaignOutputSchema},
-  prompt: `You are a master storyteller and campaign chronicler for Dungeons & Dragons. Your task is to create a "living summary" of a campaign, weaving together all available information into a compelling narrative recap.
-
-  Use the campaign name, description, character backstories, and all session logs to generate a comprehensive summary. This summary should feel like a "Previously on..." segment of a TV show, catching the reader up on the most important plot points, character arcs, and unresolved mysteries.
-
-  **Campaign:** {{{campaignName}}}
-  *Description:* {{{campaignDescription}}}
-
-  **The Heroes:**
-  {{#each characters}}
-  - **{{name}}** ({{species}} {{class}}): {{{backstory}}}
-  {{/each}}
-
-  **The Chronicle So Far (Session Logs):**
-  {{#each sessions}}
-  *Session {{sessionNumber}}:* {{{summary}}}
-  ---
-  {{/each}}
-
-  Based on all of the above, synthesize the story into a single, engaging narrative summary.
-  `,
-});
-
-const summarizeCampaignFlow = ai.defineFlow(
-  {
-    name: 'summarizeCampaignFlow',
-    inputSchema: SummarizeCampaignInputSchema,
-    outputSchema: SummarizeCampaignOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  const parsed = SummarizeCampaignInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
-);
 
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    project: process.env.OPENAI_PROJECT_ID,
+    organization: process.env.OPENAI_ORG_ID,
+  });
+
+  const { campaignName, campaignDescription, sessions, characters } = parsed.data;
+
+  const prompt = [
+    `Campaign: ${campaignName}`,
+    `Description: ${campaignDescription}`,
+    '',
+    'Heroes:',
+    ...characters.map(
+      c => `- ${c.name}${c.species ? ` (${c.species}` : ''}${c.class ? `${c.species ? ' ' : ' ('}${c.class}` : ''}${c.species || c.class ? ')' : ''}: ${c.backstory}`
+    ),
+    '',
+    'Session Logs:',
+    ...sessions.map(s => `Session ${s.sessionNumber}: ${s.summary}`),
+    '',
+    'Write a cohesive, engaging recap like a "Previously on..." segment.',
+  ].join('\n');
+
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    temperature: 0.6,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a master storyteller and campaign chronicler for Dungeons & Dragons. Generate a narrative recap that ties plot points and characters together.',
+      },
+      { role: 'user', content: prompt },
+    ],
+  });
+
+  const summary = completion.choices[0]?.message?.content ?? '';
+  return { campaignSummary: summary };
+}

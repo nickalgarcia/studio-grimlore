@@ -8,8 +8,10 @@
  * - GenerateNpcOutput - The return type for the generateNpc function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import OpenAI from 'openai';
+import { z } from 'genkit';
+
+const MODEL = 'gpt-4';
 
 const GenerateNpcInputSchema = z.object({
   campaignContext: z
@@ -29,42 +31,46 @@ export type GenerateNpcOutput = z.infer<typeof GenerateNpcOutputSchema>;
 export async function generateNpc(
   input: GenerateNpcInput
 ): Promise<GenerateNpcOutput> {
-  return generateNpcFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'generateNpcPrompt',
-  input: {schema: GenerateNpcInputSchema},
-  output: {schema: GenerateNpcOutputSchema},
-  prompt: `You are an expert Dungeon Master who excels at creating memorable Non-Player Characters (NPCs).
-
-  Based on the provided campaign context and the specific location/situation, generate a new, unique NPC.
-
-  The NPC should feel like they belong in the world described. Provide a name and a detailed description including their appearance, personality, a brief backstory, and a potential secret or motivation.
-
-  Campaign Context:
-  {{campaignContext}}
-
-  {{#if locationContext}}
-  Specific Situation:
-  {{locationContext}}
-  {{/if}}
-
-  Generate an NPC that fits this context.
-  `,
-});
-
-const generateNpcFlow = ai.defineFlow(
-  {
-    name: 'generateNpcFlow',
-    inputSchema: GenerateNpcInputSchema,
-    outputSchema: GenerateNpcOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    if(input.locationContext && !output?.location) {
-        output!.location = input.locationContext;
-    }
-    return output!;
+  const parsed = GenerateNpcInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
-);
+
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    project: process.env.OPENAI_PROJECT_ID,
+    organization: process.env.OPENAI_ORG_ID,
+  });
+
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    temperature: 0.8,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are an expert Dungeon Master creating a vivid NPC with name, description, and location if applicable. Include appearance, personality, brief backstory, and a potential secret or motivation. Return only JSON with fields: name, description, location (optional).',
+      },
+      {
+        role: 'user',
+        content: `Campaign context:\n${parsed.data.campaignContext}\n\nLocation/situation: ${parsed.data.locationContext || 'unspecified'}\n\nReturn JSON with fields: name, description, location (optional).`,
+      },
+    ],
+  });
+
+  const json = completion.choices[0]?.message?.content;
+  if (!json) throw new Error('No content returned from model');
+  try {
+    const parsedJson = GenerateNpcOutputSchema.parse(JSON.parse(json));
+    if (parsed.data.locationContext && !parsedJson.location) {
+      parsedJson.location = parsed.data.locationContext;
+    }
+    return parsedJson;
+  } catch {
+    return GenerateNpcOutputSchema.parse({
+      name: 'Generated NPC',
+      description: json,
+      location: parsed.data.locationContext,
+    });
+  }
+}
