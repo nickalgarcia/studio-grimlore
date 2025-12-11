@@ -9,10 +9,8 @@
  * - SummarizeCampaignOutput - The return type for the summarizeCampaign function.
  */
 
-import OpenAI from 'openai';
+import { getOpenAIClient, MODEL } from '@/ai/openai-client';
 import { z } from 'genkit';
-
-const MODEL = 'gpt-4';
 
 const SummarizeCampaignInputSchema = z.object({
   campaignName: z.string().describe("The name of the campaign."),
@@ -43,11 +41,7 @@ export async function summarizeCampaign(
     throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
 
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    project: process.env.OPENAI_PROJECT_ID,
-    organization: process.env.OPENAI_ORG_ID,
-  });
+  const client = getOpenAIClient();
 
   const { campaignName, campaignDescription, sessions, characters } = parsed.data;
 

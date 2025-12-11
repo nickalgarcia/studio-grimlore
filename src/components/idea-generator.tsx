@@ -54,18 +54,18 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
     e.preventDefault();
     setGeneratedIdeas(null);
 
-    const recentSessions = (sessions || []).slice(0, 5);
+    const recentSessions = (sessions || []).slice(0, 3);
     const campaignLog = recentSessions
       .map(s => `Session ${s.sessionNumber}: ${s.summary}`)
       .join('\n\n') || 'No sessions yet.';
     const characterRoster = (characters || [])
-      .slice(0, 8)
+      .slice(0, 6)
       .map(c => `- ${c.name}${c.class ? ` (${c.class})` : ''}${c.species ? ` [${c.species}]` : ''}: ${c.backstory}`)
       .join('\n') || 'No characters recorded.';
     const campaignContext = campaign ? `Campaign: ${campaign.name}\nDescription: ${campaign.description}\n\n` : '';
 
     let fullContext = `${campaignContext}Characters:\n${characterRoster}\n\nRecent Sessions (most recent first):\n${campaignLog}\n\n`;
-    fullContext += `Recent Party Actions (PRIORITY - base your ideas mainly on this):\n${partyActions}`;
+    fullContext += `Recent Party Actions (PRIORITY - every idea must reference this event and actors; ignore older details if conflicting):\n${partyActions}`;
 
     startTransition(async () => {
       const { data, error } = await getContextualIdeas(fullContext);

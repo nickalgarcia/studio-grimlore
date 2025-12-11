@@ -8,7 +8,7 @@
  * - LookupRuleOutput - The return type for the lookupRule function.
  */
 
-import OpenAI from 'openai';
+import { getOpenAIClient, MODEL } from '@/ai/openai-client';
 import { z } from 'genkit';
 
 const LookupRuleInputSchema = z.object({
@@ -24,14 +24,6 @@ const LookupRuleOutputSchema = z.object({
 });
 export type LookupRuleOutput = z.infer<typeof LookupRuleOutputSchema>;
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  project: process.env.OPENAI_PROJECT_ID,
-  organization: process.env.OPENAI_ORG_ID,
-});
-
-const MODEL = 'gpt-4';
-
 export async function lookupRule(
   input: LookupRuleInput
 ): Promise<LookupRuleOutput> {
@@ -42,6 +34,7 @@ export async function lookupRule(
 
   const term = parsed.data.term.trim();
 
+  const client = getOpenAIClient();
   const completion = await client.chat.completions.create({
     model: MODEL,
     messages: [

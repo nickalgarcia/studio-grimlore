@@ -7,7 +7,7 @@
  * - InspirationPromptOutput - The return type for the generateInspirationPrompt function.
  */
 
-import OpenAI from 'openai';
+import { getOpenAIClient, MODEL } from '@/ai/openai-client';
 import { z } from 'genkit';
 
 const InspirationPromptOutputSchema = z.object({
@@ -15,14 +15,8 @@ const InspirationPromptOutputSchema = z.object({
 });
 export type InspirationPromptOutput = z.infer<typeof InspirationPromptOutputSchema>;
 
-const MODEL = 'gpt-4';
-
 export async function generateInspirationPrompt(): Promise<InspirationPromptOutput> {
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    project: process.env.OPENAI_PROJECT_ID,
-    organization: process.env.OPENAI_ORG_ID,
-  });
+  const client = getOpenAIClient();
 
   const completion = await client.chat.completions.create({
     model: MODEL,

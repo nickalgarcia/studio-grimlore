@@ -8,10 +8,8 @@
  * - GenerateNpcOutput - The return type for the generateNpc function.
  */
 
-import OpenAI from 'openai';
+import { getOpenAIClient, MODEL } from '@/ai/openai-client';
 import { z } from 'genkit';
-
-const MODEL = 'gpt-4';
 
 const GenerateNpcInputSchema = z.object({
   campaignContext: z
@@ -36,11 +34,7 @@ export async function generateNpc(
     throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
 
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    project: process.env.OPENAI_PROJECT_ID,
-    organization: process.env.OPENAI_ORG_ID,
-  });
+  const client = getOpenAIClient();
 
   const completion = await client.chat.completions.create({
     model: MODEL,

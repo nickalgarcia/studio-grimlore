@@ -8,7 +8,7 @@
  * - GenerateContextSensitiveIdeasOutput - The return type for the generateContextSensitiveIdeas function.
  */
 
-import OpenAI from 'openai';
+import { getOpenAIClient, MODEL } from '@/ai/openai-client';
 import { z } from 'genkit';
 
 const GenerateContextSensitiveIdeasInputSchema = z.object({
@@ -30,8 +30,6 @@ export type GenerateContextSensitiveIdeasOutput = z.infer<
   typeof GenerateContextSensitiveIdeasOutputSchema
 >;
 
-const MODEL = 'gpt-4';
-
 export async function generateContextSensitiveIdeas(
   input: GenerateContextSensitiveIdeasInput
 ): Promise<GenerateContextSensitiveIdeasOutput> {
@@ -40,11 +38,7 @@ export async function generateContextSensitiveIdeas(
     throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
 
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    project: process.env.OPENAI_PROJECT_ID,
-    organization: process.env.OPENAI_ORG_ID,
-  });
+  const client = getOpenAIClient();
 
   const completion = await client.chat.completions.create({
     model: MODEL,
@@ -53,7 +47,7 @@ export async function generateContextSensitiveIdeas(
       {
         role: 'system',
         content:
-          'You are an experienced Dungeon Master helping another DM generate ideas. PRIORITIZE the Recent Party Actions section; use campaign/character context only as flavor. If there is any conflict, follow Recent Party Actions. Respond with JSON only: plotHook, encounterIdea, npcConcept, dialogIdea.',
+          'You are an experienced Dungeon Master helping another DM generate ideas. PRIORITIZE the Recent Party Actions section; use campaign/character context only as flavor. If there is any conflict, follow Recent Party Actions. Every field must clearly reference the actors/events in Recent Party Actions (names, items, locations). Respond with JSON only: plotHook, encounterIdea, npcConcept, dialogIdea.',
       },
       {
         role: 'user',
