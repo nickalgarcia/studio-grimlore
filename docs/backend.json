@@ -1,0 +1,560 @@
+
+{
+  "entities": {
+    "Campaign": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Campaign",
+      "type": "object",
+      "description": "Represents a D&D campaign, tracking its overall progress and settings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Campaign entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the campaign."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief summary or description of the campaign's storyline and goals."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the campaign was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "createdAt"
+      ]
+    },
+    "Character": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Character",
+      "type": "object",
+      "description": "Represents a player character in a campaign.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Character entity."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Reference to Campaign. (Relationship: Campaign 1:N Character)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the character."
+        },
+        "species": {
+          "type": "string",
+          "description": "The character's species (e.g., Human, Elf, Dwarf)."
+        },
+        "class": {
+          "type": "string",
+          "description": "The character's class (e.g., Fighter, Wizard, Rogue)."
+        },
+        "originCity": {
+          "type": "string",
+          "description": "The character's city of origin."
+        },
+        "backstory": {
+          "type": "string",
+          "description": "The character's backstory, as provided by the player or DM."
+        },
+        "developmentLog": {
+          "type": "string",
+          "description": "A log of the character's development and significant moments, often updated by AI analysis."
+        },
+        "armorClass": {
+          "type": "number",
+          "description": "The character's Armor Class (AC)."
+        },
+        "speed": {
+          "type": "number",
+          "description": "The character's speed in feet."
+        },
+        "passivePerception": {
+          "type": "number",
+          "description": "The character's passive Perception score."
+        },
+        "passiveInvestigation": {
+          "type": "number",
+          "description": "The character's passive Investigation score."
+        },
+        "passiveInsight": {
+          "type": "number",
+          "description": "The character's passive Insight score."
+        }
+      },
+      "required": [
+        "id",
+        "campaignId",
+        "name",
+        "backstory"
+      ]
+    },
+    "Npc": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Npc",
+      "type": "object",
+      "description": "Represents a non-player character (NPC) in a campaign.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the NPC entity."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Reference to Campaign. (Relationship: Campaign 1:N Npc)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the NPC."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the NPC's appearance, personality, and backstory."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location where the NPC was first encountered or resides."
+        }
+      },
+      "required": [
+        "id",
+        "campaignId",
+        "name",
+        "description"
+      ]
+    },
+    "Location": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Location",
+      "type": "object",
+      "description": "Represents a key location within a campaign world.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Location entity."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Reference to Campaign. (Relationship: Campaign 1:N Location)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the location."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the location, including its appearance, history, and key features."
+        }
+      },
+      "required": [
+        "id",
+        "campaignId",
+        "name",
+        "description"
+      ]
+    },
+    "Session": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Session",
+      "type": "object",
+      "description": "Represents a single D&D session within a campaign.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Session entity."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Reference to Campaign. (Relationship: Campaign 1:N Session)"
+        },
+        "sessionNumber": {
+          "type": "number",
+          "description": "The sequential number of the session within the campaign."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the session.",
+          "format": "date-time"
+        },
+        "summary": {
+          "type": "string",
+          "description": "A brief summary of the events that transpired during the session."
+        },
+        "aiSummary": {
+          "type": "string",
+          "description": "A concise, AI-generated summary of the session."
+        }
+      },
+      "required": [
+        "id",
+        "campaignId",
+        "sessionNumber",
+        "date",
+        "summary"
+      ]
+    },
+    "PlotHook": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PlotHook",
+      "type": "object",
+      "description": "Represents a plot hook generated for the campaign.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PlotHook entity."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Reference to Campaign. (Relationship: Campaign 1:N PlotHook)"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the plot hook."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Reference to Session. (Relationship: Session 1:N PlotHook). The session this plothook originated from."
+        }
+      },
+      "required": [
+        "id",
+        "campaignId",
+        "description",
+        "sessionId"
+      ]
+    },
+    "EncounterIdea": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EncounterIdea",
+      "type": "object",
+      "description": "Represents an encounter idea generated for the campaign.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the EncounterIdea entity."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Reference to Campaign. (Relationship: Campaign 1:N EncounterIdea)"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the encounter idea."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Reference to Session. (Relationship: Session 1:N EncounterIdea). The session this encounter idea originated from."
+        }
+      },
+      "required": [
+        "id",
+        "campaignId",
+        "description",
+        "sessionId"
+      ]
+    },
+    "NpcConcept": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NpcConcept",
+      "type": "object",
+      "description": "Represents an NPC concept generated for the campaign.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the NpcConcept entity."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Reference to Campaign. (Relationship: Campaign 1:N NpcConcept)"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the NPC concept."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Reference to Session. (Relationship: Session 1:N NpcConcept). The session this NPC concept originated from."
+        }
+      },
+      "required": [
+        "id",
+        "campaignId",
+        "description",
+        "sessionId"
+      ]
+    },
+    "SavedConcept": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SavedConcept",
+      "type": "object",
+      "description": "Represents an idea saved by the user to their library.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SavedConcept."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this concept."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Plot Hook",
+            "Encounter Idea",
+            "NPC Concept",
+            "Inspiration"
+          ],
+          "description": "The type of concept."
+        },
+        "content": {
+          "type": "string",
+          "description": "The main content of the saved idea."
+        },
+        "context": {
+          "type": "string",
+          "description": "Optional context about why this idea was generated."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the concept was saved."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "content",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}",
+        "definition": {
+          "entityName": "Campaign",
+          "schema": {
+            "$ref": "#/backend/entities/Campaign"
+          },
+          "description": "Stores campaign data for each user. Includes denormalized 'ownerId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}/characters/{characterId}",
+        "definition": {
+          "entityName": "Character",
+          "schema": {
+            "$ref": "#/backend/entities/Character"
+          },
+          "description": "Stores player character data for each campaign.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            },
+            {
+              "name": "characterId",
+              "description": "The ID of the character."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}/npcs/{npcId}",
+        "definition": {
+          "entityName": "Npc",
+          "schema": {
+            "$ref": "#/backend/entities/Npc"
+          },
+          "description": "Stores NPC data for each campaign.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            },
+            {
+              "name": "npcId",
+              "description": "The ID of the NPC."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}/locations/{locationId}",
+        "definition": {
+          "entityName": "Location",
+          "schema": {
+            "$ref": "#/backend/entities/Location"
+          },
+          "description": "Stores key location data for each campaign.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            },
+            {
+              "name": "locationId",
+              "description": "The ID of the location."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}/sessions/{sessionId}",
+        "definition": {
+          "entityName": "Session",
+          "schema": {
+            "$ref": "#/backend/entities/Session"
+          },
+          "description": "Stores session data for each campaign. Includes denormalized 'ownerId' and 'campaignId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            },
+            {
+              "name": "sessionId",
+              "description": "The ID of the session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/concepts/{conceptId}",
+        "definition": {
+          "entityName": "SavedConcept",
+          "schema": {
+            "$ref": "#/backend/entities/SavedConcept"
+          },
+          "description": "Stores concepts saved by the user to their library.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the concept."
+            },
+            {
+              "name": "conceptId",
+              "description": "The ID of the saved concept."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}/plotHooks/{plotHookId}",
+        "definition": {
+          "entityName": "PlotHook",
+          "schema": {
+            "$ref": "#/backend/entities/PlotHook"
+          },
+          "description": "Stores plot hooks for each campaign. Includes denormalized 'ownerId' and 'campaignId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            },
+            {
+              "name": "plotHookId",
+              "description": "The ID of the plot hook."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}/encounterIdeas/{encounterIdeaId}",
+        "definition": {
+          "entityName": "EncounterIdea",
+          "schema": {
+            "$ref": "#/backend/entities/EncounterIdea"
+          },
+          "description": "Stores encounter ideas for each campaign. Includes denormalized 'ownerId' and 'campaignId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            },
+            {
+              "name": "encounterIdeaId",
+              "description": "The ID of the encounter idea."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/campaigns/{campaignId}/npcConcepts/{npcConceptId}",
+        "definition": {
+          "entityName": "NpcConcept",
+          "schema": {
+            "$ref": "#/backend/entities/NpcConcept"
+          },
+          "description": "Stores NPC concepts for each campaign. Includes denormalized 'ownerId' and 'campaignId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the campaign."
+            },
+            {
+              "name": "campaignId",
+              "description": "The ID of the campaign."
+            },
+            {
+              "name": "npcConceptId",
+              "description": "The ID of the NPC concept."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the Grimlore Forge application. It follows a hierarchical path structure, starting with users and branching into campaigns, sessions, and related entities. This structure enables simple, robust, and easily debuggable security rules.\n\n**Authorization Independence:** Each subcollection includes the necessary authorization context, eliminating the need for `get()` calls in security rules. For example, the `/users/{userId}/campaigns/{campaignId}/sessions/{sessionId}` path ensures that each session is associated with a campaign and user, and authorization can be determined based on the document's data without needing to traverse up the hierarchy.\n\n**Structural Segregation:** The structure segregates data based on ownership and access needs. User-owned campaigns are stored under `/users/{userId}/campaigns/{campaignId}`, while sessions, party decisions, plot hooks, encounter ideas, and NPC concepts are nested under their respective campaigns. This segregation simplifies security rules by ensuring that all documents within a collection share the same security requirements.\n\n**Access Modeling:** The structure uses path-based ownership for private user data and hierarchical paths for user-owned entities. Campaigns are owned by users (`/users/{userId}/campaigns/{campaignId}`), sessions are associated with campaigns (`/users/{userId}/campaigns/{campaignId}/sessions/{sessionId}`), and related entities are nested under sessions or campaigns. This model ensures clear ownership and simplifies access control.\n\n**QAPs (Rules are not Filters):** The structure supports secure `list` operations by leveraging the hierarchical structure and path-based ownership. Security rules can easily filter lists based on user ID and campaign ID, ensuring that users can only access data they own or have explicit permission to view."
+  }
+}

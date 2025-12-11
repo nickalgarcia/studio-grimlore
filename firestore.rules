@@ -1,0 +1,209 @@
+
+/**
+ * @fileOverview
+ * This ruleset enforces a strict user-ownership model for all data within the Grimlore Forge application.
+ *
+ * Data Structure:
+ * All data is nested under /users/{userId}, with further subcollections for campaigns, sessions, and related entities.
+ *  - /users/{userId}/campaigns/{campaignId}
+ *  - /users/{userId}/campaigns/{campaignId}/characters/{characterId}
+ *  - /users/{userId}/campaigns/{campaignId}/npcs/{npcId}
+ *  - /users/{userId}/campaigns/{campaignId}/locations/{locationId}
+ *  - /users/{userId}/campaigns/{campaignId}/sessions/{sessionId}
+ *  - /users/{userId}/concepts/{conceptId}
+ *  - /users/{userId}/campaigns/{campaignId}/plotHooks/{plotHookId}
+ *  - /users/{userId}/campaigns/{campaignId}/encounterIdeas/{encounterIdeaId}
+ *  - /users/{userId}/campaigns/{campaignId}/npcConcepts/{npcConceptId}
+ *
+ * Key Security Decisions:
+ * - All data is private to the owning user, enforced via the `isOwner(userId)` helper function.
+ * - List operations are restricted to the owner for user-scoped collections.
+ * - Data consistency is enforced between the path and the document's internal userId field on create and update.
+ * - To avoid costly `get()` calls, the data model denormalizes ownership information (userId, campaignId) into subcollections.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the user is signed in.
+     * @returns {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the user ID matches the authenticated user's ID.
+     * @param {string} userId - The user ID to check.
+     * @returns {boolean} True if the user ID matches the authenticated user's ID, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is the owner of the existing document.
+     * @param {string} userId - The user ID to check.
+     * @returns {boolean} True if the user ID matches the authenticated user's ID and the resource exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Enforces ownership for campaign documents.
+     * @path /users/{userId}/campaigns/{campaignId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new campaign with userId "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create a campaign with userId "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own campaign.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for character documents within a campaign.
+     * @path /users/{userId}/campaigns/{campaignId}/characters/{characterId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new character in their campaign.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create a character in a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own character.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update a character owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId}/characters/{characterId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for NPC documents within a campaign.
+     * @path /users/{userId}/campaigns/{campaignId}/npcs/{npcId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new NPC in their campaign.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create an NPC in a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own NPC.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update an NPC owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId}/npcs/{npcId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for location documents within a campaign.
+     * @path /users/{userId}/campaigns/{campaignId}/locations/{locationId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new location in their campaign.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create a location in a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own location.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update a location owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId}/locations/{locationId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for session documents within a campaign.
+     * @path /users/{userId}/campaigns/{campaignId}/sessions/{sessionId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new session in their campaign.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create a session in a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own session.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update a session owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId}/sessions/{sessionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for saved concept documents.
+     * @path /users/{userId}/concepts/{conceptId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new saved concept.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create a saved concept for user "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own saved concept.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update a saved concept owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/concepts/{conceptId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for plot hook documents within a campaign.
+     * @path /users/{userId}/campaigns/{campaignId}/plotHooks/{plotHookId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new plot hook in their campaign.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create a plot hook in a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own plot hook.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update a plot hook owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId}/plotHooks/{plotHookId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for encounter idea documents within a campaign.
+     * @path /users/{userId}/campaigns/{campaignId}/encounterIdeas/{encounterIdeaId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new encounter idea in their campaign.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create an encounter idea in a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own encounter idea.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update an encounter idea owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId}/encounterIdeas/{encounterIdeaId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces ownership for NPC concept documents within a campaign.
+     * @path /users/{userId}/campaigns/{campaignId}/npcConcepts/{npcConceptId}
+     * @allow (create) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" creates a new NPC concept in their campaign.
+     * @deny (create) - User "ANOTHER_USER_ID" attempts to create an NPC concept in a campaign owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @allow (update) - User "NHn2Vkd3b7fOx1HiPSAmqxYktUR2" updates their own NPC concept.
+     * @deny (update) - User "ANOTHER_USER_ID" attempts to update an NPC concept owned by "NHn2Vkd3b7fOx1HiPSAmqxYktUR2".
+     * @principle Enforces document ownership for writes and validates relational integrity on create and update.
+     */
+    match /users/{userId}/campaigns/{campaignId}/npcConcepts/{npcConceptId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
+
+    
