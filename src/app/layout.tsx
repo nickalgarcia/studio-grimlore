@@ -3,21 +3,24 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { cn } from '@/lib/utils';
-import { Inter, Cinzel } from 'next/font/google';
+import { Cinzel, Crimson_Pro } from 'next/font/google';
 
 export const metadata: Metadata = {
   title: 'Grimlore Forge',
-  description: 'A reactive D&D campaign assistant for Dungeon Masters',
+  description: 'A campaign assistant for Dungeon Masters — built for the table.',
 };
-
-const fontInter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-});
 
 const fontCinzel = Cinzel({
   subsets: ['latin'],
   variable: '--font-cinzel',
+  weight: ['400', '600', '700'],
+});
+
+const fontCrimsonPro = Crimson_Pro({
+  subsets: ['latin'],
+  variable: '--font-crimson',
+  weight: ['300', '400'],
+  style: ['normal', 'italic'],
 });
 
 export default function RootLayout({
@@ -29,9 +32,9 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body
         className={cn(
-          'min-h-screen font-body antialiased',
-          fontInter.variable,
-          fontCinzel.variable
+          'min-h-screen antialiased',
+          fontCinzel.variable,
+          fontCrimsonPro.variable,
         )}
         suppressHydrationWarning
       >
