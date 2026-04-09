@@ -5,64 +5,64 @@
 @layer base {
   :root {
     --background: 220 25% 6%;
-    --foreground: 38 25% 80%;
+    --foreground: 38 30% 88%;           /* brighter base text */
     --card: 220 20% 9%;
-    --card-foreground: 38 25% 82%;
+    --card-foreground: 38 30% 88%;
     --popover: 220 25% 6%;
-    --popover-foreground: 38 25% 80%;
+    --popover-foreground: 38 30% 88%;
 
     /* Runic Teal — interactive, AI, active states */
-    --primary: 174 50% 48%;
+    --primary: 174 50% 52%;             /* slightly brighter teal */
     --primary-foreground: 174 30% 96%;
 
-    --secondary: 174 20% 14%;
-    --secondary-foreground: 38 25% 75%;
+    --secondary: 174 20% 16%;
+    --secondary-foreground: 38 28% 80%;
 
     --muted: 220 15% 13%;
-    --muted-foreground: 38 15% 48%;
+    --muted-foreground: 38 20% 62%;     /* much more readable muted text */
 
     /* Bone Parchment — headings, labels, accents */
-    --accent: 38 28% 75%;
+    --accent: 38 32% 80%;               /* brighter parchment */
     --accent-foreground: 220 25% 8%;
 
-    --destructive: 0 55% 42%;
+    --destructive: 0 55% 48%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 174 20% 16%;
-    --input: 220 18% 12%;
-    --ring: 174 50% 48%;
+    --border: 174 22% 20%;              /* more visible borders */
+    --input: 220 18% 13%;
+    --ring: 174 50% 52%;
 
     --radius: 0.5rem;
 
     /* Custom forge tokens */
-    --teal: 174 50% 48%;
-    --teal-dim: 174 30% 30%;
-    --teal-glow: 174 50% 48%;
-    --parchment: 38 28% 75%;
-    --parchment-dim: 38 18% 50%;
-    --parchment-faint: 38 15% 30%;
+    --teal: 174 50% 52%;
+    --teal-dim: 174 35% 38%;
+    --teal-glow: 174 50% 52%;
+    --parchment: 38 32% 80%;
+    --parchment-dim: 38 22% 62%;
+    --parchment-faint: 38 18% 40%;
   }
 
   .dark {
     --background: 220 25% 6%;
-    --foreground: 38 25% 80%;
+    --foreground: 38 30% 88%;
     --card: 220 20% 9%;
-    --card-foreground: 38 25% 82%;
+    --card-foreground: 38 30% 88%;
     --popover: 220 25% 6%;
-    --popover-foreground: 38 25% 80%;
-    --primary: 174 50% 48%;
+    --popover-foreground: 38 30% 88%;
+    --primary: 174 50% 52%;
     --primary-foreground: 174 30% 96%;
-    --secondary: 174 20% 14%;
-    --secondary-foreground: 38 25% 75%;
+    --secondary: 174 20% 16%;
+    --secondary-foreground: 38 28% 80%;
     --muted: 220 15% 13%;
-    --muted-foreground: 38 15% 48%;
-    --accent: 38 28% 75%;
+    --muted-foreground: 38 20% 62%;
+    --accent: 38 32% 80%;
     --accent-foreground: 220 25% 8%;
-    --destructive: 0 55% 42%;
+    --destructive: 0 55% 48%;
     --destructive-foreground: 0 0% 98%;
-    --border: 174 20% 14%;
-    --input: 220 18% 12%;
-    --ring: 174 50% 48%;
+    --border: 174 22% 20%;
+    --input: 220 18% 13%;
+    --ring: 174 50% 52%;
   }
 }
 
@@ -78,8 +78,10 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Crimson Pro', 'Georgia', serif;
+    font-size: 18px;
+    line-height: 1.65;
     background-image:
-      radial-gradient(ellipse 80% 40% at 50% 0%, hsl(174 50% 48% / 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 40% at 50% 0%, hsl(174 50% 52% / 0.05) 0%, transparent 60%),
       radial-gradient(ellipse 50% 30% at 100% 100%, hsl(174 40% 35% / 0.04) 0%, transparent 50%);
     background-attachment: fixed;
   }
@@ -155,10 +157,10 @@
   /* ── Parchment label ── */
   .label-forge {
     font-family: 'Cinzel', serif;
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: hsl(174 30% 38%);
+    color: hsl(174 35% 48%);
   }
 
   /* ── Teal pulse dot for live indicator ── */
@@ -198,22 +200,22 @@
   /* ── Quick action chips ── */
   .forge-chip {
     font-family: 'Cinzel', serif;
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
-    padding: 4px 12px;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    padding: 6px 14px;
     border-radius: 20px;
-    border: 1px solid hsl(174 30% 20%);
-    color: hsl(174 30% 45%);
-    background: transparent;
+    border: 1px solid hsl(174 30% 26%);
+    color: hsl(174 35% 58%);
+    background: hsl(174 30% 14% / 0.5);
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
   }
 
   .forge-chip:hover {
-    border-color: hsl(174 40% 35%);
-    color: hsl(174 40% 60%);
-    background: hsl(174 50% 48% / 0.06);
+    border-color: hsl(174 45% 40%);
+    color: hsl(174 45% 70%);
+    background: hsl(174 50% 52% / 0.1);
   }
 
   /* ── Active nav tab ── */

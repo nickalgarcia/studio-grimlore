@@ -195,18 +195,18 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
           /* Welcome state */
           <div className="space-y-6 py-4">
             <div className="text-center space-y-2">
-              <h3 className="font-headline text-xl font-semibold">Session Assistant</h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              <h3 className="font-headline text-2xl font-semibold">Session Assistant</h3>
+              <p className="text-base text-muted-foreground max-w-md mx-auto">
                 I know your campaign. Ask me anything mid-session — unexpected player moves,
                 NPC reactions, complications, dialogue, whatever you need.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {STARTER_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
-                  className="text-left text-xs p-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-accent/40 transition-all text-muted-foreground hover:text-foreground"
+                  className="text-left text-sm p-4 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all text-foreground/70 hover:text-foreground font-body leading-snug"
                 >
                   {prompt}
                 </button>
@@ -240,7 +240,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
                       : 'bg-white/5 border border-white/10 text-foreground/90 rounded-tl-sm'
                     }`}
                 >
-                  <div className="whitespace-pre-wrap font-body">{msg.content}</div>
+                  <div className="whitespace-pre-wrap font-body text-base leading-relaxed">{msg.content}</div>
 
                   {/* Copy button (assistant only) */}
                   {msg.role === 'assistant' && (
@@ -278,7 +278,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="What's happening at the table? (Enter to send, Shift+Enter for new line)"
-          className="resize-none min-h-[52px] max-h-32 font-body text-sm"
+          className="resize-none min-h-[52px] max-h-32 font-body text-base"
           disabled={isLoading}
           rows={2}
         />
