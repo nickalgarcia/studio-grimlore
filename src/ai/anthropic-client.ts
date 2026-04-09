@@ -8,7 +8,7 @@
 
 export const runtime = 'nodejs';
 
-export const CLAUDE_MODEL = 'claude-sonnet-4-5-20251022';
+export const CLAUDE_MODEL = 'claude-sonnet-4-5-20250929';
 
 export function getAnthropicHeaders() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
