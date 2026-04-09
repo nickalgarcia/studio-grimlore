@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -33,12 +32,13 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { generateNewNpc } from '@/app/actions';
+import { getNpc } from '@/app/actions';
+import type { GenerateNpcOutput } from '@/app/actions';
 import { Skeleton } from './ui/skeleton';
 import { ScrollArea } from './ui/scroll-area';
 
 interface NpcManagerProps {
-    campaign: Campaign;
+  campaign: Campaign;
 }
 
 const TruncatedContent: React.FC<{ title: string; content: string }> = ({ title, content }) => {
@@ -65,7 +65,7 @@ const TruncatedContent: React.FC<{ title: string; content: string }> = ({ title,
               <ScrollArea className="max-h-[60vh] pr-6">
                 <p className="whitespace-pre-wrap py-4">{content}</p>
               </ScrollArea>
-               <DialogFooter>
+              <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button">Close</Button>
                 </DialogClose>
@@ -78,32 +78,28 @@ const TruncatedContent: React.FC<{ title: string; content: string }> = ({ title,
   );
 };
 
-
 export function NpcManager({ campaign }: NpcManagerProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // State for manual NPC creation/editing
+  // Manual create/edit state
   const [isCreateFormOpen, setIsCreateFormOpen] = React.useState(false);
   const [isEditFormOpen, setIsEditFormOpen] = React.useState(false);
   const [newNpcName, setNewNpcName] = React.useState('');
   const [newNpcDescription, setNewNpcDescription] = React.useState('');
   const [newNpcLocation, setNewNpcLocation] = React.useState('');
-  
   const [editingNpc, setEditingNpc] = React.useState<Npc | null>(null);
   const [editedName, setEditedName] = React.useState('');
   const [editedDescription, setEditedDescription] = React.useState('');
   const [editedLocation, setEditedLocation] = React.useState('');
-  
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // State for AI NPC generation
+  // AI generation state
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = React.useState(false);
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [generatedNpc, setGeneratedNpc] = React.useState<ReturnType<typeof generateNewNpc> extends Promise<infer T> ? T['data'] : never>(null);
+  const [generatedNpc, setGeneratedNpc] = React.useState<GenerateNpcOutput | null>(null);
   const [generationLocation, setGenerationLocation] = React.useState('');
-
 
   const npcsRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -115,7 +111,6 @@ export function NpcManager({ campaign }: NpcManagerProps) {
   const handleCreateNpc = async () => {
     if (!npcsRef || !newNpcName.trim() || !newNpcDescription.trim()) return;
     setIsSubmitting(true);
-
     try {
       await addDocumentNonBlocking(npcsRef, {
         campaignId: campaign.id,
@@ -141,7 +136,7 @@ export function NpcManager({ campaign }: NpcManagerProps) {
     const npcDocRef = doc(firestore, 'users', user.uid, 'campaigns', campaign.id, 'npcs', npcId);
     deleteDocumentNonBlocking(npcDocRef);
     toast({ title: 'NPC removed.' });
-  }
+  };
 
   const handleOpenEditDialog = (npc: Npc) => {
     setEditingNpc(npc);
@@ -149,12 +144,11 @@ export function NpcManager({ campaign }: NpcManagerProps) {
     setEditedDescription(npc.description);
     setEditedLocation(npc.location || '');
     setIsEditFormOpen(true);
-  }
+  };
 
   const handleUpdateNpc = async () => {
     if (!user || !editingNpc || !editedName.trim() || !editedDescription.trim()) return;
     setIsSubmitting(true);
-
     try {
       const npcDocRef = doc(firestore, 'users', user.uid, 'campaigns', campaign.id, 'npcs', editingNpc.id);
       await updateDocumentNonBlocking(npcDocRef, {
@@ -171,29 +165,47 @@ export function NpcManager({ campaign }: NpcManagerProps) {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   const handleGenerateNpc = async () => {
     setIsGenerating(true);
     setGeneratedNpc(null);
-    const campaignContext = `Campaign: ${campaign.name}\nDescription: ${campaign.description}`;
-    const result = await generateNewNpc(campaignContext, generationLocation);
-    if(result.data) {
-        setGeneratedNpc(result.data);
+
+    const { data, error } = await getNpc({
+      campaignContext: `Campaign: ${campaign.name}\nDescription: ${campaign.description}`,
+      locationContext: generationLocation || undefined,
+    });
+
+    if (data) {
+      setGeneratedNpc(data);
     } else {
-        toast({ variant: "destructive", title: "NPC Generation Failed", description: result.error });
+      toast({ variant: 'destructive', title: 'NPC Generation Failed', description: error ?? 'Unknown error' });
     }
     setIsGenerating(false);
-  }
+  };
+
+  // Flatten the richer NPC output into a single description string for storage
+  // (Npc type in Firestore only has a description field)
+  const buildNpcDescription = (npc: GenerateNpcOutput): string => {
+    const parts = [
+      npc.appearance && `Appearance: ${npc.appearance}`,
+      npc.personality && `Personality: ${npc.personality}`,
+      npc.backstory && `Backstory: ${npc.backstory}`,
+      npc.motivation && `Motivation: ${npc.motivation}`,
+      npc.secret && `Secret: ${npc.secret}`,
+      npc.speechPattern && `Speech: ${npc.speechPattern}`,
+    ].filter(Boolean);
+    return parts.join('\n\n');
+  };
 
   const handleSaveGeneratedNpc = async () => {
-    if(!npcsRef || !generatedNpc) return;
+    if (!npcsRef || !generatedNpc) return;
     try {
       await addDocumentNonBlocking(npcsRef, {
         campaignId: campaign.id,
         name: generatedNpc.name,
-        description: generatedNpc.description,
-        location: generatedNpc.location || generationLocation,
+        description: buildNpcDescription(generatedNpc),
+        location: generatedNpc.location || generationLocation || undefined,
       });
       toast({ title: `Added ${generatedNpc.name} to your NPC list!` });
       setGeneratedNpc(null);
@@ -203,11 +215,11 @@ export function NpcManager({ campaign }: NpcManagerProps) {
       console.error('Error saving generated NPC:', error);
       toast({ variant: 'destructive', title: 'Could not save NPC', description: 'Check your connection or permissions and try again.' });
     }
-  }
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-       <div className="text-center">
+      <div className="text-center">
         <h2 className="text-4xl font-headline font-bold">NPC Dossier</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
           Manage the allies, adversaries, and acquaintances in "{campaign.name}".
@@ -215,161 +227,209 @@ export function NpcManager({ campaign }: NpcManagerProps) {
       </div>
 
       <div className="flex justify-center gap-4">
+        {/* Manual create dialog */}
         <Dialog open={isCreateFormOpen} onOpenChange={setIsCreateFormOpen}>
-            <DialogTrigger asChild>
-                <Button><PlusCircle /> Add NPC Manually</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">Add a New NPC</DialogTitle>
-                <DialogDescription>
-                    Provide the details for a new non-player character.
-                </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <Input placeholder="NPC Name" value={newNpcName} onChange={(e) => setNewNpcName(e.target.value)} disabled={isSubmitting}/>
-                    <Input placeholder="Location (e.g., 'Neverwinter Market')" value={newNpcLocation} onChange={(e) => setNewNpcLocation(e.target.value)} disabled={isSubmitting}/>
-                    <Textarea placeholder="NPC description, personality, and backstory..." value={newNpcDescription} onChange={(e) => setNewNpcDescription(e.target.value)} disabled={isSubmitting} className="min-h-[150px]"/>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
-                    <Button onClick={handleCreateNpc} disabled={isSubmitting || !newNpcName.trim() || !newNpcDescription.trim()}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                        Save NPC
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
+          <DialogTrigger asChild>
+            <Button><PlusCircle /> Add NPC Manually</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">Add a New NPC</DialogTitle>
+              <DialogDescription>Provide the details for a new non-player character.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Input placeholder="NPC Name" value={newNpcName} onChange={e => setNewNpcName(e.target.value)} disabled={isSubmitting} />
+              <Input placeholder="Location (e.g., 'Neverwinter Market')" value={newNpcLocation} onChange={e => setNewNpcLocation(e.target.value)} disabled={isSubmitting} />
+              <Textarea placeholder="NPC description, personality, and backstory..." value={newNpcDescription} onChange={e => setNewNpcDescription(e.target.value)} disabled={isSubmitting} className="min-h-[150px]" />
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
+              <Button onClick={handleCreateNpc} disabled={isSubmitting || !newNpcName.trim() || !newNpcDescription.trim()}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                Save NPC
+              </Button>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
-        <Dialog open={isGenerateDialogOpen} onOpenChange={(open) => { if(!open) { setGeneratedNpc(null); setGenerationLocation(''); } setIsGenerateDialogOpen(open);}}>
-            <DialogTrigger asChild>
-                <Button variant="outline"><Wand2 className="mr-2"/> Generate NPC with AI</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="font-headline text-2xl">Generate a New NPC</DialogTitle>
-                    <DialogDescription>
-                        Need an NPC on the fly? Describe the situation and let the AI create one for you.
-                    </DialogDescription>
-                </DialogHeader>
-                 <div className="space-y-4">
-                    <Input 
-                        placeholder="Optional: Where is the NPC? (e.g., 'a tavern')"
-                        value={generationLocation}
-                        onChange={(e) => setGenerationLocation(e.target.value)}
-                        disabled={isGenerating}
-                    />
-                    <Button onClick={handleGenerateNpc} disabled={isGenerating} className="w-full">
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                        {isGenerating ? 'Generating...' : 'Generate NPC'}
-                    </Button>
-                </div>
 
-                <ScrollArea className="max-h-[50vh] pr-6">
-                  {isGenerating && (
-                      <div className="space-y-4 pt-4">
-                          <Skeleton className="h-6 w-1/2" />
-                          <div className="space-y-2">
-                              <Skeleton className="h-4 w-full" />
-                              <Skeleton className="h-4 w-full" />
-                              <Skeleton className="h-4 w-5/6" />
-                          </div>
+        {/* AI generate dialog */}
+        <Dialog
+          open={isGenerateDialogOpen}
+          onOpenChange={open => {
+            if (!open) { setGeneratedNpc(null); setGenerationLocation(''); }
+            setIsGenerateDialogOpen(open);
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button variant="outline"><Wand2 className="mr-2" /> Generate NPC with AI</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">Generate a New NPC</DialogTitle>
+              <DialogDescription>
+                Need an NPC on the fly? Describe the situation and let the AI create one for you.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder="Optional: Where is the NPC? (e.g., 'a tavern in Mirathen')"
+                value={generationLocation}
+                onChange={e => setGenerationLocation(e.target.value)}
+                disabled={isGenerating}
+              />
+              <Button onClick={handleGenerateNpc} disabled={isGenerating} className="w-full">
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                {isGenerating ? 'Generating...' : 'Generate NPC'}
+              </Button>
+            </div>
+
+            <ScrollArea className="max-h-[50vh] pr-6">
+              {isGenerating && (
+                <div className="space-y-4 pt-4">
+                  <Skeleton className="h-6 w-1/2" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                  </div>
+                </div>
+              )}
+
+              {generatedNpc && (
+                <Card className="mt-4 animate-in fade-in">
+                  <CardHeader>
+                    <CardTitle className="font-headline text-xl">{generatedNpc.name}</CardTitle>
+                    {generatedNpc.location && <CardDescription>{generatedNpc.location}</CardDescription>}
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    {generatedNpc.appearance && (
+                      <div>
+                        <p className="font-semibold text-accent-foreground mb-1">Appearance</p>
+                        <p className="text-muted-foreground">{generatedNpc.appearance}</p>
                       </div>
-                  )}
-                  
-                  {generatedNpc && (
-                      <Card className="mt-4 animate-in fade-in">
-                          <CardHeader>
-                              <CardTitle>{generatedNpc.name}</CardTitle>
-                              {generatedNpc.location && <CardDescription>{generatedNpc.location}</CardDescription>}
-                          </CardHeader>
-                          <CardContent>
-                              <p className="whitespace-pre-wrap">{generatedNpc.description}</p>
-                          </CardContent>
-                      </Card>
-                  )}
-                </ScrollArea>
-                
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="secondary" disabled={isGenerating}>Cancel</Button></DialogClose>
-                    <Button onClick={handleSaveGeneratedNpc} disabled={!generatedNpc}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Save to Campaign
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
+                    )}
+                    {generatedNpc.personality && (
+                      <div>
+                        <p className="font-semibold text-accent-foreground mb-1">Personality</p>
+                        <p className="text-muted-foreground">{generatedNpc.personality}</p>
+                      </div>
+                    )}
+                    {generatedNpc.motivation && (
+                      <div>
+                        <p className="font-semibold text-accent-foreground mb-1">Motivation</p>
+                        <p className="text-muted-foreground">{generatedNpc.motivation}</p>
+                      </div>
+                    )}
+                    {generatedNpc.secret && (
+                      <div>
+                        <p className="font-semibold text-accent-foreground mb-1">🔒 Secret</p>
+                        <p className="text-muted-foreground italic">{generatedNpc.secret}</p>
+                      </div>
+                    )}
+                    {generatedNpc.speechPattern && (
+                      <div>
+                        <p className="font-semibold text-accent-foreground mb-1">Speech</p>
+                        <p className="text-muted-foreground">{generatedNpc.speechPattern}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </ScrollArea>
+
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary" disabled={isGenerating}>Cancel</Button>
+              </DialogClose>
+              <Button onClick={handleSaveGeneratedNpc} disabled={!generatedNpc}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Save to Campaign
+              </Button>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
       </div>
 
-
+      {/* NPC list */}
       {npcsLoading ? (
-          <div className="text-center"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></div>
-        ) : npcs && npcs.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {npcs.map((npc) => (
-              <Card key={npc.id} className="flex flex-col group">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="font-headline text-2xl flex items-center gap-3"><User /> {npc.name}</CardTitle>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEditDialog(npc)}>
-                             <Edit className="h-4 w-4" />
-                        </Button>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will permanently delete {npc.name}. This action cannot be undone.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteNpc(npc.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                  </div>
-                   {npc.location && <CardDescription>Last seen: {npc.location}</CardDescription>}
-                </CardHeader>
-                <CardContent className="space-y-4 font-body flex-grow min-h-[140px]">
-                  <TruncatedContent title="Description" content={npc.description} />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-card/50 border border-dashed rounded-xl">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-2xl font-headline">A Quiet World...</h3>
-            <p className="mt-2 text-muted-foreground">
-                Add your first NPC to begin populating your campaign world.
-            </p>
-         </div>
-        )}
-      {/* Edit Dialog */}
-      <Dialog open={isEditFormOpen} onOpenChange={setIsEditFormOpen}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle className="font-headline text-2xl">Edit {editingNpc?.name}</DialogTitle>
-                    <DialogDescription>Update the NPC's details.</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <Input placeholder="NPC Name" value={editedName} onChange={(e) => setEditedName(e.target.value)} disabled={isSubmitting}/>
-                    <Input placeholder="Location" value={editedLocation} onChange={(e) => setEditedLocation(e.target.value)} disabled={isSubmitting}/>
-                    <Textarea placeholder="NPC description..." value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} disabled={isSubmitting} className="min-h-[150px]"/>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
-                    <Button onClick={handleUpdateNpc} disabled={isSubmitting || !editedName.trim() || !editedDescription.trim()}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                        Save Changes
+        <div className="text-center"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></div>
+      ) : npcs && npcs.length > 0 ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {npcs.map(npc => (
+            <Card key={npc.id} className="flex flex-col group">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="font-headline text-2xl flex items-center gap-3">
+                    <User /> {npc.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEditDialog(npc)}>
+                      <Edit className="h-4 w-4" />
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete {npc.name}. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteNpc(npc.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+                {npc.location && <CardDescription>Last seen: {npc.location}</CardDescription>}
+              </CardHeader>
+              <CardContent className="space-y-4 font-body flex-grow min-h-[140px]">
+                <TruncatedContent title="Description" content={npc.description} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-card/50 border border-dashed rounded-xl">
+          <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-2xl font-headline">A Quiet World...</h3>
+          <p className="mt-2 text-muted-foreground">
+            Add your first NPC to begin populating your campaign world.
+          </p>
+        </div>
+      )}
+
+      {/* Edit dialog */}
+      <Dialog open={isEditFormOpen} onOpenChange={setIsEditFormOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">Edit {editingNpc?.name}</DialogTitle>
+            <DialogDescription>Update the NPC's details.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Input placeholder="NPC Name" value={editedName} onChange={e => setEditedName(e.target.value)} disabled={isSubmitting} />
+            <Input placeholder="Location" value={editedLocation} onChange={e => setEditedLocation(e.target.value)} disabled={isSubmitting} />
+            <Textarea placeholder="NPC description..." value={editedDescription} onChange={e => setEditedDescription(e.target.value)} disabled={isSubmitting} className="min-h-[150px]" />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
+            <Button onClick={handleUpdateNpc} disabled={isSubmitting || !editedName.trim() || !editedDescription.trim()}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

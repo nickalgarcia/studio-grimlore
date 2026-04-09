@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Swords, BookMarked, Copy, Loader2, Skull, Scroll, User, Quote } from 'lucide-react';
+import { Swords, BookMarked, Copy, Loader2, Skull, Scroll, User, Quote, Lightbulb } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
@@ -28,22 +28,22 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
 
   const { user } = useUser();
   const firestore = useFirestore();
-  
+
   const campaignDocRef = useMemoFirebase(() => {
-      if (!user) return null;
-      return doc(firestore, 'users', user.uid, 'campaigns', campaignId);
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid, 'campaigns', campaignId);
   }, [user, firestore, campaignId]);
-  const {data: campaign} = useDoc<Campaign>(campaignDocRef);
+  const { data: campaign } = useDoc<Campaign>(campaignDocRef);
 
   const sessionsQuery = useMemoFirebase(() => {
     if (!user || !campaignId) return null;
     return query(
-        collection(firestore, 'users', user.uid, 'campaigns', campaignId, 'sessions'), 
-        orderBy('sessionNumber', 'desc')
+      collection(firestore, 'users', user.uid, 'campaigns', campaignId, 'sessions'),
+      orderBy('sessionNumber', 'desc')
     );
   }, [user, campaignId, firestore]);
-  
   const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
+
   const charactersRef = useMemoFirebase(() => {
     if (!user || !campaignId) return null;
     return collection(firestore, 'users', user.uid, 'campaigns', campaignId, 'characters');
@@ -54,27 +54,30 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
     e.preventDefault();
     setGeneratedIdeas(null);
 
-    const recentSessions = (sessions || []).slice(0, 3);
-    const campaignLog = recentSessions
+    // Build the full session log — all sessions, not just 3
+    const sessionLog = (sessions ?? [])
       .map(s => `Session ${s.sessionNumber}: ${s.summary}`)
-      .join('\n\n') || 'No sessions yet.';
-    const characterRoster = (characters || [])
-      .slice(0, 6)
-      .map(c => `- ${c.name}${c.class ? ` (${c.class})` : ''}${c.species ? ` [${c.species}]` : ''}: ${c.backstory}`)
-      .join('\n') || 'No characters recorded.';
-    const campaignContext = campaign ? `Campaign: ${campaign.name}\nDescription: ${campaign.description}\n\n` : '';
+      .join('\n\n') || undefined;
 
-    let fullContext = `${campaignContext}Characters:\n${characterRoster}\n\nRecent Sessions (most recent first):\n${campaignLog}\n\n`;
-    fullContext += `Recent Party Actions (PRIORITY - every idea must reference this event and actors; ignore older details if conflicting):\n${partyActions}`;
+    // Map characters to the shape the flow expects
+    const characterList = (characters ?? []).slice(0, 8).map(c => ({
+      name: c.name,
+      class: c.class,
+      species: c.species,
+      backstory: c.backstory,
+    }));
 
     startTransition(async () => {
-      const { data, error } = await getContextualIdeas(fullContext);
+      const { data, error } = await getContextualIdeas({
+        partyActions,
+        campaignName: campaign?.name,
+        campaignDescription: campaign?.description,
+        sessionLog,
+        characters: characterList.length > 0 ? characterList : undefined,
+      });
+
       if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error,
-        });
+        toast({ variant: 'destructive', title: 'Error', description: error });
       } else if (data) {
         setGeneratedIdeas(data);
       }
@@ -85,13 +88,9 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
     navigator.clipboard.writeText(text);
     toast({ title: 'Copied to clipboard!' });
   };
-  
-  const getContextForSaving = () => {
-      if (campaign?.name) {
-          return campaign.name;
-      }
-      return partyActions.substring(0, 50) + (partyActions.length > 50 ? '...' : '');
-  }
+
+  const getSaveContext = () =>
+    campaign?.name ?? partyActions.substring(0, 50) + (partyActions.length > 50 ? '...' : '');
 
   const isLoading = isPending || sessionsLoading || charactersLoading;
 
@@ -100,86 +99,124 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
       <div className="text-center">
         <h2 className="text-4xl font-headline font-bold">Idea Generator</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Describe your party's latest shenanigans, and the Grimlore will forge new adventures from the chaos, using your campaign log for context.
+          Describe what's happening at the table. The Grimlore will forge ideas grounded in your campaign's world, characters, and history.
         </p>
       </div>
+
       <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-4">
         <Textarea
           placeholder="e.g., The party just burned down the tavern after a misunderstanding with the local thieves' guild..."
           value={partyActions}
-          onChange={(e) => setPartyActions(e.target.value)}
+          onChange={e => setPartyActions(e.target.value)}
           className="min-h-[120px] text-base"
           disabled={isLoading}
         />
         <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading || !partyActions}>
-          {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Swords className="mr-2 h-5 w-5" />}
+          {isLoading
+            ? <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            : <Swords className="mr-2 h-5 w-5" />}
           Forge Ideas
         </Button>
       </form>
 
       {(isPending || generatedIdeas) && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-6 max-w-7xl mx-auto">
           {isPending ? (
             <>
-              <Card><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></div></CardContent></Card>
-              <Card><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></div></CardContent></Card>
-              <Card><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></div></CardContent></Card>
-              <Card><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></div></CardContent></Card>
+              {[0, 1, 2, 3, 4].map(i => (
+                <Card key={i}>
+                  <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
+                  <CardContent><div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></div></CardContent>
+                </Card>
+              ))}
             </>
           ) : generatedIdeas && (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3 font-headline"><Scroll className="h-6 w-6 text-accent" />Plot Hook</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{generatedIdeas.plotHook}</p>
-                </CardContent>
-                <CardFooter className="gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => onSave({ type: 'Plot Hook', content: generatedIdeas.plotHook, context: getContextForSaving() })}><BookMarked className="mr-2 h-4 w-4"/>Save</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedIdeas.plotHook)}><Copy className="mr-2 h-4 w-4"/>Copy</Button>
-                </CardFooter>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3 font-headline"><Skull className="h-6 w-6 text-accent" />Encounter Idea</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{generatedIdeas.encounterIdea}</p>
-                </CardContent>
-                <CardFooter className="gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => onSave({ type: 'Encounter Idea', content: generatedIdeas.encounterIdea, context: getContextForSaving() })}><BookMarked className="mr-2 h-4 w-4"/>Save</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedIdeas.encounterIdea)}><Copy className="mr-2 h-4 w-4"/>Copy</Button>
-                </CardFooter>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3 font-headline"><User className="h-6 w-6 text-accent" />NPC Concept</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{generatedIdeas.npcConcept}</p>
-                </CardContent>
-                <CardFooter className="gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => onSave({ type: 'NPC Concept', content: generatedIdeas.npcConcept, context: getContextForSaving() })}><BookMarked className="mr-2 h-4 w-4"/>Save</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedIdeas.npcConcept)}><Copy className="mr-2 h-4 w-4"/>Copy</Button>
-                </CardFooter>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3 font-headline"><Quote className="h-6 w-6 text-accent" />Dialog Idea</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{generatedIdeas.dialogIdea}</p>
-                </CardContent>
-                <CardFooter className="gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => onSave({ type: 'Dialog', content: generatedIdeas.dialogIdea, context: getContextForSaving() })}><BookMarked className="mr-2 h-4 w-4"/>Save</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedIdeas.dialogIdea)}><Copy className="mr-2 h-4 w-4"/>Copy</Button>
-                </CardFooter>
-              </Card>
+              <IdeaCard
+                icon={<Scroll className="h-6 w-6 text-accent" />}
+                title="Plot Hook"
+                content={generatedIdeas.plotHook}
+                onSave={() => onSave({ type: 'Plot Hook', content: generatedIdeas.plotHook, context: getSaveContext() })}
+                onCopy={() => handleCopy(generatedIdeas.plotHook)}
+              />
+              <IdeaCard
+                icon={<Skull className="h-6 w-6 text-accent" />}
+                title="Encounter Idea"
+                content={generatedIdeas.encounterIdea}
+                onSave={() => onSave({ type: 'Encounter Idea', content: generatedIdeas.encounterIdea, context: getSaveContext() })}
+                onCopy={() => handleCopy(generatedIdeas.encounterIdea)}
+              />
+              <IdeaCard
+                icon={<User className="h-6 w-6 text-accent" />}
+                title="NPC Concept"
+                content={generatedIdeas.npcConcept}
+                onSave={() => onSave({ type: 'NPC Concept', content: generatedIdeas.npcConcept, context: getSaveContext() })}
+                onCopy={() => handleCopy(generatedIdeas.npcConcept)}
+              />
+              <IdeaCard
+                icon={<Quote className="h-6 w-6 text-accent" />}
+                title="Dialog Idea"
+                content={generatedIdeas.dialogIdea}
+                onSave={() => onSave({ type: 'Dialog', content: generatedIdeas.dialogIdea, context: getSaveContext() })}
+                onCopy={() => handleCopy(generatedIdeas.dialogIdea)}
+              />
+              {/* New: DM Note card — private insight only shown here, not saveable as a concept type */}
+              {generatedIdeas.dmNote && (
+                <Card className="md:col-span-2 border-accent/20 bg-accent/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 font-headline text-accent/80">
+                      <Lightbulb className="h-5 w-5" />
+                      DM Note
+                      <span className="text-xs font-normal text-muted-foreground ml-1">(private — not saveable)</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-foreground/80 italic">{generatedIdeas.dmNote}</p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedIdeas.dmNote!)}>
+                      <Copy className="mr-2 h-4 w-4" />Copy
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )}
             </>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable idea card
+// ─────────────────────────────────────────────────────────────────────────────
+
+function IdeaCard({
+  icon, title, content, onSave, onCopy,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  content: string;
+  onSave: () => void;
+  onCopy: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-3 font-headline">{icon}{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p>{content}</p>
+      </CardContent>
+      <CardFooter className="gap-2">
+        <Button variant="secondary" size="sm" onClick={onSave}>
+          <BookMarked className="mr-2 h-4 w-4" />Save
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCopy}>
+          <Copy className="mr-2 h-4 w-4" />Copy
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
