@@ -153,24 +153,24 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <Swords className="h-4 w-4 text-accent" />
-              <span className="font-headline font-semibold text-sm">
+              <span className="font-headline font-semibold text-base">
                 {campaign?.name ?? 'Loading campaign...'}
               </span>
             </div>
             {sessions?.[0] && (
-              <Badge variant="outline" className="text-xs border-accent/40 text-accent/80">
+              <Badge variant="outline" className="text-sm border-accent/40 text-accent/80">
                 Session {sessions[0].sessionNumber}
               </Badge>
             )}
             {characters?.length ? (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Users className="h-3 w-3" />
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Users className="h-3.5 w-3.5" />
                 <span>{characters.length} characters loaded</span>
               </div>
             ) : null}
             {sessions?.length ? (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
                 <span>{sessions.length} sessions in context</span>
               </div>
             ) : null}
@@ -179,9 +179,9 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
                 variant="ghost"
                 size="sm"
                 onClick={clearSession}
-                className="ml-auto h-7 text-xs text-muted-foreground hover:text-foreground"
+                className="ml-auto h-7 text-sm text-muted-foreground hover:text-foreground"
               >
-                <RotateCcw className="h-3 w-3 mr-1" />
+                <RotateCcw className="h-3.5 w-3.5 mr-1" />
                 New session
               </Button>
             )}
@@ -234,7 +234,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
 
                 {/* Bubble */}
                 <div
-                  className={`relative group max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed
+                  className={`relative group max-w-[85%] rounded-2xl px-4 py-3 leading-relaxed
                     ${msg.role === 'user'
                       ? 'bg-primary/15 text-foreground rounded-tr-sm'
                       : 'bg-white/5 border border-white/10 text-foreground/90 rounded-tl-sm'
