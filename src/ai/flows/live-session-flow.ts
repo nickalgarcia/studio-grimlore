@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview The Live Session Assistant — a conversational, campaign-aware AI co-DM.
  *

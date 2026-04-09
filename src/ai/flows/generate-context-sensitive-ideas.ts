@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview Generates context-sensitive plot hooks, encounter ideas, NPC concepts,
  * and dialog snippets — fully campaign-aware, powered by Claude.

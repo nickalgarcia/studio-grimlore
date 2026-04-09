@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview Generates a detailed, campaign-grounded NPC using Claude.
  * Key improvement: NPC motivations, secrets, and speech patterns are tied to

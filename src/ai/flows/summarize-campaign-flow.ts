@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview Summarizes a D&D campaign using Claude.
  * Produces a rich "Previously on..." narrative recap that weaves together
