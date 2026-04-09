@@ -6,7 +6,9 @@
  * Ideal for campaign-aware DM assistance.
  */
 
-export const CLAUDE_MODEL = 'claude-sonnet-4-5';
+export const runtime = 'nodejs';
+
+export const CLAUDE_MODEL = 'claude-sonnet-4-5-20251022';
 
 export function getAnthropicHeaders() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -28,21 +30,30 @@ export async function callClaude(params: {
 }): Promise<string> {
   const headers = getAnthropicHeaders();
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: params.max_tokens ?? 2048,
-      temperature: params.temperature ?? 0.7,
-      system: params.system,
-      messages: params.messages,
-    }),
+  const body = JSON.stringify({
+    model: CLAUDE_MODEL,
+    max_tokens: params.max_tokens ?? 2048,
+    temperature: params.temperature ?? 0.7,
+    system: params.system,
+    messages: params.messages,
   });
+
+  let response: Response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers,
+      body,
+    });
+  } catch (networkError) {
+    console.error('Network error calling Anthropic:', networkError);
+    throw new Error(`Network error: ${networkError}`);
+  }
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Anthropic API error: ${response.status} — ${err}`);
+    console.error(`Anthropic API ${response.status} error:`, err);
+    throw new Error(`Anthropic API error ${response.status}: ${err}`);
   }
 
   const data = await response.json();
