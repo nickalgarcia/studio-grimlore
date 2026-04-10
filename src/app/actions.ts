@@ -1,5 +1,7 @@
 'use server';
 
+export const runtime = 'nodejs';
+
 import {
   generateContextSensitiveIdeas,
   type GenerateContextSensitiveIdeasInput,
@@ -24,8 +26,14 @@ import {
 
 import { summarizeCampaign, type SummarizeCampaignInput, type SummarizeCampaignOutput } from '@/ai/flows/summarize-campaign-flow';
 
+import {
+  generateSessionRecap,
+  type GenerateSessionRecapInput,
+  type GenerateSessionRecapOutput,
+} from '@/ai/flows/generate-session-recap-flow';
+
 // Re-export types so components can import from one place
-export type { GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage };
+export type { GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cache (inspiration only — rules and live session should not cache)
@@ -149,5 +157,21 @@ export async function getCampaignSummary(
   } catch (e) {
     console.error('[getCampaignSummary]', e);
     return { data: null, error: 'Failed to generate campaign summary. Please try again.' };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Session Recap
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getSessionRecap(
+  input: GenerateSessionRecapInput
+): Promise<{ data: GenerateSessionRecapOutput | null; error: string | null }> {
+  try {
+    const data = await generateSessionRecap(input);
+    return { data, error: null };
+  } catch (e) {
+    console.error('[getSessionRecap]', e);
+    return { data: null, error: 'Failed to generate session recap. Please try again.' };
   }
 }
