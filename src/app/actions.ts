@@ -30,8 +30,14 @@ import {
   type GenerateSessionRecapOutput,
 } from '@/ai/flows/generate-session-recap-flow';
 
+import {
+  generateSessionPrep,
+  type SessionPrepInput,
+  type SessionPrepOutput,
+} from '@/ai/flows/generate-session-prep-flow';
+
 // Re-export types so components can import from one place
-export type { GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput };
+export type { GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cache (inspiration only — rules and live session should not cache)
@@ -171,5 +177,21 @@ export async function getSessionRecap(
   } catch (e) {
     console.error('[getSessionRecap]', e);
     return { data: null, error: 'Failed to generate session recap. Please try again.' };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Session Prep
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getSessionPrep(
+  input: SessionPrepInput
+): Promise<{ data: SessionPrepOutput | null; error: string | null }> {
+  try {
+    const data = await generateSessionPrep(input);
+    return { data, error: null };
+  } catch (e) {
+    console.error('[getSessionPrep]', e);
+    return { data: null, error: 'Failed to generate session prep. Please try again.' };
   }
 }

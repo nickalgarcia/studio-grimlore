@@ -6,6 +6,7 @@ import { InspirationGenerator } from '@/components/inspiration-generator';
 import { ConceptLibrary } from '@/components/concept-library';
 import { LiveSession } from '@/components/live-session';
 import { SessionSidebar } from '@/components/session-sidebar';
+import { SessionPrep } from '@/components/session-prep';
 import { DMScreen } from '@/components/dm-screen';
 import { CampaignManager } from './campaign-manager';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
@@ -14,20 +15,21 @@ import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import type { SavedConcept } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Zap, Swords, ScrollText, Sparkles, Library, HelpCircle } from 'lucide-react';
+import { Zap, Swords, ScrollText, Sparkles, Library, HelpCircle, ClipboardList } from 'lucide-react';
 
-type TabId = 'live' | 'generator' | 'campaigns' | 'inspiration' | 'library' | 'rules';
+type TabId = 'live' | 'prep' | 'generator' | 'campaigns' | 'inspiration' | 'library' | 'rules';
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; requiresCampaign?: boolean }[] = [
-  { id: 'live',        label: 'Live Session', icon: <Zap className="h-3.5 w-3.5" />,        requiresCampaign: true },
-  { id: 'generator',  label: 'Generator',    icon: <Swords className="h-3.5 w-3.5" />,     requiresCampaign: true },
+  { id: 'live',        label: 'Live Session', icon: <Zap className="h-3.5 w-3.5" />,            requiresCampaign: true },
+  { id: 'prep',        label: 'Prep',         icon: <ClipboardList className="h-3.5 w-3.5" />,   requiresCampaign: true },
+  { id: 'generator',  label: 'Generator',    icon: <Swords className="h-3.5 w-3.5" />,          requiresCampaign: true },
   { id: 'campaigns',  label: 'Campaigns',    icon: <ScrollText className="h-3.5 w-3.5" /> },
   { id: 'inspiration',label: 'Inspiration',  icon: <Sparkles className="h-3.5 w-3.5" /> },
   { id: 'library',    label: 'Library',      icon: <Library className="h-3.5 w-3.5" /> },
   { id: 'rules',      label: 'Rules',        icon: <HelpCircle className="h-3.5 w-3.5" /> },
 ];
 
-const SIDEBAR_TABS: TabId[] = ['live', 'generator'];
+const SIDEBAR_TABS: TabId[] = ['live', 'prep', 'generator'];
 
 export function GrimloreForge() {
   const { user } = useUser();
@@ -115,6 +117,11 @@ export function GrimloreForge() {
             activeCampaignId
               ? <LiveSession campaignId={activeCampaignId} />
               : <EmptyState message="Select a campaign to start your live session assistant." />
+          )}
+          {activeTab === 'prep' && (
+            activeCampaignId
+              ? <SessionPrep campaignId={activeCampaignId} />
+              : <EmptyState message="Select a campaign to generate session prep." />
           )}
           {activeTab === 'generator' && (
             activeCampaignId
