@@ -259,7 +259,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   }
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto gap-3">
+    <div className="flex flex-col max-w-3xl mx-auto gap-3" style={{ height: 'calc(100vh - 220px)' }}>
 
       {/* ── Context banner ── */}
       <Card className="border-accent/30 bg-accent/5 flex-shrink-0">
@@ -346,7 +346,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
       </div>
 
       {/* ── Chat area ── */}
-      <div className="flex-1 overflow-y-auto space-y-4 min-h-0 max-h-[50vh] pr-1">
+      <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-1">
         {!hasMessages ? (
           <div className="space-y-6 py-4">
             <div className="text-center space-y-2">
