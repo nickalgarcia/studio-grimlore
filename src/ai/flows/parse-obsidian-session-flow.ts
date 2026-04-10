@@ -6,7 +6,7 @@
  * read-aloud blocks, DM notes — and extracts just the narrative content.
  */
 
-import { callClaudeJson } from '@/ai/anthropic-client';
+import { callClaude, callClaudeJson } from '@/ai/anthropic-client';
 import { z } from 'zod';
 
 export const ParseObsidianSessionInputSchema = z.object({
@@ -34,29 +34,68 @@ export async function parseObsidianSession(
 
   const { markdown, campaignName, hintSessionNumber } = parsed.data;
 
+  // Trim aggressively — long files with stat blocks blow the context
+  const trimmedMarkdown = markdown.slice(0, 6000);
+
   const prompt = [
     campaignName ? `Campaign: ${campaignName}` : '',
-    hintSessionNumber ? `Expected session number: ${hintSessionNumber}` : '',
+    hintSessionNumber ? `Expected session number if not found in content: ${hintSessionNumber}` : '',
     '',
-    'Parse this Obsidian session document and extract the key information.',
-    'Ignore: DM-only notes, read-aloud text markers, mechanical stat blocks, wiki links [[like this]], callout boxes, and preparation notes.',
-    'Focus on: what actually happened narratively, who was involved, what decisions were made, what was revealed.',
+    'Parse this Obsidian session document. Extract only what HAPPENED narratively.',
+    'Ignore: DM-only prep notes, stat blocks, read-aloud markers, wiki links [[like this]], callout boxes, puzzle mechanics.',
+    'Focus on: the narrative events, party decisions, revelations, NPC interactions.',
     '',
-    '--- MARKDOWN CONTENT ---',
-    markdown.slice(0, 8000), // cap to avoid token overflow on huge files
-    '--- END CONTENT ---',
+    '--- MARKDOWN ---',
+    trimmedMarkdown,
+    '--- END ---',
     '',
-    'Return ONLY a valid JSON object. No preamble, no markdown fences.',
+    `Return ONLY this JSON object, nothing else:
+{
+  "sessionNumber": <number>,
+  "title": "<short evocative title>",
+  "summary": "<2-3 paragraph narrative prose of what happened, no markdown>",
+  "keyMoments": ["<moment 1>", "<moment 2>", "<moment 3>"],
+  "npcsIntroduced": ["<name>"],
+  "openThreads": ["<thread>"]
+}`,
   ].filter(Boolean).join('\n');
 
-  return callClaudeJson<ParseObsidianSessionOutput>({
-    system: `You are a D&D campaign archivist. Your job is to extract clean, structured session data from raw Obsidian markdown notes.
-The DM's notes may be messy, contain preparation content mixed with recaps, or use various markdown conventions.
-Extract only what actually HAPPENED during the session — not what was planned, not read-aloud boxed text, not mechanical notes.
-The summary should read like a "previously on..." narrative, written in past tense.
-If you cannot determine the session number from the content, use the hint provided.`,
+  const raw = await callClaude({
+    system: `You are a D&D campaign archivist. Extract clean session data from raw Obsidian markdown.
+The summary must be narrative prose in past tense — no bullet points, no markdown formatting.
+Return ONLY valid JSON. No explanation, no markdown fences, no preamble.`,
     messages: [{ role: 'user', content: prompt }],
-    temperature: 0.3,
-    max_tokens: 1200,
+    temperature: 0.2,
+    max_tokens: 1500,
   });
+
+  // Strip any markdown fences Claude might add despite instructions
+  const cleaned = raw
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+
+  // Find the JSON object — sometimes Claude adds text before/after
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error('No JSON found in Claude response:', cleaned.slice(0, 500));
+    throw new Error('Could not extract JSON from response');
+  }
+
+  try {
+    const result = JSON.parse(jsonMatch[0]);
+    // Ensure required fields have fallbacks
+    return {
+      sessionNumber: result.sessionNumber ?? hintSessionNumber ?? 1,
+      title: result.title ?? `Session ${result.sessionNumber ?? hintSessionNumber ?? 1}`,
+      summary: result.summary ?? raw,
+      keyMoments: Array.isArray(result.keyMoments) ? result.keyMoments : [],
+      npcsIntroduced: Array.isArray(result.npcsIntroduced) ? result.npcsIntroduced : [],
+      openThreads: Array.isArray(result.openThreads) ? result.openThreads : [],
+    };
+  } catch (e) {
+    console.error('JSON parse failed:', jsonMatch[0].slice(0, 500));
+    throw new Error('Failed to parse session data from response');
+  }
 }
