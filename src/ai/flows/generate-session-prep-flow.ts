@@ -6,7 +6,7 @@
  * motivations, character spotlights, and tone reminders.
  */
 
-import { callClaudeJson } from '@/ai/anthropic-client';
+import { callClaude } from '@/ai/anthropic-client';
 import { z } from 'zod';
 
 export const SessionPrepInputSchema = z.object({
@@ -91,22 +91,69 @@ export async function generateSessionPrep(
   if (tone) sections.push(`INTENDED TONE: ${tone}`);
   if (extraNotes) sections.push(`DM NOTES: ${extraNotes}`);
 
-  return callClaudeJson<SessionPrepOutput>({
-    system: `You are an expert Dungeon Master helping another DM prepare for their next session.
-Your prep documents are specific, immediately usable, and grounded in the campaign's actual history and characters.
-Never give generic D&D advice — every suggestion must use real names, locations, and threads from the campaign.
-Think like a writer and a game designer: create pressure, not plot.
-Respond ONLY with a valid JSON object matching the exact schema. No preamble, no markdown fences.`,
-    messages: [{
-      role: 'user',
-      content: `${sections.join('\n\n')}
+  const prompt = `${sections.join('\n\n')}
 
-Generate a complete session prep document. Every field must be specific to THIS campaign and THESE characters.
-The complications should feel organic — things that could plausibly happen given recent events.
-The character spotlights should connect to their individual backstories and pressure points.
-The prep reminders should sound like notes a wise DM would write to themselves.`,
-    }],
+Generate a complete session prep document grounded in THIS campaign and THESE characters.
+Every suggestion must use real names, locations, and threads — no generic D&D advice.
+The complications should feel organic given recent events.
+Character spotlights must connect to individual backstories.
+Prep reminders should sound like notes a wise DM writes to themselves.
+
+Return ONLY this JSON object, nothing else — no preamble, no markdown fences:
+{
+  "sessionTitle": "<evocative working title for the session>",
+  "openingScene": "<vivid specific scene to open with — set stage, establish immediate tension>",
+  "alternateOpening": "<second opening option if the first is too on-the-nose>",
+  "complications": [
+    { "title": "<short name>", "description": "<what happens and why it matters>" },
+    { "title": "<short name>", "description": "<what happens and why it matters>" },
+    { "title": "<short name>", "description": "<what happens and why it matters>" }
+  ],
+  "npcMotivations": [
+    { "name": "<npc name>", "currentGoal": "<what they want right now>", "howTheyActToday": "<how this affects their behavior>" }
+  ],
+  "characterSpotlights": [
+    { "character": "<pc name>", "opportunity": "<specific moment that could spotlight their arc>" }
+  ],
+  "prepReminders": ["<short DM reminder>", "<short DM reminder>", "<short DM reminder>", "<short DM reminder>"],
+  "openThreadsToPull": ["<unresolved thread from past sessions>", "<unresolved thread>"]
+}`;
+
+  const raw = await callClaude({
+    system: `You are an expert Dungeon Master helping another DM prepare for their next session.
+Your prep documents are specific, immediately usable, and grounded in the campaign's actual history.
+Return ONLY valid JSON. No explanation, no markdown fences, no text before or after the JSON object.`,
+    messages: [{ role: 'user', content: prompt }],
     temperature: 0.75,
     max_tokens: 2000,
   });
+
+  const cleaned = raw
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error('No JSON found in session prep response:', cleaned.slice(0, 500));
+    throw new Error('Could not extract JSON from session prep response');
+  }
+
+  try {
+    const result = JSON.parse(jsonMatch[0]);
+    return {
+      sessionTitle: result.sessionTitle ?? `Session Prep`,
+      openingScene: result.openingScene ?? '',
+      alternateOpening: result.alternateOpening ?? '',
+      complications: Array.isArray(result.complications) ? result.complications : [],
+      npcMotivations: Array.isArray(result.npcMotivations) ? result.npcMotivations : [],
+      characterSpotlights: Array.isArray(result.characterSpotlights) ? result.characterSpotlights : [],
+      prepReminders: Array.isArray(result.prepReminders) ? result.prepReminders : [],
+      openThreadsToPull: Array.isArray(result.openThreadsToPull) ? result.openThreadsToPull : [],
+    };
+  } catch (e) {
+    console.error('Session prep JSON parse failed:', jsonMatch[0].slice(0, 500));
+    throw new Error('Failed to parse session prep response');
+  }
 }
