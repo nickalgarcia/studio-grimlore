@@ -95,37 +95,39 @@ export async function generateSessionPrep(
 
 Generate a complete session prep document grounded in THIS campaign and THESE characters.
 Every suggestion must use real names, locations, and threads — no generic D&D advice.
+Keep each field CONCISE — 2-4 sentences max per field. Do not write long paragraphs.
 The complications should feel organic given recent events.
 Character spotlights must connect to individual backstories.
-Prep reminders should sound like notes a wise DM writes to themselves.
+Prep reminders should be short punchy notes, not full sentences.
 
 Return ONLY this JSON object, nothing else — no preamble, no markdown fences:
 {
-  "sessionTitle": "<evocative working title for the session>",
-  "openingScene": "<vivid specific scene to open with — set stage, establish immediate tension>",
-  "alternateOpening": "<second opening option if the first is too on-the-nose>",
+  "sessionTitle": "<4-6 word evocative title>",
+  "openingScene": "<2-3 sentence vivid scene opener — specific, immediate, atmospheric>",
+  "alternateOpening": "<2-3 sentence alternate scene opener>",
   "complications": [
-    { "title": "<short name>", "description": "<what happens and why it matters>" },
-    { "title": "<short name>", "description": "<what happens and why it matters>" },
-    { "title": "<short name>", "description": "<what happens and why it matters>" }
+    { "title": "<3-5 word name>", "description": "<1-2 sentences — what happens and why it matters>" },
+    { "title": "<3-5 word name>", "description": "<1-2 sentences>" },
+    { "title": "<3-5 word name>", "description": "<1-2 sentences>" }
   ],
   "npcMotivations": [
-    { "name": "<npc name>", "currentGoal": "<what they want right now>", "howTheyActToday": "<how this affects their behavior>" }
+    { "name": "<name>", "currentGoal": "<one sentence>", "howTheyActToday": "<one sentence>" }
   ],
   "characterSpotlights": [
-    { "character": "<pc name>", "opportunity": "<specific moment that could spotlight their arc>" }
+    { "character": "<pc name>", "opportunity": "<one sentence specific moment>" }
   ],
-  "prepReminders": ["<short DM reminder>", "<short DM reminder>", "<short DM reminder>", "<short DM reminder>"],
-  "openThreadsToPull": ["<unresolved thread from past sessions>", "<unresolved thread>"]
+  "prepReminders": ["<short note>", "<short note>", "<short note>", "<short note>"],
+  "openThreadsToPull": ["<one sentence thread>", "<one sentence thread>"]
 }`;
 
   const raw = await callClaude({
     system: `You are an expert Dungeon Master helping another DM prepare for their next session.
 Your prep documents are specific, immediately usable, and grounded in the campaign's actual history.
+Be CONCISE — every field should be 1-3 sentences maximum. Brevity is a feature, not a bug.
 Return ONLY valid JSON. No explanation, no markdown fences, no text before or after the JSON object.`,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.75,
-    max_tokens: 2000,
+    max_tokens: 2500,
   });
 
   const cleaned = raw
