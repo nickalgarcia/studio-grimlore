@@ -71,6 +71,8 @@ const NotesPanel = React.memo(function NotesPanel({
     </div>
   );
 });
+
+const STARTER_PROMPTS = [
   "The party just did something completely unexpected — help me improvise",
   "Give me a tense NPC for the current location",
   "What would the main antagonist do if they knew where the party is?",
