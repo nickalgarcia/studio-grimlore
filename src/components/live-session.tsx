@@ -19,7 +19,58 @@ import type { Session, Character, Campaign } from '@/lib/types';
 import type { LiveSessionInput } from '@/ai/flows/live-session-flow';
 import { cn } from '@/lib/utils';
 
-const STARTER_PROMPTS = [
+// ─────────────────────────────────────────────────────────────────────────────
+// Isolated notes panel — own state so parent re-renders don't interrupt typing
+// ─────────────────────────────────────────────────────────────────────────────
+const NotesPanel = React.memo(function NotesPanel({
+  onNotesChange,
+}: {
+  onNotesChange: (notes: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [value, setValue] = React.useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setValue(e.target.value);
+    onNotesChange(e.target.value);
+  };
+
+  const lineCount = value.trim() ? value.trim().split('\n').length : 0;
+
+  return (
+    <div className="flex-shrink-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/20 bg-card hover:bg-card/80 transition-colors text-left"
+      >
+        <NotebookPen className="h-3.5 w-3.5 text-primary/70" />
+        <span className="font-headline text-xs tracking-widest text-muted-foreground uppercase flex-1">
+          Session Notes
+        </span>
+        {lineCount > 0 && (
+          <span className="text-xs text-primary/70 italic mr-2">
+            {lineCount} line{lineCount !== 1 ? 's' : ''}
+          </span>
+        )}
+        {open
+          ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="mt-1 rounded-lg border border-primary/20 overflow-hidden bg-card">
+          <textarea
+            value={value}
+            onChange={handleChange}
+            placeholder="Jot down names, decisions, moments to remember... Used to generate your session recap."
+            autoFocus
+            className="w-full min-h-[120px] max-h-48 resize-none p-3 bg-card text-foreground text-base font-body leading-relaxed outline-none placeholder:text-muted-foreground/50 border-t border-primary/10"
+          />
+        </div>
+      )}
+    </div>
+  );
+});
   "The party just did something completely unexpected — help me improvise",
   "Give me a tense NPC for the current location",
   "What would the main antagonist do if they knew where the party is?",
@@ -71,9 +122,11 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  // ── Notes panel state ──
-  const [notesOpen, setNotesOpen] = React.useState(false);
-  const [notes, setNotes] = React.useState('');
+  // ── Notes — stored in a ref to avoid re-renders while typing ──
+  const notesRef = React.useRef('');
+  const handleNotesChange = React.useCallback((val: string) => {
+    notesRef.current = val;
+  }, []);
 
   // ── Close Session state ──
   const [isClosing, setIsClosing] = React.useState(false);
@@ -130,7 +183,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
 
   const clearSession = () => {
     setMessages([]);
-    setNotes('');
+    notesRef.current = '';
     setRecapPreview(null);
     setShowCloseFlow(false);
     setInput('');
@@ -144,14 +197,13 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
 
   // ── Close Session flow ──
   const handleCloseSession = async () => {
-    if (!notes.trim() && messages.length === 0) {
+    if (!notesRef.current.trim() && messages.length === 0) {
       toast({ variant: 'destructive', title: 'Nothing to recap', description: 'Add some notes or have a conversation first.' });
       return;
     }
     setIsClosing(true);
     setShowCloseFlow(true);
 
-    // Build conversation highlights from assistant messages
     const highlights = messages
       .filter(m => m.role === 'assistant')
       .slice(-5)
@@ -163,7 +215,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
     const { data, error } = await getSessionRecap({
       campaignName: campaign?.name ?? 'Campaign',
       sessionNumber: nextSessionNumber,
-      dmNotes: notes || 'No notes taken.',
+      dmNotes: notesRef.current || 'No notes taken.',
       conversationHighlights: highlights || undefined,
       characters: characters?.slice(0, 8).map(c => ({ name: c.name, class: c.class })),
       previousSummary: campaign?.aiSummary,
@@ -202,7 +254,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   };
 
   const hasMessages = messages.length > 0;
-  const hasContent = hasMessages || notes.trim().length > 0;
+  const hasContent = hasMessages || notesRef.current.trim().length > 0;
 
   // ── Close Session Review Modal ──
   if (showCloseFlow) {
@@ -312,38 +364,8 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
         </CardContent>
       </Card>
 
-      {/* ── Notes panel (collapsible) ── */}
-      <div className="flex-shrink-0">
-        <button
-          onClick={() => setNotesOpen(o => !o)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/15 bg-primary/3 hover:bg-primary/6 transition-colors text-left"
-        >
-          <NotebookPen className="h-3.5 w-3.5 text-primary/60" />
-          <span className="font-headline text-xs tracking-widest text-muted-foreground uppercase flex-1">
-            Session Notes
-          </span>
-          {notes.trim() && (
-            <span className="text-xs text-primary/60 italic mr-2">
-              {notes.trim().split('\n').length} line{notes.trim().split('\n').length !== 1 ? 's' : ''}
-            </span>
-          )}
-          {notesOpen
-            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
-            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-        </button>
-
-        {notesOpen && (
-          <div className="mt-1 rounded-lg border border-primary/15 overflow-hidden">
-            <Textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Jot down names, decisions, moments to remember... These will be used to generate your session recap."
-              className="min-h-[120px] max-h-48 resize-none rounded-none border-0 border-t border-primary/10 bg-primary/3 text-base font-body leading-relaxed focus-visible:ring-0"
-              autoFocus={notesOpen}
-            />
-          </div>
-        )}
-      </div>
+      {/* ── Notes panel (isolated to prevent re-render freezing) ── */}
+      <NotesPanel onNotesChange={handleNotesChange} />
 
       {/* ── Chat area ── */}
       <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-1">
