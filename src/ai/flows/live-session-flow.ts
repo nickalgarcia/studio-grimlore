@@ -49,7 +49,7 @@ export type LiveSessionOutput = {
   response: string;
 };
 
-function buildCampaignSystemPrompt(ctx: LiveSessionInput['campaignContext']): string {
+export function buildCampaignSystemPrompt(ctx: LiveSessionInput['campaignContext']): string {
   const sections: string[] = [
     `You are an expert Dungeon Master assisting another DM who is running an active session RIGHT NOW.`,
     `You have complete knowledge of their campaign and should respond as a trusted creative partner.`,

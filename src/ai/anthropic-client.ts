@@ -2,13 +2,13 @@
  * Central place to configure the Anthropic client and default model.
  * Add ANTHROPIC_API_KEY to your .env.local to use.
  *
- * We use claude-sonnet-4-5 — fast, smart, large context window.
+ * We use claude-sonnet-4-6 — fast, smart, large context window.
  * Ideal for campaign-aware DM assistance.
  */
 
 export const runtime = 'nodejs';
 
-export const CLAUDE_MODEL = 'claude-sonnet-4-5-20250929';
+export const CLAUDE_MODEL = 'claude-sonnet-4-6';
 
 export function getAnthropicHeaders() {
   const apiKey = process.env.ANTHROPIC_API_KEY;

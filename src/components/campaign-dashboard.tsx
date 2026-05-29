@@ -61,10 +61,13 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
 
   const conceptsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, `users/${user.uid}/concepts`));
-  }, [user, firestore]);
-  
-  const { data: allConcepts, isLoading: conceptsLoading } = useCollection<SavedConcept>(conceptsQuery);
+    return query(
+      collection(firestore, `users/${user.uid}/concepts`),
+      where('context', '==', campaign.name)
+    );
+  }, [user, firestore, campaign.name]);
+
+  const { data: campaignConcepts, isLoading: conceptsLoading } = useCollection<SavedConcept>(conceptsQuery);
 
   const charactersRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -73,13 +76,8 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
 
   const { data: characters, isLoading: charactersLoading } = useCollection<Character>(charactersRef);
   
-  const campaignConcepts = React.useMemo(() => {
-      if (!allConcepts) return [];
-      return allConcepts.filter(c => c.context?.includes(campaign.name));
-  }, [allConcepts, campaign.name]);
-
   const groupedConcepts = React.useMemo(() => {
-    return campaignConcepts.reduce((acc, concept) => {
+    return (campaignConcepts ?? []).reduce((acc, concept) => {
       (acc[concept.type] = acc[concept.type] || []).push(concept);
       return acc;
     }, {} as Record<string, SavedConcept[]>);
@@ -220,7 +218,7 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
                            <CardDescription className="font-body tracking-wider">Generated for this campaign.</CardDescription>
                        </CardHeader>
                        <CardContent className="font-body">
-                           {campaignConcepts.length > 0 ? (
+                           {(campaignConcepts?.length ?? 0) > 0 ? (
                               <div className="space-y-6">
                                 {Object.entries(groupedConcepts).map(([type, concepts]) => (
                                     <div key={type}>

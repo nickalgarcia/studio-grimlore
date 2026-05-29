@@ -6,7 +6,7 @@
  * motivations, character spotlights, and tone reminders.
  */
 
-import { callClaude } from '@/ai/anthropic-client';
+import { callClaudeJson } from '@/ai/anthropic-client';
 import { z } from 'zod';
 
 export const SessionPrepInputSchema = z.object({
@@ -120,7 +120,16 @@ Return ONLY this JSON object, nothing else — no preamble, no markdown fences:
   "openThreadsToPull": ["<one sentence thread>", "<one sentence thread>"]
 }`;
 
-  const raw = await callClaude({
+  const result = await callClaudeJson<{
+    sessionTitle?: string;
+    openingScene?: string;
+    alternateOpening?: string;
+    complications?: Array<{ title: string; description: string }>;
+    npcMotivations?: Array<{ name: string; currentGoal: string; howTheyActToday: string }>;
+    characterSpotlights?: Array<{ character: string; opportunity: string }>;
+    prepReminders?: string[];
+    openThreadsToPull?: string[];
+  }>({
     system: `You are an expert Dungeon Master helping another DM prepare for their next session.
 Your prep documents are specific, immediately usable, and grounded in the campaign's actual history.
 Be CONCISE — every field should be 1-3 sentences maximum. Brevity is a feature, not a bug.
@@ -130,32 +139,14 @@ Return ONLY valid JSON. No explanation, no markdown fences, no text before or af
     max_tokens: 2500,
   });
 
-  const cleaned = raw
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim();
-
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.error('No JSON found in session prep response:', cleaned.slice(0, 500));
-    throw new Error('Could not extract JSON from session prep response');
-  }
-
-  try {
-    const result = JSON.parse(jsonMatch[0]);
-    return {
-      sessionTitle: result.sessionTitle ?? `Session Prep`,
-      openingScene: result.openingScene ?? '',
-      alternateOpening: result.alternateOpening ?? '',
-      complications: Array.isArray(result.complications) ? result.complications : [],
-      npcMotivations: Array.isArray(result.npcMotivations) ? result.npcMotivations : [],
-      characterSpotlights: Array.isArray(result.characterSpotlights) ? result.characterSpotlights : [],
-      prepReminders: Array.isArray(result.prepReminders) ? result.prepReminders : [],
-      openThreadsToPull: Array.isArray(result.openThreadsToPull) ? result.openThreadsToPull : [],
-    };
-  } catch (e) {
-    console.error('Session prep JSON parse failed:', jsonMatch[0].slice(0, 500));
-    throw new Error('Failed to parse session prep response');
-  }
+  return {
+    sessionTitle: result.sessionTitle ?? 'Session Prep',
+    openingScene: result.openingScene ?? '',
+    alternateOpening: result.alternateOpening ?? '',
+    complications: Array.isArray(result.complications) ? result.complications : [],
+    npcMotivations: Array.isArray(result.npcMotivations) ? result.npcMotivations : [],
+    characterSpotlights: Array.isArray(result.characterSpotlights) ? result.characterSpotlights : [],
+    prepReminders: Array.isArray(result.prepReminders) ? result.prepReminders : [],
+    openThreadsToPull: Array.isArray(result.openThreadsToPull) ? result.openThreadsToPull : [],
+  };
 }

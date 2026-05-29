@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { getLiveSessionResponse, getSessionRecap } from '@/app/actions';
+import { getSessionRecap } from '@/app/actions';
 import type { LiveSessionMessage } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -81,6 +81,9 @@ const STARTER_PROMPTS = [
   "The party wants to negotiate instead of fight — how does the NPC respond?",
 ];
 
+// Display messages carry a stable id for React keys; the id is stripped before sending to the API.
+type DisplayMessage = LiveSessionMessage & { id: string };
+
 interface LiveSessionProps {
   campaignId: string;
 }
@@ -118,16 +121,20 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   }, [user, campaignId, firestore]);
 
   // ── Chat state ──
-  const [messages, setMessages] = React.useState<LiveSessionMessage[]>([]);
+  const [messages, setMessages] = React.useState<DisplayMessage[]>([]);
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   // ── Notes — stored in a ref to avoid re-renders while typing ──
+  // hasNotes is a boolean state that flips when notes go empty↔non-empty,
+  // so the Close Session button appears correctly even with no messages.
   const notesRef = React.useRef('');
+  const [hasNotes, setHasNotes] = React.useState(false);
   const handleNotesChange = React.useCallback((val: string) => {
     notesRef.current = val;
+    setHasNotes(val.trim().length > 0);
   }, []);
 
   // ── Close Session state ──
@@ -155,24 +162,59 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
     };
   }, [campaign, sessions, characters]);
 
+  const toApiMessages = (msgs: DisplayMessage[]): LiveSessionMessage[] =>
+    msgs.map(({ id: _id, ...m }) => m);
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
-    const userMessage: LiveSessionMessage = { role: 'user', content: content.trim() };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+
+    const userMsg: DisplayMessage = { role: 'user', content: content.trim(), id: crypto.randomUUID() };
+    const assistantMsg: DisplayMessage = { role: 'assistant', content: '', id: crypto.randomUUID() };
+    const newMessages = [...messages, userMsg];
+
+    setMessages([...newMessages, assistantMsg]);
     setInput('');
     setIsLoading(true);
+
     try {
-      const { data, error } = await getLiveSessionResponse({ messages: newMessages, campaignContext });
-      if (error || !data) {
-        toast({ variant: 'destructive', title: 'Error', description: error ?? 'Something went wrong.' });
-        setMessages(messages);
-        return;
+      const res = await fetch('/api/live-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: toApiMessages(newMessages), campaignContext }),
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error(`HTTP ${res.status}`);
       }
-      setMessages([...newMessages, { role: 'assistant', content: data.response }]);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (!data) continue;
+          try {
+            const event = JSON.parse(data);
+            if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+              accumulated += event.delta.text;
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { ...assistantMsg, content: accumulated };
+                return updated;
+              });
+            }
+          } catch { /* non-JSON SSE lines (ping, etc.) */ }
+        }
+      }
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to get response.' });
-      setMessages(messages);
+      setMessages(newMessages);
     } finally {
       setIsLoading(false);
       setTimeout(() => textareaRef.current?.focus(), 100);
@@ -186,6 +228,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   const clearSession = () => {
     setMessages([]);
     notesRef.current = '';
+    setHasNotes(false);
     setRecapPreview(null);
     setShowCloseFlow(false);
     setInput('');
@@ -256,7 +299,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   };
 
   const hasMessages = messages.length > 0;
-  const hasContent = hasMessages || notesRef.current.trim().length > 0;
+  const hasContent = hasMessages || hasNotes;
 
   // ── Close Session Review Modal ──
   if (showCloseFlow) {
@@ -391,8 +434,8 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
           </div>
         ) : (
           <div className="space-y-4 py-2">
-            {messages.map((msg, i) => (
-              <div key={i} className={cn('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+            {messages.map(msg => (
+              <div key={msg.id} className={cn('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
                 <div className={cn(
                   'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mt-0.5',
                   msg.role === 'user' ? 'bg-primary/20 text-primary' : 'bg-accent/20 text-accent'
@@ -416,7 +459,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
                 </div>
               </div>
             ))}
-            {isLoading && (
+            {isLoading && messages[messages.length - 1]?.content === '' && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">✦</div>
                 <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
