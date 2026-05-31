@@ -1,11 +1,10 @@
-
 'use client';
 
-import { Campaign, Session, SavedConcept, Character } from "@/lib/types";
+import { Campaign, Session, SavedConcept, Character, Npc, Location } from "@/lib/types";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, query, orderBy, where, limit, serverTimestamp, addDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, where, serverTimestamp, doc } from "firebase/firestore";
 import { Button } from "./ui/button";
-import { ArrowLeft, Loader2, BookOpen, Scroll, Skull, User, Quote, Sparkles, PlusCircle, Users, Map, BrainCircuit } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, Scroll, Skull, User, Quote, Sparkles, PlusCircle, Users, Map, BrainCircuit, Download } from "lucide-react";
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -17,6 +16,7 @@ import { NpcManager } from "./npc-manager";
 import { LocationManager } from "./location-manager";
 import { getCampaignSummary } from "@/app/actions";
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { generateCampaignExport, downloadMarkdown } from "@/lib/campaign-export";
 
 interface CampaignDashboardProps {
     campaign: Campaign;
@@ -37,15 +37,15 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = React.useState("overview");
-  
-  // --- Data Fetching ---
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  // ── Data fetching ──
   const campaignDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid, 'campaigns', campaign.id);
   }, [user, firestore, campaign.id]);
   const { data: campaignData, isLoading: campaignLoading } = useDoc<Campaign>(campaignDocRef);
   const currentCampaign = campaignData || campaign;
-
 
   const sessionsCollectionRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -56,7 +56,6 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
     if (!sessionsCollectionRef) return null;
     return query(sessionsCollectionRef, orderBy('sessionNumber', 'asc'));
   }, [sessionsCollectionRef]);
-
   const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
 
   const conceptsQuery = useMemoFirebase(() => {
@@ -66,16 +65,26 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
       where('context', '==', campaign.name)
     );
   }, [user, firestore, campaign.name]);
-
   const { data: campaignConcepts, isLoading: conceptsLoading } = useCollection<SavedConcept>(conceptsQuery);
 
   const charactersRef = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'users', user.uid, 'campaigns', campaign.id, 'characters');
   }, [user, firestore, campaign.id]);
-
   const { data: characters, isLoading: charactersLoading } = useCollection<Character>(charactersRef);
-  
+
+  const npcsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'campaigns', campaign.id, 'npcs');
+  }, [user, firestore, campaign.id]);
+  const { data: npcs } = useCollection<Npc>(npcsRef);
+
+  const locationsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'campaigns', campaign.id, 'locations');
+  }, [user, firestore, campaign.id]);
+  const { data: locations } = useCollection<Location>(locationsRef);
+
   const groupedConcepts = React.useMemo(() => {
     return (campaignConcepts ?? []).reduce((acc, concept) => {
       (acc[concept.type] = acc[concept.type] || []).push(concept);
@@ -83,182 +92,217 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
     }, {} as Record<string, SavedConcept[]>);
   }, [campaignConcepts]);
 
-  // --- Session Management & AI Summary ---
+  // ── Session logging ──
   const [newSessionSummary, setNewSessionSummary] = React.useState('');
   const [isCreating, setIsCreating] = React.useState(false);
 
   const handleAddSession = () => {
-    if (!sessionsCollectionRef || !sessionsQuery || !newSessionSummary.trim() || !user || !sessions || !characters || !campaignDocRef) return;
+    if (!sessionsCollectionRef || !newSessionSummary.trim() || !user || !sessions || !characters || !campaignDocRef) return;
     setIsCreating(true);
 
     const highestSessionNumber = sessions.reduce((max, s) => Math.max(max, s.sessionNumber), 0);
     const nextSessionNumber = highestSessionNumber + 1;
     const sessionData = {
-        campaignId: campaign.id,
-        sessionNumber: nextSessionNumber,
-        date: serverTimestamp(),
-        summary: newSessionSummary,
-      };
+      campaignId: campaign.id,
+      sessionNumber: nextSessionNumber,
+      date: serverTimestamp(),
+      summary: newSessionSummary,
+    };
 
     addDocumentNonBlocking(sessionsCollectionRef, sessionData)
-    .then(async () => {
+      .then(async () => {
         toast({ title: "Session logged successfully!" });
         setNewSessionSummary('');
 
-        // Now, trigger the AI summary update in the background.
         const updatedSessions = [...sessions, { ...sessionData, id: 'temp', date: new Date().toISOString() }];
         const summaryInput = {
-            campaignName: campaign.name,
-            campaignDescription: campaign.description,
-            sessions: updatedSessions.map(s => ({ sessionNumber: s.sessionNumber, summary: s.summary })),
-            characters: characters.map(c => ({ name: c.name, class: c.class, species: c.species, backstory: c.backstory })),
+          campaignName: campaign.name,
+          campaignDescription: campaign.description,
+          sessions: updatedSessions.map(s => ({ sessionNumber: s.sessionNumber, summary: s.summary })),
+          characters: characters.map(c => ({ name: c.name, class: c.class, species: c.species, backstory: c.backstory })),
         };
 
         const { data: summaryData, error } = await getCampaignSummary(summaryInput);
-
         if (summaryData?.campaignSummary) {
-            updateDocumentNonBlocking(campaignDocRef, {
-                aiSummary: summaryData.campaignSummary,
-            }).then(() => {
-                toast({ title: "Campaign summary updated!", description: "The AI has chronicled the latest events." });
-            }).catch((err) => {
-                console.error('Error updating campaign summary:', err);
-                toast({ variant: 'destructive', title: 'Could not update campaign summary', description: 'Check your connection or permissions and try again.' });
-            });
+          updateDocumentNonBlocking(campaignDocRef, { aiSummary: summaryData.campaignSummary })
+            .then(() => toast({ title: "Campaign summary updated!" }))
+            .catch(() => toast({ variant: 'destructive', title: 'Could not update campaign summary' }));
         } else if (error) {
-            throw new Error(error);
+          throw new Error(error);
         }
-    })
-    .catch((error) => {
-        // This error is for adding the session doc itself.
-        // The global handler will also catch it, but we can add UI feedback here if needed.
-        console.error("Error adding session:", error);
-        toast({ variant: "destructive", title: "Uh oh!", description: "There was a problem saving your session log." })
-    })
-    .finally(() => {
-        setIsCreating(false);
-    });
+      })
+      .catch(() => toast({ variant: "destructive", title: "Could not save session log." }))
+      .finally(() => setIsCreating(false));
   };
 
-  // --- Render Logic ---
+  // ── Export for Claude ──
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const markdown = generateCampaignExport({
+        campaign: currentCampaign,
+        sessions: sessions ?? [],
+        characters: characters ?? [],
+        npcs: npcs ?? [],
+        locations: locations ?? [],
+      });
+
+      const sessionCount = sessions?.length ?? 0;
+      const filename = `${campaign.name.replace(/[^a-z0-9]/gi, '_')}_Session${sessionCount}_export.md`;
+      downloadMarkdown(markdown, filename);
+
+      toast({
+        title: 'Campaign exported!',
+        description: 'Drag the downloaded file into your Claude project to update context.',
+      });
+    } catch (e) {
+      console.error('Export error:', e);
+      toast({ variant: 'destructive', title: 'Export failed', description: 'Please try again.' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const isLoading = sessionsLoading || conceptsLoading || charactersLoading || campaignLoading;
 
   return (
     <div className="space-y-8">
+      <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={onBack} className="text-sm">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Campaigns
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Campaigns
         </Button>
+
+        {/* Export button */}
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          disabled={isExporting || isLoading}
+          className="border-primary/30 text-primary hover:bg-primary/10"
+        >
+          {isExporting
+            ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            : <Download className="mr-2 h-4 w-4" />}
+          Export for Claude
+        </Button>
+      </div>
 
       <div className="text-center mb-8">
         <h2 className="text-5xl font-headline font-bold text-foreground tracking-wide">{campaign.name}</h2>
-        <p className="text-muted-foreground mt-2 max-w-2xl mx-auto font-body">
-          {campaign.description}
-        </p>
+        <p className="text-muted-foreground mt-2 max-w-2xl mx-auto font-body">{campaign.description}</p>
       </div>
-      
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 max-w-3xl mx-auto h-12 text-sm bg-black/20 rounded-xl border-white/5 border">
-            <TabsTrigger value="overview"><BookOpen className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-            <TabsTrigger value="characters"><Users className="mr-2 h-4 w-4" />Characters</TabsTrigger>
-            <TabsTrigger value="npcs"><User className="mr-2 h-4 w-4" />NPCs</TabsTrigger>
-            <TabsTrigger value="locations"><Map className="mr-2 h-4 w-4" />Locations</TabsTrigger>
-            <TabsTrigger value="logs"><Scroll className="mr-2 h-4 w-4" />All Logs</TabsTrigger>
+          <TabsTrigger value="overview"><BookOpen className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+          <TabsTrigger value="characters"><Users className="mr-2 h-4 w-4" />Characters</TabsTrigger>
+          <TabsTrigger value="npcs"><User className="mr-2 h-4 w-4" />NPCs</TabsTrigger>
+          <TabsTrigger value="locations"><Map className="mr-2 h-4 w-4" />Locations</TabsTrigger>
+          <TabsTrigger value="logs"><Scroll className="mr-2 h-4 w-4" />All Logs</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="mt-6">
-            {isLoading ? (
-                <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></div>
-            ) : (
-                <div className="grid lg:grid-cols-3 gap-8 items-start">
-                  {/* Main Column */}
-                  <div className="lg:col-span-2 space-y-8">
-                     <Card>
-                         <CardHeader>
-                            <CardTitle className="font-headline text-2xl flex items-center gap-3"><BrainCircuit className="h-6 w-6 text-accent"/> The Story So Far</CardTitle>
-                             <CardDescription>An AI-generated summary of your campaign's progress.</CardDescription>
-                         </CardHeader>
-                         <CardContent className="font-body text-base">
-                             {currentCampaign.aiSummary ? (
-                                <p className="whitespace-pre-wrap pt-2 leading-relaxed">{currentCampaign.aiSummary}</p>
-                             ) : (
-                                 <p className="text-muted-foreground">No summary generated yet. Add your first session log to create one!</p>
-                             )}
-                         </CardContent>
-                     </Card>
+          {isLoading ? (
+            <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></div>
+          ) : (
+            <div className="grid lg:grid-cols-3 gap-8 items-start">
+              {/* Main column */}
+              <div className="lg:col-span-2 space-y-8">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <CardTitle className="font-headline text-2xl flex items-center gap-3">
+                          <BrainCircuit className="h-6 w-6 text-accent" /> The Story So Far
+                        </CardTitle>
+                        <CardDescription>An AI-generated summary of your campaign's progress.</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="font-body text-base">
+                    {currentCampaign.aiSummary ? (
+                      <p className="whitespace-pre-wrap pt-2 leading-relaxed">{currentCampaign.aiSummary}</p>
+                    ) : (
+                      <p className="text-muted-foreground">No summary yet. Add your first session log to create one!</p>
+                    )}
+                  </CardContent>
+                </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline text-2xl">Log New Session</CardTitle>
-                            <CardDescription className="font-body tracking-wider">Quickly add notes from your latest adventure. This will update the campaign summary.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Textarea
-                                placeholder="Summarize the events of your latest session..."
-                                value={newSessionSummary}
-                                onChange={e => setNewSessionSummary(e.target.value)}
-                                className="min-h-[100px] font-body text-base"
-                                disabled={isCreating}
-                            />
-                        </CardContent>
-                        <CardFooter>
-                            <Button onClick={handleAddSession} disabled={isCreating || !newSessionSummary.trim()}>
-                                {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                                {isCreating ? 'Logging...' : 'Log Session'}
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-headline text-2xl">Log New Session</CardTitle>
+                    <CardDescription className="font-body tracking-wider">
+                      Quickly add notes from your latest adventure. This will update the campaign summary.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      placeholder="Summarize the events of your latest session..."
+                      value={newSessionSummary}
+                      onChange={e => setNewSessionSummary(e.target.value)}
+                      className="min-h-[100px] font-body text-base"
+                      disabled={isCreating}
+                    />
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={handleAddSession} disabled={isCreating || !newSessionSummary.trim()}>
+                      {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                      {isCreating ? 'Logging...' : 'Log Session'}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
 
-                  </div>
-                  
-                  {/* Side Column */}
-                  <div className="space-y-8">
-                    <Card className="sticky top-24">
-                       <CardHeader>
-                           <CardTitle className="font-headline text-2xl">Campaign Ideas</CardTitle>
-                           <CardDescription className="font-body tracking-wider">Generated for this campaign.</CardDescription>
-                       </CardHeader>
-                       <CardContent className="font-body">
-                           {(campaignConcepts?.length ?? 0) > 0 ? (
-                              <div className="space-y-6">
-                                {Object.entries(groupedConcepts).map(([type, concepts]) => (
-                                    <div key={type}>
-                                        <h4 className="font-headline flex items-center gap-2 mb-2 text-lg text-accent-foreground">{iconMap[type]} {type}s</h4>
-                                        <div className="space-y-3 text-sm border-l-2 border-accent/20 pl-4 ml-2">
-                                          {concepts.map(concept => (
-                                              <p key={concept.id} className="text-muted-foreground">{concept.content}</p>
-                                          ))}
-                                        </div>
-                                    </div>
-                                ))}
-                              </div>
-                           ) : (
-                              <p className="text-muted-foreground text-sm">No specific ideas have been generated for this campaign yet. Use the 'Generator' tab!</p>
-                           )}
-                       </CardContent>
-                    </Card>
-                  </div>
-                </div>
-            )}
+              {/* Side column */}
+              <div className="space-y-8">
+                <Card className="sticky top-24">
+                  <CardHeader>
+                    <CardTitle className="font-headline text-2xl">Campaign Ideas</CardTitle>
+                    <CardDescription className="font-body tracking-wider">Generated for this campaign.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="font-body">
+                    {(campaignConcepts?.length ?? 0) > 0 ? (
+                      <div className="space-y-6">
+                        {Object.entries(groupedConcepts).map(([type, concepts]) => (
+                          <div key={type}>
+                            <h4 className="font-headline flex items-center gap-2 mb-2 text-lg text-accent-foreground">
+                              {iconMap[type]} {type}s
+                            </h4>
+                            <div className="space-y-3 text-sm border-l-2 border-accent/20 pl-4 ml-2">
+                              {concepts.map(concept => (
+                                <p key={concept.id} className="text-muted-foreground">{concept.content}</p>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">
+                        No specific ideas yet. Use the 'Generator' tab!
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="characters" className="mt-6">
-            <CharacterManager campaign={campaign} />
+          <CharacterManager campaign={campaign} />
         </TabsContent>
-        
+
         <TabsContent value="npcs" className="mt-6">
-            <NpcManager campaign={campaign} />
+          <NpcManager campaign={campaign} />
         </TabsContent>
 
         <TabsContent value="locations" className="mt-6">
-            <LocationManager campaign={campaign} />
+          <LocationManager campaign={campaign} />
         </TabsContent>
 
         <TabsContent value="logs" className="mt-6">
-            <CampaignDetails campaign={campaign} onBack={() => setActiveTab("overview")} />
+          <CampaignDetails campaign={campaign} onBack={() => setActiveTab("overview")} />
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
-
-    
