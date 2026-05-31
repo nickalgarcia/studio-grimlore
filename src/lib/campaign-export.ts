@@ -63,6 +63,20 @@ export function generateCampaignExport(data: CampaignExportData): string {
     );
   }
 
+  // Session Log — first after summary, most valuable for Claude
+  if (sortedSessions.length > 0) {
+    lines.push(`## Session Log`, ``);
+    for (const s of sortedSessions) {
+      const dateStr = formatDate(s.date);
+      lines.push(
+        `### Session ${s.sessionNumber}${dateStr ? ` — ${dateStr}` : ''}`,
+        ``,
+        s.summary || '_No summary._',
+        ``,
+      );
+    }
+  }
+
   // Characters
   if (characters.length > 0) {
     lines.push(`## Player Characters`, ``);
@@ -84,20 +98,6 @@ export function generateCampaignExport(data: CampaignExportData): string {
       }
       if (c.developmentLog) lines.push(``, `**Development:** ${c.developmentLog}`);
       lines.push(``);
-    }
-  }
-
-  // Session Log
-  if (sortedSessions.length > 0) {
-    lines.push(`## Session Log`, ``);
-    for (const s of sortedSessions) {
-      const dateStr = formatDate(s.date);
-      lines.push(
-        `### Session ${s.sessionNumber}${dateStr ? ` — ${dateStr}` : ''}`,
-        ``,
-        s.summary || '_No summary._',
-        ``,
-      );
     }
   }
 

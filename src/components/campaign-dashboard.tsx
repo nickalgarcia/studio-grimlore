@@ -137,22 +137,40 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
 
   // ── Export for Claude ──
   const handleExport = async () => {
+    if (sessionsLoading || charactersLoading) {
+      toast({ title: 'Still loading...', description: 'Wait a moment for all data to load, then try again.' });
+      return;
+    }
+
     setIsExporting(true);
     try {
+      const sessionList = sessions ?? [];
+      const characterList = characters ?? [];
+
+      if (sessionList.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'No sessions found',
+          description: 'Make sure sessions are loaded in the All Logs tab before exporting.',
+        });
+        setIsExporting(false);
+        return;
+      }
+
       const markdown = generateCampaignExport({
         campaign: currentCampaign,
-        sessions: sessions ?? [],
-        characters: characters ?? [],
+        sessions: sessionList,
+        characters: characterList,
         npcs: npcs ?? [],
         locations: locations ?? [],
       });
 
-      const sessionCount = sessions?.length ?? 0;
+      const sessionCount = sessionList.length;
       const filename = `${campaign.name.replace(/[^a-z0-9]/gi, '_')}_Session${sessionCount}_export.md`;
       downloadMarkdown(markdown, filename);
 
       toast({
-        title: 'Campaign exported!',
+        title: `Campaign exported — ${sessionCount} sessions included!`,
         description: 'Drag the downloaded file into your Claude project to update context.',
       });
     } catch (e) {
