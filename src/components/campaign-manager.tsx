@@ -2,16 +2,17 @@
 
 import React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, serverTimestamp, doc } from 'firebase/firestore';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { collection, serverTimestamp, doc, query, orderBy } from 'firebase/firestore';
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { PlusCircle, Trash2, Loader2, BookOpen, Swords } from 'lucide-react';
-import { Campaign } from '@/lib/types';
+import { PlusCircle, Trash2, Loader2, BookOpen, Swords, Scroll, Clock } from 'lucide-react';
+import { Campaign, Session } from '@/lib/types';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { CampaignDashboard } from './campaign-dashboard';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,118 @@ import {
 interface CampaignManagerProps {
   activeCampaignId: string | null;
   setActiveCampaignId: (id: string | null) => void;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Campaign card — loads its own session data for count + last played
+// ─────────────────────────────────────────────────────────────────────────────
+function timeAgo(dateVal: any): string {
+  if (!dateVal) return '';
+  try {
+    const date = typeof dateVal === 'string'
+      ? new Date(dateVal)
+      : dateVal?.toDate?.() ?? new Date(dateVal);
+    const diff = Date.now() - date.getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? 's' : ''} ago`;
+  } catch { return ''; }
+}
+
+function CampaignCard({
+  campaign,
+  onOpen,
+  onDelete,
+}: {
+  campaign: Campaign;
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'campaigns', campaign.id, 'sessions'),
+      orderBy('sessionNumber', 'desc')
+    );
+  }, [user, firestore, campaign.id]);
+  const { data: sessions } = useCollection<Session>(sessionsQuery);
+
+  const sessionCount = sessions?.length ?? 0;
+  const latestSession = sessions?.[0];
+  const lastPlayed = latestSession?.date ? timeAgo(latestSession.date) : null;
+
+  return (
+    <Card className="flex flex-col group hover:border-primary/40 transition-all hover:shadow-[0_0_20px_hsl(174_50%_48%/0.06)] cursor-pointer"
+      onClick={onOpen}>
+      <CardHeader className="pb-3">
+        <CardTitle className="font-headline text-xl leading-snug">{campaign.name}</CardTitle>
+        <CardDescription className="pt-1 line-clamp-3 font-body leading-relaxed text-sm">
+          {campaign.description}
+        </CardDescription>
+      </CardHeader>
+
+      {/* Stats row */}
+      <div className="px-6 pb-4 flex items-center gap-4 mt-auto">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Scroll className="h-3.5 w-3.5 text-primary/50" />
+          <span>
+            {sessionCount === 0
+              ? 'No sessions yet'
+              : `${sessionCount} session${sessionCount !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+        {lastPlayed && (
+          <>
+            <span className="text-muted-foreground/30">·</span>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 text-primary/50" />
+              <span>{lastPlayed}</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <CardFooter className="flex justify-between pt-3 border-t border-border/50">
+        <Button onClick={e => { e.stopPropagation(); onOpen(); }} size="sm">
+          <BookOpen className="mr-2 h-4 w-4" /> Open Campaign
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground/30 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+              onClick={e => e.stopPropagation()}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete "{campaign.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the campaign and all its sessions. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardFooter>
+    </Card>
+  );
 }
 
 export function CampaignManager({ activeCampaignId, setActiveCampaignId }: CampaignManagerProps) {
@@ -116,43 +229,12 @@ export function CampaignManager({ activeCampaignId, setActiveCampaignId }: Campa
       ) : campaigns && campaigns.length > 0 ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {campaigns.map(campaign => (
-            <Card key={campaign.id} className="flex flex-col group hover:border-primary/30 transition-colors">
-              <CardHeader>
-                <CardTitle className="font-headline text-xl">{campaign.name}</CardTitle>
-                <CardDescription className="pt-1 line-clamp-4 font-body leading-relaxed">
-                  {campaign.description}
-                </CardDescription>
-              </CardHeader>
-              <CardFooter className="mt-auto flex justify-between pt-4">
-                <Button onClick={() => setActiveCampaignId(campaign.id)}>
-                  <BookOpen className="mr-2 h-4 w-4" /> Open Campaign
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon"
-                      className="h-9 w-9 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete "{campaign.name}"?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete the campaign and all its sessions. This cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDeleteCampaign(campaign.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardFooter>
-            </Card>
+            <CampaignCard
+              key={campaign.id}
+              campaign={campaign}
+              onOpen={() => setActiveCampaignId(campaign.id)}
+              onDelete={() => handleDeleteCampaign(campaign.id)}
+            />
           ))}
         </div>
       ) : (
