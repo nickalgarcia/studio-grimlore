@@ -15,21 +15,23 @@ import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import type { SavedConcept } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Zap, Swords, ScrollText, Sparkles, Library, HelpCircle, ClipboardList } from 'lucide-react';
+import { CombatTracker } from '@/components/combat-tracker';
+import { Zap, Swords, ScrollText, Sparkles, Library, HelpCircle, ClipboardList, Shield } from 'lucide-react';
 
-type TabId = 'live' | 'prep' | 'generator' | 'campaigns' | 'inspiration' | 'library' | 'rules';
+type TabId = 'live' | 'prep' | 'combat' | 'generator' | 'campaigns' | 'inspiration' | 'library' | 'rules';
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; requiresCampaign?: boolean }[] = [
-  { id: 'live',        label: 'Live Session', icon: <Zap className="h-3.5 w-3.5" />,            requiresCampaign: true },
-  { id: 'prep',        label: 'Prep',         icon: <ClipboardList className="h-3.5 w-3.5" />,   requiresCampaign: true },
-  { id: 'generator',  label: 'Generator',    icon: <Swords className="h-3.5 w-3.5" />,          requiresCampaign: true },
-  { id: 'campaigns',  label: 'Campaigns',    icon: <ScrollText className="h-3.5 w-3.5" /> },
-  { id: 'inspiration',label: 'Inspiration',  icon: <Sparkles className="h-3.5 w-3.5" /> },
-  { id: 'library',    label: 'Library',      icon: <Library className="h-3.5 w-3.5" /> },
-  { id: 'rules',      label: 'Rules',        icon: <HelpCircle className="h-3.5 w-3.5" /> },
+  { id: 'live',         label: 'Live Session', icon: <Zap className="h-3.5 w-3.5" />,           requiresCampaign: true },
+  { id: 'prep',         label: 'Prep',         icon: <ClipboardList className="h-3.5 w-3.5" />,  requiresCampaign: true },
+  { id: 'combat',       label: 'Combat',       icon: <Shield className="h-3.5 w-3.5" />,         requiresCampaign: true },
+  { id: 'generator',   label: 'Generator',    icon: <Swords className="h-3.5 w-3.5" />,         requiresCampaign: true },
+  { id: 'campaigns',   label: 'Campaigns',    icon: <ScrollText className="h-3.5 w-3.5" /> },
+  { id: 'inspiration', label: 'Inspiration',  icon: <Sparkles className="h-3.5 w-3.5" /> },
+  { id: 'library',     label: 'Library',      icon: <Library className="h-3.5 w-3.5" /> },
+  { id: 'rules',       label: 'Rules',        icon: <HelpCircle className="h-3.5 w-3.5" /> },
 ];
 
-const SIDEBAR_TABS: TabId[] = ['live', 'prep', 'generator'];
+const SIDEBAR_TABS: TabId[] = ['live', 'prep', 'combat', 'generator'];
 
 export function GrimloreForge() {
   const { user } = useUser();
@@ -122,6 +124,11 @@ export function GrimloreForge() {
             activeCampaignId
               ? <SessionPrep campaignId={activeCampaignId} />
               : <EmptyState message="Select a campaign to generate session prep." />
+          )}
+          {activeTab === 'combat' && (
+            activeCampaignId
+              ? <CombatTracker campaignId={activeCampaignId} />
+              : <EmptyState message="Select a campaign to use the combat tracker." />
           )}
           {activeTab === 'generator' && (
             activeCampaignId
