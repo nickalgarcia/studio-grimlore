@@ -101,6 +101,18 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
       allow delete: if isExistingOwner(userId);
     }
+    
+    /**
+ * @description Enforces ownership for faction documents within a campaign.
+ * @path /users/{userId}/campaigns/{campaignId}/factions/{factionId}
+ */
+match /users/{userId}/campaigns/{campaignId}/factions/{factionId} {
+  allow get: if isOwner(userId);
+  allow list: if isOwner(userId);
+  allow create: if isOwner(userId);
+  allow update: if isExistingOwner(userId);
+  allow delete: if isExistingOwner(userId);
+}
 
     /**
      * @description Enforces ownership for location documents within a campaign.
