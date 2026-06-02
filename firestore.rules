@@ -97,7 +97,8 @@ service cloud.firestore {
     match /users/{userId}/campaigns/{campaignId}/npcs/{npcId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
       allow delete: if isExistingOwner(userId);
     }
