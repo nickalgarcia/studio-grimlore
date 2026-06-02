@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, deleteField } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -163,11 +163,10 @@ export function NpcManager({ campaign }: NpcManagerProps) {
         campaignId: campaign.id,
         name: newNpcName,
         description: newNpcDescription,
-        location: newNpcLocation || undefined,
+        ...(newNpcLocation ? { location: newNpcLocation } : {}),
         status: newNpcStatus,
         importance: newNpcImportance,
-        factionId: newNpcFactionId || undefined,
-        factionName: faction?.name || undefined,
+        ...(newNpcFactionId ? { factionId: newNpcFactionId, factionName: faction?.name } : {}),
       });
       setNewNpcName(''); setNewNpcDescription(''); setNewNpcLocation('');
       setNewNpcStatus('Active'); setNewNpcImportance('Minor'); setNewNpcFactionId('');
@@ -207,11 +206,11 @@ export function NpcManager({ campaign }: NpcManagerProps) {
       await updateDocumentNonBlocking(npcDocRef, {
         name: editedName,
         description: editedDescription,
-        location: editedLocation || undefined,
+        location: editedLocation || deleteField(),
         status: editedStatus,
         importance: editedImportance,
-        factionId: editedFactionId || undefined,
-        factionName: faction?.name || undefined,
+        factionId: editedFactionId || deleteField(),
+        factionName: faction?.name || deleteField(),
       });
       toast({ title: 'NPC updated!' });
       setIsEditFormOpen(false);
@@ -249,11 +248,12 @@ export function NpcManager({ campaign }: NpcManagerProps) {
   const handleSaveGeneratedNpc = async () => {
     if (!npcsRef || !generatedNpc) return;
     try {
+      const loc = generatedNpc.location || generationLocation;
       await addDocumentNonBlocking(npcsRef, {
         campaignId: campaign.id,
         name: generatedNpc.name,
         description: buildNpcDescription(generatedNpc),
-        location: generatedNpc.location || generationLocation || undefined,
+        ...(loc ? { location: loc } : {}),
         status: 'Active' as NpcStatus,
         importance: 'Minor' as NpcImportance,
       });
