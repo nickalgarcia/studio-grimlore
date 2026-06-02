@@ -5,14 +5,14 @@
 @layer base {
   :root {
     --background: 220 25% 6%;
-    --foreground: 38 30% 88%;           /* brighter base text */
+    --foreground: 38 30% 88%;
     --card: 220 20% 9%;
     --card-foreground: 38 30% 88%;
     --popover: 220 25% 6%;
     --popover-foreground: 38 30% 88%;
 
     /* Runic Teal — interactive, AI, active states */
-    --primary: 174 50% 52%;             /* slightly brighter teal */
+    --primary: 174 50% 52%; 
     --primary-foreground: 174 30% 96%;
 
     --secondary: 174 20% 16%;
