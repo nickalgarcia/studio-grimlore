@@ -4,7 +4,7 @@ import { Campaign, Session, SavedConcept, Character, Npc, Location } from "@/lib
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, where, serverTimestamp, doc } from "firebase/firestore";
 import { Button } from "./ui/button";
-import { ArrowLeft, Loader2, BookOpen, Scroll, Skull, User, Quote, Sparkles, PlusCircle, Users, Map, BrainCircuit, Download } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, Scroll, Skull, User, Quote, Sparkles, PlusCircle, Users, Map, BrainCircuit, Download, Shield } from "lucide-react";
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CharacterManager } from "./character-manager";
 import { NpcManager } from "./npc-manager";
 import { LocationManager } from "./location-manager";
+import { FactionManager } from "./faction-manager";
 import { getCampaignSummary } from "@/app/actions";
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { generateCampaignExport, downloadMarkdown } from "@/lib/campaign-export";
@@ -210,10 +211,11 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-3xl mx-auto h-12 text-sm bg-black/20 rounded-xl border-white/5 border">
+        <TabsList className="grid w-full grid-cols-6 max-w-4xl mx-auto h-12 text-sm bg-black/20 rounded-xl border-white/5 border">
           <TabsTrigger value="overview"><BookOpen className="mr-2 h-4 w-4" />Overview</TabsTrigger>
           <TabsTrigger value="characters"><Users className="mr-2 h-4 w-4" />Characters</TabsTrigger>
           <TabsTrigger value="npcs"><User className="mr-2 h-4 w-4" />NPCs</TabsTrigger>
+          <TabsTrigger value="factions"><Shield className="mr-2 h-4 w-4" />Factions</TabsTrigger>
           <TabsTrigger value="locations"><Map className="mr-2 h-4 w-4" />Locations</TabsTrigger>
           <TabsTrigger value="logs"><Scroll className="mr-2 h-4 w-4" />All Logs</TabsTrigger>
         </TabsList>
@@ -311,6 +313,10 @@ export function CampaignDashboard({ campaign, onBack }: CampaignDashboardProps) 
 
         <TabsContent value="npcs" className="mt-6">
           <NpcManager campaign={campaign} />
+        </TabsContent>
+
+        <TabsContent value="factions" className="mt-6">
+          <FactionManager campaign={campaign} />
         </TabsContent>
 
         <TabsContent value="locations" className="mt-6">
