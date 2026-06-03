@@ -4,11 +4,10 @@
 import React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { PlusCircle, Trash2, Loader2, Edit, Map, Globe, Eye } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Edit, Map, Globe, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Campaign, Location } from '@/lib/types';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -33,49 +32,70 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { ScrollArea } from './ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface LocationManagerProps {
     campaign: Campaign;
 }
 
-const TruncatedContent: React.FC<{ title: string; content: string }> = ({ title, content }) => {
-  if (!content) return null;
-  const isLong = content.length > 150;
-  const truncated = isLong ? `${content.substring(0, 150)}...` : content;
+// ─────────────────────────────────────────────────────────────────────────────
+// Location card
+// ─────────────────────────────────────────────────────────────────────────────
+function LocationCard({ location, onEdit, onDelete }: {
+  location: Location;
+  onEdit: (location: Location) => void;
+  onDelete: (locationId: string) => void;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
 
   return (
-    <div>
-      <h4 className="font-semibold mb-1 text-accent-foreground">{title}</h4>
-      <div className="text-muted-foreground whitespace-pre-wrap text-sm relative">
-        {truncated}
-        {isLong && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="link" className="p-0 h-auto text-accent-foreground/80 hover:text-accent-foreground text-xs absolute bottom-0 right-0 bg-gradient-to-l from-card via-card to-transparent pl-8">
-                <Eye className="mr-1 h-3 w-3" /> Show More
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">{title}</DialogTitle>
-              </DialogHeader>
-              <ScrollArea className="max-h-[60vh] pr-6">
-                <p className="whitespace-pre-wrap py-4">{content}</p>
-              </ScrollArea>
-               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button">Close</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+    <div className="rounded-xl border bg-card overflow-hidden group">
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Map className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+            <h3 className="font-headline text-xl leading-tight">{location.name}</h3>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setExpanded(o => !o)}
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/50 transition-colors"
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => onEdit(location)}
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Edit className="h-3.5 w-3.5" />
+            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {location.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>This will permanently delete {location.name}. This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(location.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+
+        <p className={cn('text-sm text-muted-foreground font-body leading-relaxed whitespace-pre-wrap', !expanded && 'line-clamp-3')}>
+          {location.description}
+        </p>
       </div>
     </div>
   );
-};
-
+}
 
 export function LocationManager({ campaign }: LocationManagerProps) {
   const { user } = useUser();
@@ -215,42 +235,12 @@ export function LocationManager({ campaign }: LocationManagerProps) {
         ) : locations && locations.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {locations.map((location) => (
-              <Card key={location.id} className="flex flex-col group">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="font-headline text-2xl flex items-center gap-3"><Map /> {location.name}</CardTitle>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEditDialog(location)}>
-                             <Edit className="h-4 w-4" />
-                        </Button>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                This will permanently delete {location.name}. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteLocation(location.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Delete
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 font-body flex-grow min-h-[140px]">
-                   <TruncatedContent title="Description" content={location.description} />
-                </CardContent>
-              </Card>
+              <LocationCard
+                key={location.id}
+                location={location}
+                onEdit={handleOpenEditDialog}
+                onDelete={handleDeleteLocation}
+              />
             ))}
           </div>
         ) : (

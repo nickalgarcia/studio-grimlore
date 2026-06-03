@@ -4,10 +4,9 @@
 import React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { PlusCircle, Trash2, Loader2, User, Edit, Eye } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, User, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Campaign, Character } from '@/lib/types';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -37,48 +36,98 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { cn } from '@/lib/utils';
 
 interface CharacterManagerProps {
     campaign: Campaign;
 }
 
-const TruncatedContent: React.FC<{ title: string; content?: string }> = ({ title, content }) => {
-  if (!content) return null;
-  const isLong = content.length > 150;
-  const truncated = isLong ? `${content.substring(0, 150)}...` : content;
+// ─────────────────────────────────────────────────────────────────────────────
+// Character card
+// ─────────────────────────────────────────────────────────────────────────────
+function CharacterCard({ character, onEdit, onDelete }: {
+  character: Character;
+  onEdit: (character: Character) => void;
+  onDelete: (characterId: string) => void;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
 
   return (
-    <div>
-      <h4 className="font-semibold mb-1 text-accent-foreground">{title}</h4>
-      <div className="text-muted-foreground whitespace-pre-wrap text-sm relative">
-        {truncated}
-        {isLong && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="link" className="p-0 h-auto text-accent-foreground/80 hover:text-accent-foreground text-xs absolute bottom-0 right-0 bg-gradient-to-l from-card via-card to-transparent pl-8">
-                <Eye className="mr-1 h-3 w-3" /> Show More
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">{title}</DialogTitle>
-              </DialogHeader>
-              <ScrollArea className="max-h-[60vh] pr-6">
-                <p className="whitespace-pre-wrap py-4">{content}</p>
-              </ScrollArea>
-               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button">Close</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+    <div className="rounded-xl border bg-card overflow-hidden group">
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <User className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+            <h3 className="font-headline text-xl leading-tight">{character.name}</h3>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setExpanded(o => !o)}
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/50 transition-colors"
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => onEdit(character)}
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Edit className="h-3.5 w-3.5" />
+            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {character.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>This will permanently delete {character.name}. This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {character.species && <Badge variant="outline">{character.species}</Badge>}
+          {character.class && <Badge variant="outline">{character.class}</Badge>}
+          {character.originCity && <Badge variant="outline">From {character.originCity}</Badge>}
+        </div>
+
+        <div className="flex justify-around text-center border-t border-b py-3">
+          <div className="px-2"><p className="font-bold text-lg">{character.armorClass || '—'}</p><p className="text-xs text-muted-foreground">AC</p></div>
+          <div className="px-2"><p className="font-bold text-lg">{character.speed || '—'}</p><p className="text-xs text-muted-foreground">Speed</p></div>
+          <div className="px-2"><p className="font-bold text-lg">{character.passivePerception || '—'}</p><p className="text-xs text-muted-foreground">Perception</p></div>
+          <div className="px-2"><p className="font-bold text-lg">{character.passiveInvestigation || '—'}</p><p className="text-xs text-muted-foreground">Investigation</p></div>
+          <div className="px-2"><p className="font-bold text-lg">{character.passiveInsight || '—'}</p><p className="text-xs text-muted-foreground">Insight</p></div>
+        </div>
+
+        {character.backstory && (
+          <div>
+            <p className="label-forge mb-1">Backstory</p>
+            <p className={cn('text-sm text-muted-foreground font-body leading-relaxed whitespace-pre-wrap', !expanded && 'line-clamp-3')}>
+              {character.backstory}
+            </p>
+          </div>
+        )}
+
+        {expanded && character.developmentLog && (
+          <div className="pt-2 border-t border-border/50">
+            <p className="label-forge mb-1">Development Log</p>
+            <p className="text-sm text-muted-foreground font-body leading-relaxed whitespace-pre-wrap">
+              {character.developmentLog}
+            </p>
+          </div>
         )}
       </div>
     </div>
   );
-};
-
+}
 
 export function CharacterManager({ campaign }: CharacterManagerProps) {
   const { user } = useUser();
@@ -246,54 +295,12 @@ export function CharacterManager({ campaign }: CharacterManagerProps) {
         ) : characters && characters.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {characters.map((character) => (
-              <Card key={character.id} className="flex flex-col group">
-                  <CardHeader>
-                  <div className="flex justify-between items-start">
-                      <CardTitle className="font-headline text-2xl flex items-center gap-3"><User /> {character.name}</CardTitle>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openForm(character)}>
-                              <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                              </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                  This will permanently delete {character.name}. This action cannot be undone.
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCharacter(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                  Delete
-                                  </AlertDialogAction>
-                              </AlertDialogFooter>
-                              </AlertDialogContent>
-                          </AlertDialog>
-                      </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
-                          {character.species && <Badge variant="outline">{character.species}</Badge>}
-                          {character.class && <Badge variant="outline">{character.class}</Badge>}
-                          {character.originCity && <Badge variant="outline">From {character.originCity}</Badge>}
-                      </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 font-body flex-grow">
-                      <div className="flex justify-around text-center border-t border-b py-3">
-                          <div className="px-2"><p className="font-bold text-lg">{character.armorClass || '—'}</p><p className="text-xs text-muted-foreground">AC</p></div>
-                          <div className="px-2"><p className="font-bold text-lg">{character.speed || '—'}</p><p className="text-xs text-muted-foreground">Speed</p></div>
-                          <div className="px-2"><p className="font-bold text-lg">{character.passivePerception || '—'}</p><p className="text-xs text-muted-foreground">Perception</p></div>
-                          <div className="px-2"><p className="font-bold text-lg">{character.passiveInvestigation || '—'}</p><p className="text-xs text-muted-foreground">Investigation</p></div>
-                          <div className="px-2"><p className="font-bold text-lg">{character.passiveInsight || '—'}</p><p className="text-xs text-muted-foreground">Insight</p></div>
-                      </div>
-                      <TruncatedContent title="Backstory" content={character.backstory} />
-                  </CardContent>
-              </Card>
+                <CharacterCard
+                  key={character.id}
+                  character={character}
+                  onEdit={openForm}
+                  onDelete={handleDeleteCharacter}
+                />
               ))}
           </div>
         ) : (

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { PlusCircle, Trash2, Loader2, User, Edit, Wand2, Users, Eye, Filter } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, User, Edit, Wand2, Users, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Campaign, Npc, NpcStatus, NpcImportance, Faction } from '@/lib/types';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -43,41 +43,71 @@ const NPC_STATUSES: NpcStatus[] = ['Active', 'Inactive', 'Dead', 'Unknown'];
 const NPC_IMPORTANCES: NpcImportance[] = ['Key', 'Minor'];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Truncated content with expand dialog
+// NPC card
 // ─────────────────────────────────────────────────────────────────────────────
-const TruncatedContent: React.FC<{ title: string; content: string }> = ({ title, content }) => {
-  if (!content) return null;
-  const isLong = content.length > 150;
-  const truncated = isLong ? `${content.substring(0, 150)}...` : content;
+function NpcCard({ npc, onEdit, onDelete }: {
+  npc: Npc;
+  onEdit: (npc: Npc) => void;
+  onDelete: (npcId: string) => void;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  const statusCfg = STATUS_CONFIG[npc.status ?? 'Active'];
+  const isKey = (npc.importance ?? 'Minor') === 'Key';
+
   return (
-    <div>
-      <h4 className="font-semibold mb-1 text-accent-foreground">{title}</h4>
-      <div className="text-muted-foreground whitespace-pre-wrap text-sm relative">
-        {truncated}
-        {isLong && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="link" className="p-0 h-auto text-accent-foreground/80 hover:text-accent-foreground text-xs absolute bottom-0 right-0 bg-gradient-to-l from-card via-card to-transparent pl-8">
-                <Eye className="mr-1 h-3 w-3" /> Show More
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">{title}</DialogTitle>
-              </DialogHeader>
-              <ScrollArea className="max-h-[60vh] pr-6">
-                <p className="whitespace-pre-wrap py-4">{content}</p>
-              </ScrollArea>
-              <DialogFooter>
-                <DialogClose asChild><Button type="button">Close</Button></DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+    <div className={cn('rounded-xl border bg-card overflow-hidden group', isKey && 'border-accent/25')}>
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={cn('w-2 h-2 rounded-full flex-shrink-0 mt-1', statusCfg.dot)} title={npc.status ?? 'Active'} />
+            <h3 className="font-headline text-xl leading-tight">{npc.name}</h3>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setExpanded(o => !o)}
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/50 transition-colors"
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => onEdit(npc)}
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Edit className="h-3.5 w-3.5" />
+            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {npc.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(npc.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {npc.location && <span className="text-xs text-muted-foreground">📍 {npc.location}</span>}
+          {isKey && <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-accent/40 text-accent/80">Key NPC</Badge>}
+          {npc.factionName && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{npc.factionName}</Badge>}
+        </div>
+
+        <p className={cn('text-sm text-muted-foreground font-body leading-relaxed whitespace-pre-wrap', !expanded && 'line-clamp-3')}>
+          {npc.description}
+        </p>
       </div>
     </div>
   );
-};
+}
 
 interface NpcManagerProps {
   campaign: Campaign;
@@ -453,55 +483,14 @@ export function NpcManager({ campaign }: NpcManagerProps) {
         <div className="text-center"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></div>
       ) : filteredNpcs.length > 0 ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredNpcs.map(npc => {
-            const statusCfg = STATUS_CONFIG[npc.status ?? 'Active'];
-            const isKey = (npc.importance ?? 'Minor') === 'Key';
-            return (
-              <Card key={npc.id} className={cn(
-                'flex flex-col group',
-                isKey && 'border-accent/25'
-              )}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className={cn('w-2 h-2 rounded-full flex-shrink-0 mt-1', statusCfg.dot)} title={npc.status ?? 'Active'} />
-                      <CardTitle className="font-headline text-xl leading-tight">{npc.name}</CardTitle>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEditDialog(npc)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete {npc.name}?</AlertDialogTitle>
-                            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteNpc(npc.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap mt-1">
-                    {npc.location && <CardDescription className="text-xs">📍 {npc.location}</CardDescription>}
-                    {isKey && <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-accent/40 text-accent/80">Key NPC</Badge>}
-                    {npc.factionName && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{npc.factionName}</Badge>}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 font-body flex-grow min-h-[100px]">
-                  <TruncatedContent title="Description" content={npc.description} />
-                </CardContent>
-              </Card>
-            );
-          })}
+          {filteredNpcs.map(npc => (
+            <NpcCard
+              key={npc.id}
+              npc={npc}
+              onEdit={handleOpenEditDialog}
+              onDelete={handleDeleteNpc}
+            />
+          ))}
         </div>
       ) : npcs && npcs.length > 0 ? (
         <div className="text-center py-12 text-muted-foreground">
