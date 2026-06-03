@@ -135,7 +135,7 @@ export function NpcManager({ campaign }: NpcManagerProps) {
   const [newNpcLocation, setNewNpcLocation] = React.useState('');
   const [newNpcStatus, setNewNpcStatus] = React.useState<NpcStatus>('Active');
   const [newNpcImportance, setNewNpcImportance] = React.useState<NpcImportance>('Minor');
-  const [newNpcFactionId, setNewNpcFactionId] = React.useState<string>('');
+  const [newNpcFactionId, setNewNpcFactionId] = React.useState<string>('none');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // ── Edit state ──
@@ -146,7 +146,7 @@ export function NpcManager({ campaign }: NpcManagerProps) {
   const [editedLocation, setEditedLocation] = React.useState('');
   const [editedStatus, setEditedStatus] = React.useState<NpcStatus>('Active');
   const [editedImportance, setEditedImportance] = React.useState<NpcImportance>('Minor');
-  const [editedFactionId, setEditedFactionId] = React.useState('');
+  const [editedFactionId, setEditedFactionId] = React.useState('none');
 
   // ── AI generate state ──
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = React.useState(false);
@@ -166,10 +166,10 @@ export function NpcManager({ campaign }: NpcManagerProps) {
         ...(newNpcLocation ? { location: newNpcLocation } : {}),
         status: newNpcStatus,
         importance: newNpcImportance,
-        ...(newNpcFactionId ? { factionId: newNpcFactionId, factionName: faction?.name } : {}),
+        ...(newNpcFactionId && newNpcFactionId !== 'none' ? { factionId: newNpcFactionId, factionName: faction?.name } : {}),
       });
       setNewNpcName(''); setNewNpcDescription(''); setNewNpcLocation('');
-      setNewNpcStatus('Active'); setNewNpcImportance('Minor'); setNewNpcFactionId('');
+      setNewNpcStatus('Active'); setNewNpcImportance('Minor'); setNewNpcFactionId('none');
       toast({ title: 'NPC added!' });
       setIsCreateFormOpen(false);
     } catch {
@@ -193,7 +193,7 @@ export function NpcManager({ campaign }: NpcManagerProps) {
     setEditedLocation(npc.location || '');
     setEditedStatus(npc.status ?? 'Active');
     setEditedImportance(npc.importance ?? 'Minor');
-    setEditedFactionId(npc.factionId ?? '');
+    setEditedFactionId(npc.factionId ?? 'none');
     setIsEditFormOpen(true);
   };
 
@@ -209,8 +209,8 @@ export function NpcManager({ campaign }: NpcManagerProps) {
         location: editedLocation || deleteField(),
         status: editedStatus,
         importance: editedImportance,
-        factionId: editedFactionId || deleteField(),
-        factionName: faction?.name || deleteField(),
+        factionId: editedFactionId && editedFactionId !== 'none' ? editedFactionId : deleteField(),
+        factionName: faction?.name ?? deleteField(),
       });
       toast({ title: 'NPC updated!' });
       setIsEditFormOpen(false);
@@ -315,7 +315,7 @@ export function NpcManager({ campaign }: NpcManagerProps) {
                   <Select value={newNpcFactionId} onValueChange={setNewNpcFactionId}>
                     <SelectTrigger><SelectValue placeholder="No faction" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No faction</SelectItem>
+                      <SelectItem value="none">No faction</SelectItem>
                       {factions.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
