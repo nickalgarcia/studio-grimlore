@@ -555,7 +555,7 @@ export function NpcManager({ campaign }: NpcManagerProps) {
                 <Select value={editedFactionId} onValueChange={setEditedFactionId}>
                   <SelectTrigger><SelectValue placeholder="No faction" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No faction</SelectItem>
+                    <SelectItem value="none">No faction</SelectItem>
                     {factions.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
