@@ -177,9 +177,15 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
     setIsLoading(true);
 
     try {
+      const idToken = await user?.getIdToken();
+      if (!idToken) throw new Error('Not authenticated');
+
       const res = await fetch('/api/live-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ messages: toApiMessages(newMessages), campaignContext }),
       });
 

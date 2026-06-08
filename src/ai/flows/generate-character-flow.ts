@@ -9,7 +9,7 @@
  * - GenerateCharacterOutput - The return type for the generateCharacter function.
  */
 
-import { getOpenAIClient, MODEL } from '@/ai/openai-client';
+import { callClaudeJson } from '@/ai/anthropic-client';
 import { z } from 'genkit';
 
 const GenerateCharacterInputSchema = z.object({
@@ -39,35 +39,26 @@ export async function generateCharacter(
     throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
   }
 
-  const client = getOpenAIClient();
-
-  const completion = await client.chat.completions.create({
-    model: MODEL,
-    temperature: 0.8,
+  const result = await callClaudeJson<GenerateCharacterOutput>({
+    system:
+      'You are an expert Dungeon Master. Generate a D&D character with name, species, class, originCity, and a rich backstory. No mechanics or stats. Return only JSON with fields: name, species, class, backstory, originCity.',
     messages: [
-      {
-        role: 'system',
-        content:
-          'You are an expert Dungeon Master. Generate a D&D character with name, species, class, originCity, and a rich backstory. No mechanics or stats. Return only JSON with fields: name, species, class, backstory, originCity.',
-      },
       {
         role: 'user',
         content: `Campaign Context:\n${parsed.data.campaignContext}\n\nPlayer concept:\n${parsed.data.prompt}\n\nReturn a JSON object with fields: name, species, class, backstory, originCity (optional).`,
       },
     ],
+    temperature: 0.8,
   });
 
-  const json = completion.choices[0]?.message?.content;
-  if (!json) throw new Error('No content returned from model');
   try {
-    return GenerateCharacterOutputSchema.parse(JSON.parse(json));
+    return GenerateCharacterOutputSchema.parse(result);
   } catch {
-    // Fallback: best-effort parse into fields if the model did not return strict JSON.
     return GenerateCharacterOutputSchema.parse({
       name: 'Generated Character',
       species: '',
       class: '',
-      backstory: json,
+      backstory: String(result),
       originCity: undefined,
     });
   }

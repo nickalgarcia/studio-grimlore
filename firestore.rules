@@ -20,6 +20,11 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
+
+      // Deny all access to subcollections not explicitly matched below
+      match /{allPaths=**} {
+        allow read, write: if false;
+      }
     }
 
     match /users/{userId}/campaigns/{campaignId}/characters/{characterId} {

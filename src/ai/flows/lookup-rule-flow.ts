@@ -8,7 +8,7 @@
  * - LookupRuleOutput - The return type for the lookupRule function.
  */
 
-import { getOpenAIClient, MODEL } from '@/ai/openai-client';
+import { callClaude } from '@/ai/anthropic-client';
 import { z } from 'genkit';
 
 const LookupRuleInputSchema = z.object({
@@ -34,20 +34,12 @@ export async function lookupRule(
 
   const term = parsed.data.term.trim();
 
-  const client = getOpenAIClient();
-  const completion = await client.chat.completions.create({
-    model: MODEL,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are an expert D&D 5th Edition Dungeon Master. Provide clear, concise, and accurate explanations of rules and terms. Use short paragraphs and bullet points where helpful.',
-      },
-      { role: 'user', content: `Explain the rule/term: ${term}` },
-    ],
+  const explanation = await callClaude({
+    system:
+      'You are an expert D&D 5th Edition Dungeon Master. Provide clear, concise, and accurate explanations of rules and terms. Use short paragraphs and bullet points where helpful.',
+    messages: [{ role: 'user', content: `Explain the rule/term: ${term}` }],
     temperature: 0,
   });
 
-  const explanation = completion.choices[0]?.message?.content ?? '';
   return { explanation };
 }

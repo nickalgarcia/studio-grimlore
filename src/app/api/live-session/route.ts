@@ -1,10 +1,21 @@
 import { type NextRequest } from 'next/server';
 import { getAnthropicHeaders, CLAUDE_MODEL } from '@/ai/anthropic-client';
 import { LiveSessionInputSchema, buildCampaignSystemPrompt } from '@/ai/flows/live-session-flow';
+import { getAdminAuth } from '@/firebase/admin';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  const idToken = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (!idToken) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+  try {
+    await getAdminAuth().verifyIdToken(idToken);
+  } catch {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -46,7 +57,7 @@ export async function POST(req: NextRequest) {
   if (!upstream.ok) {
     const err = await upstream.text();
     console.error(`[live-session stream] Anthropic ${upstream.status}:`, err);
-    return new Response(err, { status: upstream.status });
+    return new Response('AI service error', { status: 502 });
   }
 
   return new Response(upstream.body, {
