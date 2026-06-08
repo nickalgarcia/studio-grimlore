@@ -67,6 +67,7 @@ Return ONLY valid JSON. No explanation, no markdown fences, no preamble.`,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.2,
     max_tokens: 1500,
+    model: 'claude-haiku-4-5-20251001',
   });
 
   // Strip any markdown fences Claude might add despite instructions

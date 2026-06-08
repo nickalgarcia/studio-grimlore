@@ -80,19 +80,34 @@ export function DMScreen() {
 
   const formattedExplanation = React.useMemo(() => {
     if (!result?.explanation) return '';
-    
-    let html = escapeHtml(result.explanation)
+
+    const escaped = escapeHtml(result.explanation);
+
+    // Handle headings and separators line-by-line before paragraph grouping
+    const processedLines = escaped.split('\n').map(line => {
+      const trimmed = line.trim();
+      if (trimmed === '--' || trimmed === '---') return '';
+      if (/^# /.test(trimmed)) return ''; // h1 is redundant with CardTitle
+      if (/^## /.test(trimmed)) return `\n<strong>${trimmed.replace(/^##\s*/, '')}</strong>\n`;
+      return line;
+    });
+
+    let html = processedLines.join('\n')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>');
-      
+
     html = html.split(/\n\s*\n/).map(paragraph => {
+      paragraph = paragraph.trim();
+      if (!paragraph) return '';
+
       if (paragraph.match(/^\s*[-*]/)) {
-        const items = paragraph.split('\n').map(item => 
-          `<li>${item.replace(/^\s*[-*]\s*/, '').trim()}</li>`
-        ).join('');
-        return `<ul class="list-disc pl-5 space-y-1 mt-2">${items}</ul>`;
+        const items = paragraph.split('\n')
+          .filter(l => l.trim())
+          .map(item => `<li>${item.replace(/^\s*[-*]\s*/, '').trim()}</li>`)
+          .join('');
+        return `<ul>${items}</ul>`;
       }
-      
+
       paragraph = paragraph.replace(/Level\s*(\d+):/g, '<br/><strong>Level $1:</strong>');
       return `<p>${paragraph}</p>`;
     }).join('');

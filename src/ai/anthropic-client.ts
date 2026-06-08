@@ -27,11 +27,12 @@ export async function callClaude(params: {
   messages: { role: 'user' | 'assistant'; content: string }[];
   temperature?: number;
   max_tokens?: number;
+  model?: string;
 }): Promise<string> {
   const headers = getAnthropicHeaders();
 
   const body = JSON.stringify({
-    model: CLAUDE_MODEL,
+    model: params.model ?? CLAUDE_MODEL,
     max_tokens: params.max_tokens ?? 2048,
     temperature: params.temperature ?? 0.7,
     system: params.system,

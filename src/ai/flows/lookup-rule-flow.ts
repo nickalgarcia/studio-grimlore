@@ -39,6 +39,8 @@ export async function lookupRule(
       'You are an expert D&D 5th Edition Dungeon Master. Provide clear, concise, and accurate explanations of rules and terms. Use short paragraphs and bullet points where helpful.',
     messages: [{ role: 'user', content: `Explain the rule/term: ${term}` }],
     temperature: 0,
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 700,
   });
 
   return { explanation };

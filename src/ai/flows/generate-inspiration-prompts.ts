@@ -21,6 +21,8 @@ export async function generateInspirationPrompt(): Promise<InspirationPromptOutp
       'You are a D&D creative writing assistant for Dungeon Masters. Generate a single, vivid prompt that inspires plot hooks, encounter ideas, or NPC concepts. Return only JSON with a "prompt" field.',
     messages: [{ role: 'user', content: 'Give me one random prompt for a DM.' }],
     temperature: 0.9,
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 300,
   });
 
   try {
