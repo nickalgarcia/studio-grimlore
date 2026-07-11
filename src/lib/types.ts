@@ -66,6 +66,41 @@ export type Session = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Combat Tracker — persisted per-campaign so it survives tab switches / reloads
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type CombatantType = 'player' | 'monster';
+
+export type Condition =
+  | 'Blinded' | 'Charmed' | 'Deafened' | 'Exhausted'
+  | 'Frightened' | 'Grappled' | 'Incapacitated' | 'Invisible'
+  | 'Paralyzed' | 'Petrified' | 'Poisoned' | 'Prone'
+  | 'Restrained' | 'Stunned' | 'Unconscious' | 'Concentrating';
+
+export type Combatant = {
+  id: string;
+  name: string;
+  initiative: number | '';
+  type: CombatantType;
+  // Monsters only
+  maxHp?: number;
+  currentHp?: number;
+  url?: string;
+  // Shared
+  conditions: Condition[];
+};
+
+export type CombatState = {
+  campaignId: string;
+  combatants: Combatant[];
+  activeIndex: number;
+  round: number;
+  turnCount: number;
+  started: boolean;
+  updatedAt?: FieldValue | string;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Faction — new type
 // ─────────────────────────────────────────────────────────────────────────────
 

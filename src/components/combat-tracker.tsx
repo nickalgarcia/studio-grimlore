@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { Character } from '@/lib/types';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import type { Character, Combatant, CombatantType, Condition, CombatState } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,29 +15,8 @@ import {
 import { cn } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
+// Constants
 // ─────────────────────────────────────────────────────────────────────────────
-
-type CombatantType = 'player' | 'monster';
-
-interface Combatant {
-  id: string;
-  name: string;
-  initiative: number | '';
-  type: CombatantType;
-  // Monsters only
-  maxHp?: number;
-  currentHp?: number;
-  url?: string;
-  // Shared
-  conditions: Condition[];
-}
-
-type Condition =
-  | 'Blinded' | 'Charmed' | 'Deafened' | 'Exhausted'
-  | 'Frightened' | 'Grappled' | 'Incapacitated' | 'Invisible'
-  | 'Paralyzed' | 'Petrified' | 'Poisoned' | 'Prone'
-  | 'Restrained' | 'Stunned' | 'Unconscious' | 'Concentrating';
 
 const ALL_CONDITIONS: Condition[] = [
   'Blinded', 'Charmed', 'Concentrating', 'Exhausted', 'Frightened',
@@ -427,11 +406,47 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
   }, [user, campaignId, firestore]);
   const { data: characters } = useCollection<Character>(charactersRef);
 
+  // Combat state is persisted per-campaign so it survives tab switches and reloads.
+  const combatStateDocRef = useMemoFirebase(() => {
+    if (!user || !campaignId) return null;
+    return doc(firestore, 'users', user.uid, 'campaigns', campaignId, 'combatState', 'current');
+  }, [user, campaignId, firestore]);
+  const { data: combatState, isLoading: combatStateLoading } = useDoc<CombatState>(combatStateDocRef);
+
   const [combatants, setCombatants] = React.useState<Combatant[]>([]);
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [round, setRound] = React.useState(1);
   const [turnCount, setTurnCount] = React.useState(1);
   const [started, setStarted] = React.useState(false);
+
+  // Hydrate local state from the persisted doc exactly once per mount, so we
+  // don't clobber in-progress local edits every time our own writes echo back.
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => {
+    if (hydrated || combatStateLoading) return;
+    if (combatState) {
+      setCombatants(combatState.combatants ?? []);
+      setActiveIndex(combatState.activeIndex ?? 0);
+      setRound(combatState.round ?? 1);
+      setTurnCount(combatState.turnCount ?? 1);
+      setStarted(combatState.started ?? false);
+    }
+    setHydrated(true);
+  }, [combatState, combatStateLoading, hydrated]);
+
+  // Persist every change back to Firestore once hydrated.
+  React.useEffect(() => {
+    if (!hydrated || !combatStateDocRef) return;
+    setDocumentNonBlocking(combatStateDocRef, {
+      campaignId,
+      combatants,
+      activeIndex,
+      round,
+      turnCount,
+      started,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }, [hydrated, combatants, activeIndex, round, turnCount, started, combatStateDocRef, campaignId]);
 
   const sorted = sortedCombatants(combatants);
 
@@ -514,11 +529,21 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
     setRound(1);
     setTurnCount(1);
     setStarted(false);
+    if (combatStateDocRef) deleteDocumentNonBlocking(combatStateDocRef);
   };
 
   const activeCombatant = started ? sorted[activeIndex] : null;
   const hasAnyone = combatants.length > 0;
   const allHaveInitiative = combatants.every(c => c.initiative !== '');
+
+  // Avoid flashing the empty state while the persisted encounter is still loading.
+  if (!hydrated && combatStateLoading) {
+    return (
+      <div className="max-w-3xl mx-auto py-12 text-center text-muted-foreground text-sm">
+        Loading combat…
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -550,9 +575,17 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
             </Button>
           )}
           {hasAnyone && (
-            <Button variant="outline" onClick={handleClear} className="border-destructive/30 text-destructive hover:bg-destructive/10">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (window.confirm('End this encounter? This clears the initiative order for everyone.')) {
+                  handleClear();
+                }
+              }}
+              className="border-destructive/30 text-destructive hover:bg-destructive/10"
+            >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Clear
+              End Combat
             </Button>
           )}
         </div>
