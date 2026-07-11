@@ -67,6 +67,14 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
+    match /users/{userId}/campaigns/{campaignId}/combatState/{combatStateId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow delete: if isExistingOwner(userId);
+    }
+
     match /users/{userId}/concepts/{conceptId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
