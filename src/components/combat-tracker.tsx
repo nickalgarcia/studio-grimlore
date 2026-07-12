@@ -140,14 +140,15 @@ function AddMonsterForm({ onAdd }: { onAdd: (c: Combatant) => void }) {
 
   const handleAdd = () => {
     if (!name.trim()) return;
+    const parsedHp = hp ? parseInt(hp, 10) : undefined;
+    const trimmedUrl = url.trim();
     onAdd({
       id: uid(),
       name: name.trim(),
       initiative: initiative ? parseInt(initiative, 10) : '',
       type: 'monster',
-      maxHp: hp ? parseInt(hp, 10) : undefined,
-      currentHp: hp ? parseInt(hp, 10) : undefined,
-      url: url.trim() || undefined,
+      ...(parsedHp !== undefined && { maxHp: parsedHp, currentHp: parsedHp }),
+      ...(trimmedUrl && { url: trimmedUrl }),
       conditions: [],
     });
     setName('');
