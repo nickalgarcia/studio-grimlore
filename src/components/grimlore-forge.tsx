@@ -16,7 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import type { SavedConcept } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CombatTracker } from '@/components/combat-tracker';
-import { Zap, Swords, ScrollText, Sparkles, Library, HelpCircle, ClipboardList, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
+} from '@/components/ui/sheet';
+import { Zap, Swords, ScrollText, Sparkles, Library, HelpCircle, ClipboardList, Shield, PanelLeft } from 'lucide-react';
 
 type TabId = 'live' | 'prep' | 'combat' | 'generator' | 'campaigns' | 'inspiration' | 'library' | 'rules';
 
@@ -113,8 +117,36 @@ export function GrimloreForge() {
 
       {/* Body */}
       <div className="flex flex-1 min-h-0 container px-0">
-        {showSidebar && <SessionSidebar campaignId={activeCampaignId!} />}
-        <main className={cn('flex-1 overflow-y-auto', showSidebar ? 'px-8 py-6' : 'px-4 py-8')}>
+        {/* Desktop: inline rail. Below lg it would squeeze the content column,
+            so it moves into a drawer (trigger inside <main>). */}
+        {showSidebar && (
+          <SessionSidebar
+            campaignId={activeCampaignId!}
+            className="hidden lg:flex w-64 flex-shrink-0 border-r border-primary/10"
+          />
+        )}
+        <main className={cn(
+          'flex-1 overflow-y-auto min-w-0',
+          showSidebar ? 'px-4 py-6 lg:px-8' : 'px-4 py-8'
+        )}>
+          {showSidebar && (
+            <div className="lg:hidden mb-4">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="font-headline text-xs tracking-widest">
+                    <PanelLeft className="h-3.5 w-3.5 mr-2" />
+                    Campaign Info
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[85vw] max-w-xs p-0 flex flex-col">
+                  <SheetHeader className="px-4 pt-4 pb-2 text-left">
+                    <SheetTitle className="font-headline text-base">Campaign Info</SheetTitle>
+                  </SheetHeader>
+                  <SessionSidebar campaignId={activeCampaignId!} className="flex-1" />
+                </SheetContent>
+              </Sheet>
+            </div>
+          )}
           {activeTab === 'live' && (
             activeCampaignId
               ? <LiveSession campaignId={activeCampaignId} />

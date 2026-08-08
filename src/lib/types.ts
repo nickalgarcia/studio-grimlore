@@ -82,6 +82,9 @@ export type Combatant = {
   name: string;
   initiative: number | '';
   type: CombatantType;
+  // Secondary sort key. Breaks initiative ties and makes the reorder arrows
+  // work even when two combatants rolled the same number.
+  seq: number;
   // Monsters only
   maxHp?: number;
   currentHp?: number;
@@ -93,10 +96,54 @@ export type Combatant = {
 export type CombatState = {
   campaignId: string;
   combatants: Combatant[];
-  activeIndex: number;
+  /**
+   * Id of the combatant whose turn it is. Identity-based so that removing a
+   * combatant or editing initiative mid-combat can't silently move the turn.
+   */
+  activeId?: string | null;
+  /** @deprecated Positional index kept only to migrate encounters saved before activeId existed. */
+  activeIndex?: number;
   round: number;
   turnCount: number;
   started: boolean;
+  updatedAt?: FieldValue | string;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live Session — persisted per-campaign so the conversation and notes survive
+// tab switches and reloads mid-session
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type LiveSessionStoredMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export type LiveSessionState = {
+  campaignId: string;
+  messages: LiveSessionStoredMessage[];
+  notes: string;
+  updatedAt?: FieldValue | string;
+};
+
+/**
+ * The last generated prep document, kept so switching tabs doesn't discard an
+ * AI-generated document the DM hasn't copied anywhere yet.
+ * `prep` mirrors SessionPrepOutput from the prep flow.
+ */
+export type SessionPrepState = {
+  campaignId: string;
+  prep: {
+    sessionTitle: string;
+    openingScene: string;
+    alternateOpening: string;
+    complications: { title: string; description: string }[];
+    npcMotivations: { name: string; currentGoal: string; howTheyActToday: string }[];
+    characterSpotlights: { character: string; opportunity: string }[];
+    prepReminders: string[];
+    openThreadsToPull: string[];
+  } | null;
   updatedAt?: FieldValue | string;
 };
 

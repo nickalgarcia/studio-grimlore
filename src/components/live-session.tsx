@@ -14,21 +14,24 @@ import {
 } from 'lucide-react';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Session, Character, Campaign } from '@/lib/types';
+import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { Session, Character, Campaign, LiveSessionState } from '@/lib/types';
 import type { LiveSessionInput } from '@/ai/flows/live-session-flow';
+import { Markdown } from '@/components/markdown';
 import { cn } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Isolated notes panel — own state so parent re-renders don't interrupt typing
 // ─────────────────────────────────────────────────────────────────────────────
 const NotesPanel = React.memo(function NotesPanel({
+  initialValue,
   onNotesChange,
 }: {
+  initialValue: string;
   onNotesChange: (notes: string) => void;
 }) {
-  const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState('');
+  const [open, setOpen] = React.useState(!!initialValue);
+  const [value, setValue] = React.useState(initialValue);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
@@ -40,7 +43,9 @@ const NotesPanel = React.memo(function NotesPanel({
   return (
     <div className="flex-shrink-0">
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/20 bg-card hover:bg-card/80 transition-colors text-left"
       >
         <NotebookPen className="h-3.5 w-3.5 text-primary/70" />
@@ -62,6 +67,7 @@ const NotesPanel = React.memo(function NotesPanel({
           <textarea
             value={value}
             onChange={handleChange}
+            aria-label="Session notes"
             placeholder="Jot down names, decisions, moments to remember... Used to generate your session recap."
             autoFocus
             className="w-full min-h-[120px] max-h-48 resize-none p-3 bg-card text-foreground text-base font-body leading-relaxed outline-none placeholder:text-muted-foreground/50 border-t border-primary/10"
@@ -120,22 +126,82 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
     return collection(firestore, 'users', user.uid, 'campaigns', campaignId, 'sessions');
   }, [user, campaignId, firestore]);
 
+  // Conversation + notes are persisted per-campaign so switching tabs (or
+  // reloading) mid-session doesn't discard the session so far.
+  const liveSessionDocRef = useMemoFirebase(() => {
+    if (!user || !campaignId) return null;
+    return doc(firestore, 'users', user.uid, 'campaigns', campaignId, 'liveSession', 'current');
+  }, [user, campaignId, firestore]);
+  const { data: storedSession, isLoading: storedSessionLoading } = useDoc<LiveSessionState>(liveSessionDocRef);
+
   // ── Chat state ──
   const [messages, setMessages] = React.useState<DisplayMessage[]>([]);
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
 
   // ── Notes — stored in a ref to avoid re-renders while typing ──
   // hasNotes is a boolean state that flips when notes go empty↔non-empty,
   // so the Close Session button appears correctly even with no messages.
   const notesRef = React.useRef('');
   const [hasNotes, setHasNotes] = React.useState(false);
+
+  // ── Hydration ──
+  // Restore once per mount so our own debounced writes echoing back can't
+  // clobber whatever the DM has typed since.
+  const [hydrated, setHydrated] = React.useState(false);
+  const [initialNotes, setInitialNotes] = React.useState('');
+  // Remounts NotesPanel (which owns its own text state) after hydrate/clear.
+  const [notesKey, setNotesKey] = React.useState(0);
+
+  React.useEffect(() => {
+    if (hydrated || storedSessionLoading) return;
+    if (storedSession) {
+      setMessages(storedSession.messages ?? []);
+      notesRef.current = storedSession.notes ?? '';
+      setInitialNotes(storedSession.notes ?? '');
+      setHasNotes((storedSession.notes ?? '').trim().length > 0);
+      setNotesKey(k => k + 1);
+    }
+    setHydrated(true);
+  }, [storedSession, storedSessionLoading, hydrated]);
+
+  // ── Persistence ──
+  // Debounced so a streaming reply writes once when it settles rather than
+  // once per token. Messages are read through a ref so `persist` (and the
+  // handleNotesChange it feeds) keep a stable identity — otherwise every
+  // streamed token would re-render the memoized notes panel.
+  const messagesRef = React.useRef<DisplayMessage[]>([]);
+  React.useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persist = React.useCallback(() => {
+    if (!hydrated || !liveSessionDocRef) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      setDocumentNonBlocking(liveSessionDocRef, {
+        campaignId,
+        messages: messagesRef.current,
+        notes: notesRef.current,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }, 800);
+  }, [hydrated, liveSessionDocRef, campaignId]);
+
+  React.useEffect(() => {
+    persist();
+  }, [messages, persist]);
+
   const handleNotesChange = React.useCallback((val: string) => {
     notesRef.current = val;
     setHasNotes(val.trim().length > 0);
-  }, []);
+    persist();
+  }, [persist]);
+
+  // Cancel any in-flight stream when the tab unmounts.
+  React.useEffect(() => () => abortRef.current?.abort(), []);
 
   // ── Close Session state ──
   const [isClosing, setIsClosing] = React.useState(false);
@@ -176,6 +242,9 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
     setInput('');
     setIsLoading(true);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const idToken = await user?.getIdToken();
       if (!idToken) throw new Error('Not authenticated');
@@ -187,6 +256,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
           'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({ messages: toApiMessages(newMessages), campaignContext }),
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -196,12 +266,20 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
+      // SSE events are split on network chunk boundaries, so a `data:` line can
+      // arrive in two pieces. Hold the trailing partial line until it completes,
+      // otherwise it fails to parse and that slice of the reply is lost.
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split('\n')) {
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
           if (!data) continue;
@@ -219,9 +297,13 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
         }
       }
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to get response.' });
-      setMessages(newMessages);
+      // An abort is a deliberate cancellation, not a failure worth reporting.
+      if ((e as Error)?.name !== 'AbortError') {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to get response.' });
+        setMessages(newMessages);
+      }
     } finally {
+      abortRef.current = null;
       setIsLoading(false);
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
@@ -232,8 +314,11 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   };
 
   const clearSession = () => {
+    abortRef.current?.abort();
     setMessages([]);
     notesRef.current = '';
+    setInitialNotes('');
+    setNotesKey(k => k + 1);
     setHasNotes(false);
     setRecapPreview(null);
     setShowCloseFlow(false);
@@ -362,7 +447,9 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
   }
 
   return (
-    <div className="flex flex-col max-w-3xl mx-auto gap-3" style={{ height: 'calc(100vh - 220px)' }}>
+    // min-h-0 lets the chat area shrink inside the flex column; the dynamic
+    // viewport unit keeps mobile browser chrome from clipping the input bar.
+    <div className="flex flex-col max-w-3xl mx-auto gap-3 h-[calc(100dvh-13rem)] sm:h-[calc(100dvh-14rem)] min-h-[24rem]">
 
       {/* ── Context banner ── */}
       <Card className="border-accent/30 bg-accent/5 flex-shrink-0">
@@ -416,7 +503,7 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
       </Card>
 
       {/* ── Notes panel (isolated to prevent re-render freezing) ── */}
-      <NotesPanel onNotesChange={handleNotesChange} />
+      <NotesPanel key={notesKey} initialValue={initialNotes} onNotesChange={handleNotesChange} />
 
       {/* ── Chat area ── */}
       <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-1">
@@ -454,11 +541,18 @@ export function LiveSession({ campaignId }: LiveSessionProps) {
                     ? 'bg-primary/15 text-foreground rounded-tr-sm'
                     : 'bg-white/5 border border-white/10 text-foreground/90 rounded-tl-sm'
                 )}>
-                  <div className="whitespace-pre-wrap font-body text-base leading-relaxed">{msg.content}</div>
+                  {msg.role === 'assistant' ? (
+                    <Markdown content={msg.content} className="text-base" />
+                  ) : (
+                    <div className="whitespace-pre-wrap font-body text-base leading-relaxed">{msg.content}</div>
+                  )}
                   {msg.role === 'assistant' && (
-                    <button onClick={() => copyMessage(msg.content)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10"
-                      title="Copy">
+                    <button
+                      type="button"
+                      onClick={() => copyMessage(msg.content)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1 rounded hover:bg-white/10"
+                      title="Copy"
+                      aria-label="Copy this response to the clipboard">
                       <Copy className="h-3 w-3 text-muted-foreground" />
                     </button>
                   )}

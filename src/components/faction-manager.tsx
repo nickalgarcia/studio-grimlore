@@ -63,9 +63,12 @@ function DispositionMeter({
           return (
             <button
               key={d}
+              type="button"
               onClick={() => !readonly && onChange?.(d)}
               disabled={readonly}
               title={d}
+              aria-label={readonly ? `Disposition: ${d}` : `Set disposition to ${d}`}
+              aria-pressed={!readonly ? isActive : undefined}
               className={cn(
                 'flex-1 h-2.5 rounded-full transition-all',
                 isActive ? cfg.bg : 'bg-white/10',
@@ -212,14 +215,21 @@ function FactionCard({
           </div>
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => setExpanded(o => !o)}
+              aria-expanded={expanded}
+              aria-label={`${expanded ? 'Collapse' : 'Expand'} details for ${faction.name}`}
               className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/50 transition-colors"
             >
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/30 hover:text-red-400 transition-colors">
+                <button
+                  type="button"
+                  aria-label={`Delete ${faction.name}`}
+                  className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/30 hover:text-red-400 transition-colors"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </AlertDialogTrigger>
@@ -266,7 +276,8 @@ function FactionCard({
               <div className="flex items-center justify-between mb-1.5">
                 <p className="label-forge">Current Agenda</p>
                 {!editingAgenda && (
-                  <button onClick={() => setEditingAgenda(true)}
+                  <button type="button" onClick={() => setEditingAgenda(true)}
+                    aria-label={`Edit current agenda for ${faction.name}`}
                     className="text-xs text-muted-foreground/50 hover:text-primary transition-colors">
                     <Edit className="h-3 w-3" />
                   </button>
@@ -302,7 +313,8 @@ function FactionCard({
               <div className="flex items-center justify-between mb-1.5">
                 <p className="label-forge">What They Know About the Party</p>
                 {!editingKnowledge && (
-                  <button onClick={() => setEditingKnowledge(true)}
+                  <button type="button" onClick={() => setEditingKnowledge(true)}
+                    aria-label={`Edit what ${faction.name} knows about the party`}
                     className="text-xs text-muted-foreground/50 hover:text-primary transition-colors">
                     <Edit className="h-3 w-3" />
                   </button>
@@ -503,7 +515,10 @@ export function FactionManager({ campaign }: FactionManagerProps) {
                 {FACTION_COLORS.map(c => (
                   <button
                     key={c}
+                    type="button"
                     onClick={() => setColor(c)}
+                    aria-label={`Use faction colour ${c}`}
+                    aria-pressed={color === c}
                     className={cn(
                       'w-7 h-7 rounded-full border-2 transition-all',
                       color === c ? 'border-white scale-110' : 'border-transparent'

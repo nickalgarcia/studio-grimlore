@@ -9,11 +9,16 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
-import type { Session, Character, Campaign } from '@/lib/types';
+import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { Session, Character, Campaign, SessionPrepState } from '@/lib/types';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Loader2, Wand2, ChevronDown, ChevronUp, Copy,
-  Drama, Zap, User, ScrollText, Brain, Bookmark
+  Drama, Zap, User, ScrollText, Brain
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -85,6 +90,14 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
   }, [user, campaignId, firestore]);
   const { data: characters } = useCollection<Character>(charactersRef);
 
+  // The generated prep is persisted per-campaign: it costs a model call to
+  // produce and was previously discarded by switching tabs.
+  const prepDocRef = useMemoFirebase(() => {
+    if (!user || !campaignId) return null;
+    return doc(firestore, 'users', user.uid, 'campaigns', campaignId, 'sessionPrep', 'current');
+  }, [user, firestore, campaignId]);
+  const { data: storedPrep, isLoading: storedPrepLoading } = useDoc<SessionPrepState>(prepDocRef);
+
   // ── Form state ──
   const [sessionGoals, setSessionGoals] = React.useState('');
   const [location, setLocation] = React.useState('');
@@ -92,6 +105,29 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
   const [extraNotes, setExtraNotes] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [prep, setPrep] = React.useState<SessionPrepOutput | null>(null);
+
+  // Restore once per mount so our own write echoing back can't overwrite a
+  // newer document generated in the meantime.
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => {
+    if (hydrated || storedPrepLoading) return;
+    if (storedPrep?.prep) setPrep(storedPrep.prep);
+    setHydrated(true);
+  }, [storedPrep, storedPrepLoading, hydrated]);
+
+  const savePrep = React.useCallback((next: SessionPrepOutput | null) => {
+    if (!prepDocRef) return;
+    setDocumentNonBlocking(prepDocRef, {
+      campaignId,
+      prep: next,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }, [prepDocRef, campaignId]);
+
+  const discardPrep = () => {
+    setPrep(null);
+    savePrep(null);
+  };
 
   const nextSessionNumber = (sessions?.[0]?.sessionNumber ?? 0) + 1;
 
@@ -132,6 +168,7 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
     }
 
     setPrep(data);
+    savePrep(data);
   };
 
   const copyAll = () => {
@@ -253,9 +290,29 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
               <Button variant="outline" size="sm" onClick={copyAll}>
                 <Copy className="h-3.5 w-3.5 mr-2" />Copy All
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setPrep(null)}>
-                Start Over
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm">Start Over</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Discard this prep document?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      &ldquo;{prep.sessionTitle}&rdquo; will be deleted and you&apos;ll return to the prep
+                      form. If you haven&apos;t copied it, this cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep it</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={discardPrep}
+                      className="bg-destructive text-destructive-foreground"
+                    >
+                      Discard
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
 

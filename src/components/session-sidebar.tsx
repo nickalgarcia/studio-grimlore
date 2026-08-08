@@ -53,7 +53,10 @@ function CharacterPanel({ char, color }: { char: Character; color: string }) {
   return (
     <div className="rounded-md overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
+        aria-expanded={hasStats ? open : undefined}
+        aria-label={hasStats ? `${open ? 'Hide' : 'Show'} stats for ${char.name}` : char.name}
         className="w-full flex items-center gap-2.5 px-2 py-1.5 hover:bg-white/4 transition-colors rounded-md"
       >
         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
@@ -83,11 +86,10 @@ function CharacterPanel({ char, color }: { char: Character; color: string }) {
 
 // ─── Session panel ────────────────────────────────────────────────────────────
 function SessionPanel({
-  session, isActive, onSelect,
+  session, isActive,
 }: {
   session: Session;
   isActive: boolean;
-  onSelect: (s: Session) => void;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -97,7 +99,10 @@ function SessionPanel({
       isActive ? 'border-primary/25 bg-primary/6' : 'border-transparent hover:border-primary/15'
     )}>
       <button
-        onClick={() => { setOpen(o => !o); onSelect(session); }}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        aria-label={`Session ${session.sessionNumber} summary`}
         className="w-full px-3 py-2 text-left"
       >
         <div className="session-label mb-0.5">Session {toRoman(session.sessionNumber)}</div>
@@ -137,10 +142,12 @@ function NpcSearch({ npcs }: { npcs: Npc[] }) {
           value={query}
           onChange={e => { setQuery(e.target.value); setSelectedNpc(null); }}
           placeholder="Search NPCs..."
+          aria-label="Search NPCs by name"
           className="w-full bg-background/40 border border-primary/15 rounded-md pl-7 pr-3 py-1.5 text-xs text-foreground/80 placeholder:text-muted-foreground/40 outline-none focus:border-primary/35"
         />
         {query && (
-          <button onClick={() => { setQuery(''); setSelectedNpc(null); }}
+          <button type="button" onClick={() => { setQuery(''); setSelectedNpc(null); }}
+            aria-label="Clear NPC search"
             className="absolute right-2 top-1/2 -translate-y-1/2">
             <X className="h-3 w-3 text-muted-foreground/50" />
           </button>
@@ -151,7 +158,7 @@ function NpcSearch({ npcs }: { npcs: Npc[] }) {
         <div className="bg-primary/5 border border-primary/15 rounded-lg p-3 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-headline text-xs text-accent/90">{selectedNpc.name}</p>
-            <button onClick={() => setSelectedNpc(null)}>
+            <button type="button" onClick={() => setSelectedNpc(null)} aria-label={`Close ${selectedNpc.name} details`}>
               <X className="h-3 w-3 text-muted-foreground/50" />
             </button>
           </div>
@@ -212,7 +219,9 @@ function SidebarSection({
   return (
     <div>
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-2 mb-2"
       >
         <span className="label-forge">{label}</span>
@@ -228,12 +237,13 @@ function SidebarSection({
 // ─── Main sidebar ─────────────────────────────────────────────────────────────
 interface SessionSidebarProps {
   campaignId: string;
+  /** Layout is owned by the caller so this can render inline on desktop and inside a drawer on mobile. */
+  className?: string;
 }
 
-export function SessionSidebar({ campaignId }: SessionSidebarProps) {
+export function SessionSidebar({ campaignId, className }: SessionSidebarProps) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [selectedSession, setSelectedSession] = React.useState<Session | null>(null);
 
   const campaignRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -263,7 +273,7 @@ export function SessionSidebar({ campaignId }: SessionSidebarProps) {
   const { data: npcs } = useCollection<Npc>(npcsRef);
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-primary/10 flex flex-col overflow-y-auto">
+    <aside className={cn('flex flex-col overflow-y-auto', className)}>
 
       {/* Campaign name */}
       <div className="px-4 py-3 border-b border-primary/8 flex-shrink-0">
@@ -288,7 +298,6 @@ export function SessionSidebar({ campaignId }: SessionSidebarProps) {
                   key={session.id}
                   session={session}
                   isActive={i === 0}
-                  onSelect={setSelectedSession}
                 />
               ))}
             </div>

@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   initiateEmailSignIn,
   initiateEmailSignUp,
+  initiatePasswordReset,
 } from '@/firebase/non-blocking-login';
 
 const formSchema = z.object({
@@ -54,6 +55,7 @@ export function AuthGate() {
   const auth = useAuth();
   const [isPending, setIsPending] = React.useState(false);
   const [authError, setAuthError] = React.useState<string | null>(null);
+  const [resetNotice, setResetNotice] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         if (!auth) return;
@@ -86,16 +88,46 @@ export function AuthGate() {
   const handleAuthError = (error: any) => {
       const friendlyError = getFriendlyAuthError(error.code);
       setAuthError(friendlyError);
+      setResetNotice(null);
       setIsPending(false);
   };
 
   const onSubmit = (data: UserFormValue, isSignUp: boolean) => {
     setIsPending(true);
     setAuthError(null);
+    setResetNotice(null);
     if (isSignUp) {
         initiateEmailSignUp(auth, data.email, data.password, handleAuthError);
     } else {
         initiateEmailSignIn(auth, data.email, data.password, handleAuthError);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const email = form.getValues('email');
+    // Reset only needs the email, so validate that field on its own rather
+    // than making the user satisfy the password rule to recover an account.
+    const emailCheck = z.string().email().safeParse(email);
+    if (!emailCheck.success) {
+      setAuthError('Enter your email address above, then choose "Forgot password".');
+      setResetNotice(null);
+      return;
+    }
+
+    setIsPending(true);
+    setAuthError(null);
+
+    let failed = false;
+    await initiatePasswordReset(auth, email, (error) => {
+      failed = true;
+      handleAuthError(error);
+    });
+
+    setIsPending(false);
+    if (!failed) {
+      // Deliberately non-committal: confirming whether an address is
+      // registered would leak account existence.
+      setResetNotice(`If an account exists for ${email}, a reset link is on its way.`);
     }
   };
 
@@ -149,7 +181,12 @@ export function AuthGate() {
             />
           </CardContent>
           <div className="flex flex-col items-stretch p-6 pt-2">
-            {authError && <p className="text-sm font-medium text-destructive mb-4 text-center">{authError}</p>}
+            {authError && (
+              <p role="alert" className="text-sm font-medium text-destructive mb-4 text-center">{authError}</p>
+            )}
+            {resetNotice && (
+              <p role="status" className="text-sm font-medium text-primary mb-4 text-center">{resetNotice}</p>
+            )}
             <Button
               type="submit"
               className="w-full"
@@ -163,6 +200,16 @@ export function AuthGate() {
                 ? 'Sign Up'
                 : 'Sign In'}
             </Button>
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                disabled={isPending}
+                className="mt-3 text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 disabled:opacity-50 transition-colors"
+              >
+                Forgot password?
+              </button>
+            )}
           </div>
         </Card>
       </form>

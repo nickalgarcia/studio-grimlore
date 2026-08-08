@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, HelpCircle } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Input } from './ui/input';
+import { Markdown } from '@/components/markdown';
 
 export function DMScreen() {
   const [isPending, startTransition] = useTransition();
@@ -17,44 +18,6 @@ export function DMScreen() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [result, setResult] = React.useState<LookupRuleOutput | null>(null);
   const [resultTitle, setResultTitle] = React.useState<string>('');
-
-  const escapeHtml = React.useCallback((input: string) => {
-    return input
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }, []);
-
-  const sanitizeLimitedHtml = React.useCallback((html: string) => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const allowed = new Set(['STRONG', 'EM', 'UL', 'LI', 'P', 'BR']);
-
-    const cleanNode = (node: Node) => {
-      node.childNodes.forEach(child => {
-        if (child.nodeType === Node.ELEMENT_NODE) {
-          const el = child as HTMLElement;
-          if (!allowed.has(el.tagName)) {
-            const parent = el.parentNode;
-            while (el.firstChild) {
-              parent?.insertBefore(el.firstChild, el);
-            }
-            parent?.removeChild(el);
-            return;
-          }
-          while (el.attributes.length > 0) {
-            el.removeAttribute(el.attributes[0].name);
-          }
-        }
-        cleanNode(child);
-      });
-    };
-
-    cleanNode(doc.body);
-    return doc.body.innerHTML;
-  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,44 +40,6 @@ export function DMScreen() {
       }
     });
   };
-
-  const formattedExplanation = React.useMemo(() => {
-    if (!result?.explanation) return '';
-
-    const escaped = escapeHtml(result.explanation);
-
-    // Handle headings and separators line-by-line before paragraph grouping
-    const processedLines = escaped.split('\n').map(line => {
-      const trimmed = line.trim();
-      if (trimmed === '--' || trimmed === '---') return '';
-      if (/^# /.test(trimmed)) return ''; // h1 is redundant with CardTitle
-      if (/^## /.test(trimmed)) return `\n<strong>${trimmed.replace(/^##\s*/, '')}</strong>\n`;
-      return line;
-    });
-
-    let html = processedLines.join('\n')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-    html = html.split(/\n\s*\n/).map(paragraph => {
-      paragraph = paragraph.trim();
-      if (!paragraph) return '';
-
-      if (paragraph.match(/^\s*[-*]/)) {
-        const items = paragraph.split('\n')
-          .filter(l => l.trim())
-          .map(item => `<li>${item.replace(/^\s*[-*]\s*/, '').trim()}</li>`)
-          .join('');
-        return `<ul>${items}</ul>`;
-      }
-
-      paragraph = paragraph.replace(/Level\s*(\d+):/g, '<br/><strong>Level $1:</strong>');
-      return `<p>${paragraph}</p>`;
-    }).join('');
-
-    html = html.replace(/<p><br\/>/g, '<p>');
-    return sanitizeLimitedHtml(html);
-  }, [result, escapeHtml, sanitizeLimitedHtml]);
 
   return (
     <div className="space-y-8">
@@ -155,7 +80,7 @@ export function DMScreen() {
                 <CardTitle className="font-headline text-2xl text-accent-foreground capitalize">{resultTitle}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-invert max-w-none prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-accent-foreground whitespace-normal font-body text-base" dangerouslySetInnerHTML={{ __html: formattedExplanation }} />
+                <Markdown content={result.explanation} className="text-base text-foreground/90" />
               </CardContent>
             </Card>
           )}

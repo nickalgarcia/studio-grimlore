@@ -73,11 +73,13 @@
 
   html {
     @apply dark;
+    /* Scales with the reader's browser/OS text-size setting instead of
+       overriding it. 1.125rem == 18px at the default 16px root. */
+    font-size: 1.125rem;
   }
 
   body {
     @apply bg-background text-foreground antialiased font-body;
-    font-size: 18px !important;
     line-height: 1.65;
     background-image:
       radial-gradient(ellipse 80% 40% at 50% 0%, hsl(174 50% 52% / 0.05) 0%, transparent 60%),

@@ -1,16 +1,18 @@
 'use client';
 
 import * as React from 'react';
-import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import type { Character, Combatant, CombatantType, Condition, CombatState } from '@/lib/types';
+import type { Character, Combatant, Condition, CombatState } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Swords, Plus, Trash2, ChevronUp, ChevronDown,
-  SkipForward, RotateCcw, Dice6, ExternalLink, Users, Shield
+  SkipForward, RotateCcw, Dice6, ExternalLink, Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -55,11 +57,17 @@ function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+/**
+ * Initiative order: highest initiative first, unset initiative last.
+ * `seq` breaks ties deterministically — without it, two combatants who rolled
+ * the same number have no stable order and the reorder arrows do nothing.
+ */
 function sortedCombatants(list: Combatant[]): Combatant[] {
   return [...list].sort((a, b) => {
-    const ia = a.initiative === '' ? -1 : a.initiative;
-    const ib = b.initiative === '' ? -1 : b.initiative;
-    return (ib as number) - (ia as number);
+    const ia = a.initiative === '' ? -Infinity : a.initiative;
+    const ib = b.initiative === '' ? -Infinity : b.initiative;
+    if (ia !== ib) return ib - ia;
+    return (a.seq ?? 0) - (b.seq ?? 0);
   });
 }
 
@@ -89,6 +97,8 @@ const HpControl = React.memo(function HpControl({
   return (
     <div className="flex items-center gap-2 min-w-[140px]">
       <button
+        type="button"
+        aria-label="Decrease hit points by 1"
         onClick={() => onChange(Math.max(0, currentHp - 1))}
         className="w-6 h-6 rounded bg-red-500/15 hover:bg-red-500/30 text-red-400 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
       >−</button>
@@ -97,6 +107,7 @@ const HpControl = React.memo(function HpControl({
         {editing ? (
           <input
             type="number"
+            aria-label="Current hit points"
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onBlur={commit}
@@ -106,6 +117,8 @@ const HpControl = React.memo(function HpControl({
           />
         ) : (
           <button
+            type="button"
+            aria-label={`Hit points: ${currentHp} of ${maxHp}. Click to edit.`}
             onClick={() => { setDraft(String(currentHp)); setEditing(true); }}
             className="w-full text-center text-sm font-headline text-foreground/90 hover:text-primary transition-colors"
           >
@@ -121,6 +134,8 @@ const HpControl = React.memo(function HpControl({
       </div>
 
       <button
+        type="button"
+        aria-label="Increase hit points by 1"
         onClick={() => onChange(Math.min(maxHp, currentHp + 1))}
         className="w-6 h-6 rounded bg-green-500/15 hover:bg-green-500/30 text-green-400 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
       >+</button>
@@ -131,7 +146,7 @@ const HpControl = React.memo(function HpControl({
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Monster Form
 // ─────────────────────────────────────────────────────────────────────────────
-function AddMonsterForm({ onAdd }: { onAdd: (c: Combatant) => void }) {
+function AddMonsterForm({ onAdd }: { onAdd: (c: Omit<Combatant, 'seq'>) => void }) {
   const [name, setName] = React.useState('');
   const [initiative, setInitiative] = React.useState('');
   const [hp, setHp] = React.useState('');
@@ -185,14 +200,17 @@ function AddMonsterForm({ onAdd }: { onAdd: (c: Combatant) => void }) {
         <div className="relative">
           <Input
             placeholder="Initiative"
+            aria-label="Initiative"
             type="number"
             value={initiative}
             onChange={e => setInitiative(e.target.value)}
             className="text-base pr-10"
           />
           <button
+            type="button"
             onClick={() => setInitiative(String(rollD20()))}
             title="Roll d20"
+            aria-label="Roll d20 for initiative"
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary transition-colors"
           >
             <Dice6 className="h-4 w-4" />
@@ -265,11 +283,13 @@ function CombatantRow({
 
         {/* Order buttons */}
         <div className="flex flex-col gap-0.5 flex-shrink-0">
-          <button onClick={() => onMove(combatant.id, 'up')} disabled={isFirst}
+          <button type="button" onClick={() => onMove(combatant.id, 'up')} disabled={isFirst}
+            aria-label={`Move ${combatant.name} earlier in the initiative order`}
             className="h-4 w-4 flex items-center justify-center text-muted-foreground/40 hover:text-foreground/80 disabled:opacity-20 transition-colors">
             <ChevronUp className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => onMove(combatant.id, 'down')} disabled={isLast}
+          <button type="button" onClick={() => onMove(combatant.id, 'down')} disabled={isLast}
+            aria-label={`Move ${combatant.name} later in the initiative order`}
             className="h-4 w-4 flex items-center justify-center text-muted-foreground/40 hover:text-foreground/80 disabled:opacity-20 transition-colors">
             <ChevronDown className="h-3.5 w-3.5" />
           </button>
@@ -279,13 +299,16 @@ function CombatantRow({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <input
             type="number"
+            aria-label={`Initiative for ${combatant.name}`}
             value={combatant.initiative}
             onChange={e => onInitiativeChange(combatant.id, e.target.value ? parseInt(e.target.value, 10) : '')}
             className="w-12 text-center text-base font-headline bg-background/50 border border-white/10 rounded px-1 py-0.5 outline-none focus:border-primary/50"
           />
           <button
+            type="button"
             onClick={() => onInitiativeChange(combatant.id, rollD20())}
             title="Roll d20"
+            aria-label={`Roll d20 initiative for ${combatant.name}`}
             className="text-muted-foreground/40 hover:text-primary transition-colors"
           >
             <Dice6 className="h-3.5 w-3.5" />
@@ -315,8 +338,10 @@ function CombatantRow({
           {combatant.conditions.map(c => (
             <button
               key={c}
+              type="button"
               onClick={() => onToggleCondition(combatant.id, c)}
               title={`Remove ${c}`}
+              aria-label={`Remove condition ${c} from ${combatant.name}`}
               className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded border font-headline tracking-wide transition-colors',
                 CONDITION_COLORS[c]
@@ -326,7 +351,10 @@ function CombatantRow({
             </button>
           ))}
           <button
+            type="button"
             onClick={() => setShowConditions(o => !o)}
+            aria-expanded={showConditions}
+            aria-label={`Add a condition to ${combatant.name}`}
             className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-muted-foreground/50 hover:border-white/20 hover:text-muted-foreground transition-colors font-headline"
           >
             +
@@ -350,13 +378,16 @@ function CombatantRow({
               target="_blank"
               rel="noopener noreferrer"
               title="Open stat block"
+              aria-label={`Open stat block for ${combatant.name} in a new tab`}
               className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/50 hover:text-primary transition-colors"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
           <button
+            type="button"
             onClick={() => onRemove(combatant.id)}
+            aria-label={`Remove ${combatant.name} from combat`}
             className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/40 hover:text-red-400 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -371,6 +402,8 @@ function CombatantRow({
             {ALL_CONDITIONS.filter(c => !combatant.conditions.includes(c)).map(c => (
               <button
                 key={c}
+                type="button"
+                aria-label={`Apply condition ${c} to ${combatant.name}`}
                 onClick={() => { onToggleCondition(combatant.id, c); setShowConditions(false); }}
                 className={cn(
                   'text-[10px] px-2 py-1 rounded border font-headline tracking-wide transition-colors opacity-60 hover:opacity-100',
@@ -415,10 +448,17 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
   const { data: combatState, isLoading: combatStateLoading } = useDoc<CombatState>(combatStateDocRef);
 
   const [combatants, setCombatants] = React.useState<Combatant[]>([]);
-  const [activeIndex, setActiveIndex] = React.useState(0);
+  // The turn is tracked by combatant id, not by position: initiative edits and
+  // removals reorder `sorted`, and a positional index would silently point at
+  // a different creature.
+  const [activeId, setActiveId] = React.useState<string | null>(null);
   const [round, setRound] = React.useState(1);
   const [turnCount, setTurnCount] = React.useState(1);
   const [started, setStarted] = React.useState(false);
+
+  // Monotonic tiebreak counter, seeded past whatever the persisted encounter used.
+  const seqRef = React.useRef(0);
+  const nextSeq = React.useCallback(() => ++seqRef.current, []);
 
   // Hydrate local state from the persisted doc exactly once per mount, so we
   // don't clobber in-progress local edits every time our own writes echo back.
@@ -426,11 +466,23 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
   React.useEffect(() => {
     if (hydrated || combatStateLoading) return;
     if (combatState) {
-      setCombatants(combatState.combatants ?? []);
-      setActiveIndex(combatState.activeIndex ?? 0);
+      // Encounters saved before `seq` existed get one assigned from their
+      // stored order, so their initiative order stays exactly as it was.
+      const loaded = (combatState.combatants ?? []).map((c, i) => ({
+        ...c,
+        seq: c.seq ?? i + 1,
+      }));
+      seqRef.current = loaded.reduce((max, c) => Math.max(max, c.seq), 0);
+
+      setCombatants(loaded);
       setRound(combatState.round ?? 1);
       setTurnCount(combatState.turnCount ?? 1);
       setStarted(combatState.started ?? false);
+
+      // Prefer the id; fall back to the legacy positional index for encounters
+      // saved before activeId existed.
+      const legacyActive = sortedCombatants(loaded)[combatState.activeIndex ?? 0]?.id ?? null;
+      setActiveId(combatState.activeId ?? legacyActive);
     }
     setHydrated(true);
   }, [combatState, combatStateLoading, hydrated]);
@@ -441,13 +493,13 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
     setDocumentNonBlocking(combatStateDocRef, {
       campaignId,
       combatants,
-      activeIndex,
+      activeId,
       round,
       turnCount,
       started,
       updatedAt: serverTimestamp(),
     }, { merge: true });
-  }, [hydrated, combatants, activeIndex, round, turnCount, started, combatStateDocRef, campaignId]);
+  }, [hydrated, combatants, activeId, round, turnCount, started, combatStateDocRef, campaignId]);
 
   const sorted = sortedCombatants(combatants);
 
@@ -459,33 +511,53 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
       name: char.name,
       initiative: '',
       type: 'player',
+      seq: nextSeq(),
       conditions: [],
     }]);
   };
 
   // Add monster
-  const addMonster = (combatant: Combatant) => {
-    setCombatants(prev => [...prev, combatant]);
+  const addMonster = (combatant: Omit<Combatant, 'seq'>) => {
+    setCombatants(prev => [...prev, { ...combatant, seq: nextSeq() }]);
   };
 
-  // Move up/down in sorted order
+  // Move up/down in sorted order. Swaps the whole sort key (initiative *and*
+  // tiebreak) so the arrows still work when two combatants rolled the same.
   const handleMove = (id: string, dir: 'up' | 'down') => {
     const idx = sorted.findIndex(c => c.id === id);
+    if (idx < 0) return;
     const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
 
-    // Swap initiative values to maintain sort order
-    const aInit = sorted[idx].initiative;
-    const bInit = sorted[swapIdx].initiative;
+    const a = sorted[idx];
+    const b = sorted[swapIdx];
 
     setCombatants(prev => prev.map(c => {
-      if (c.id === sorted[idx].id) return { ...c, initiative: bInit };
-      if (c.id === sorted[swapIdx].id) return { ...c, initiative: aInit };
+      if (c.id === a.id) return { ...c, initiative: b.initiative, seq: b.seq };
+      if (c.id === b.id) return { ...c, initiative: a.initiative, seq: a.seq };
       return c;
     }));
   };
 
   const handleRemove = (id: string) => {
+    const remaining = sorted.filter(c => c.id !== id);
+
+    // If the creature whose turn it is leaves the fight, hand the turn to
+    // whoever would have gone next rather than letting it fall on a neighbour.
+    if (id === activeId) {
+      const idx = sorted.findIndex(c => c.id === id);
+      setActiveId(remaining.length > 0 ? remaining[idx % remaining.length].id : null);
+    }
+
+    // Removing the last combatant ends the encounter; leaving `started` true
+    // with nobody in the order leaves the turn controls in a dead state.
+    if (remaining.length === 0) {
+      setStarted(false);
+      setRound(1);
+      setTurnCount(1);
+      setActiveId(null);
+    }
+
     setCombatants(prev => prev.filter(c => c.id !== id));
   };
 
@@ -511,29 +583,36 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
   };
 
   const handleNextTurn = () => {
-    const next = (activeIndex + 1) % sorted.length;
+    if (sorted.length === 0) return;
+
+    const currentIdx = sorted.findIndex(c => c.id === activeId);
+    // If the active combatant is gone, resume from the top of the order.
+    const next = currentIdx < 0 ? 0 : (currentIdx + 1) % sorted.length;
+
     if (next === 0) setRound(r => r + 1);
-    setActiveIndex(next);
+    setActiveId(sorted[next].id);
     setTurnCount(t => t + 1);
   };
 
   const handleStart = () => {
-    setActiveIndex(0);
+    if (sorted.length === 0) return;
+    setActiveId(sorted[0].id);
     setRound(1);
     setTurnCount(1);
     setStarted(true);
   };
 
+  // Writes the cleared encounter through the normal persist effect. Deleting
+  // the doc here would race that effect, which re-creates it a tick later.
   const handleClear = () => {
     setCombatants([]);
-    setActiveIndex(0);
+    setActiveId(null);
     setRound(1);
     setTurnCount(1);
     setStarted(false);
-    if (combatStateDocRef) deleteDocumentNonBlocking(combatStateDocRef);
   };
 
-  const activeCombatant = started ? sorted[activeIndex] : null;
+  const activeCombatant = started ? sorted.find(c => c.id === activeId) ?? null : null;
   const hasAnyone = combatants.length > 0;
   const allHaveInitiative = combatants.every(c => c.initiative !== '');
 
@@ -576,18 +655,35 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
             </Button>
           )}
           {hasAnyone && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (window.confirm('End this encounter? This clears the initiative order for everyone.')) {
-                  handleClear();
-                }
-              }}
-              className="border-destructive/30 text-destructive hover:bg-destructive/10"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              End Combat
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  End Combat
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>End this encounter?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This clears the initiative order, HP, and conditions for all{' '}
+                    {combatants.length} combatant{combatants.length === 1 ? '' : 's'}. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClear}
+                    className="bg-destructive text-destructive-foreground"
+                  >
+                    End Combat
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
@@ -601,8 +697,10 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
             return (
               <button
                 key={char.id}
+                type="button"
                 onClick={() => addPartyMember(char)}
                 disabled={added}
+                aria-label={added ? `${char.name} is already in combat` : `Add ${char.name} to combat`}
                 className={cn(
                   'text-xs px-3 py-1.5 rounded-full border font-headline tracking-wide transition-all',
                   added
@@ -629,7 +727,7 @@ export function CombatTracker({ campaignId }: CombatTrackerProps) {
             <CombatantRow
               key={c.id}
               combatant={c}
-              isActive={started && sorted[activeIndex]?.id === c.id}
+              isActive={started && activeId === c.id}
               isFirst={i === 0}
               isLast={i === sorted.length - 1}
               turnCount={turnCount}

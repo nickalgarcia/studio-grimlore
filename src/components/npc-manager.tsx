@@ -64,20 +64,29 @@ function NpcCard({ npc, onEdit, onDelete }: {
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
+              type="button"
               onClick={() => setExpanded(o => !o)}
+              aria-expanded={expanded}
+              aria-label={`${expanded ? 'Collapse' : 'Expand'} description for ${npc.name}`}
               className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/50 transition-colors"
             >
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
             <button
+              type="button"
               onClick={() => onEdit(npc)}
-              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+              aria-label={`Edit ${npc.name}`}
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
             >
               <Edit className="h-3.5 w-3.5" />
             </button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                <button
+                  type="button"
+                  aria-label={`Delete ${npc.name}`}
+                  className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </AlertDialogTrigger>

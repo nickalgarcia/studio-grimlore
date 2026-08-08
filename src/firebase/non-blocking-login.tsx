@@ -2,6 +2,7 @@
 import {
   Auth, // Import Auth type for type hinting
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
@@ -18,6 +19,17 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
 export function initiateEmailSignIn(authInstance: Auth, email: string, password: string, onError: ErrorCallback): void {
   signInWithEmailAndPassword(authInstance, email, password)
     .catch(onError);
+}
+
+/**
+ * Sends a password-reset email.
+ *
+ * Resolves even when the address isn't registered — Firebase deliberately
+ * doesn't distinguish, so the UI must not either (it would leak which emails
+ * have accounts). Only genuine failures reach `onError`.
+ */
+export function initiatePasswordReset(authInstance: Auth, email: string, onError: ErrorCallback): Promise<void> {
+  return sendPasswordResetEmail(authInstance, email).catch(onError);
 }
 
 /** Signs out the current user. */
