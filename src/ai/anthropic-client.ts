@@ -22,13 +22,22 @@ export function getAnthropicHeaders() {
   };
 }
 
-export async function callClaude(params: {
+/**
+ * Shared by callClaude and callClaudeJson.
+ *
+ * Declared once on purpose: callClaudeJson forwards its whole params object to
+ * callClaude, so when the two shapes drifted apart, `model` still worked at
+ * runtime while failing to typecheck. One type means they cannot drift again.
+ */
+export type ClaudeCallParams = {
   system: string;
   messages: { role: 'user' | 'assistant'; content: string }[];
   temperature?: number;
   max_tokens?: number;
   model?: string;
-}): Promise<string> {
+};
+
+export async function callClaude(params: ClaudeCallParams): Promise<string> {
   const headers = getAnthropicHeaders();
 
   const body = JSON.stringify({
@@ -68,12 +77,7 @@ export async function callClaude(params: {
 /**
  * Calls Claude expecting a JSON response. Strips markdown fences if present.
  */
-export async function callClaudeJson<T>(params: {
-  system: string;
-  messages: { role: 'user' | 'assistant'; content: string }[];
-  temperature?: number;
-  max_tokens?: number;
-}): Promise<T> {
+export async function callClaudeJson<T>(params: ClaudeCallParams): Promise<T> {
   const raw = await callClaude(params);
   const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
   try {

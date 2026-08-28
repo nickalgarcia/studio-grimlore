@@ -10,7 +10,7 @@
  */
 
 import { callClaudeJson } from '@/ai/anthropic-client';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GenerateCharacterInputSchema = z.object({
   campaignContext: z

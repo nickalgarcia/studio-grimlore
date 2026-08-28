@@ -9,7 +9,7 @@
  */
 
 import { callClaude } from '@/ai/anthropic-client';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const LookupRuleInputSchema = z.object({
   term: z

@@ -8,7 +8,7 @@
  */
 
 import { callClaudeJson } from '@/ai/anthropic-client';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const InspirationPromptOutputSchema = z.object({
   prompt: z.string().describe('A random prompt to inspire the Dungeon Master.'),
