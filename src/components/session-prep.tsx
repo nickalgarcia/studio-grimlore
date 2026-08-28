@@ -6,7 +6,6 @@ import type { SessionPrepOutput } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
@@ -16,51 +15,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Loader2, Wand2, ChevronDown, ChevronUp, Copy,
-  Drama, Zap, User, ScrollText, Brain
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useThreadWriter, useThreads } from '@/firebase';
+import { Loader2, Wand2, Copy, GitBranch, Sparkles } from 'lucide-react';
 
 interface SessionPrepProps {
   campaignId: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Collapsible section used throughout the prep document
-// ─────────────────────────────────────────────────────────────────────────────
-function PrepSection({
-  icon, title, children, defaultOpen = true, accent = false,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  accent?: boolean;
-}) {
-  const [open, setOpen] = React.useState(defaultOpen);
-  return (
-    <div className={cn(
-      'rounded-lg border overflow-hidden',
-      accent ? 'border-primary/25 bg-primary/4' : 'border-border bg-card'
-    )}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-white/3 transition-colors"
-      >
-        <span className={accent ? 'text-primary' : 'text-accent'}>{icon}</span>
-        <span className="font-headline text-sm tracking-wide flex-1">{title}</span>
-        {open
-          ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-      </button>
-      {open && (
-        <div className="px-5 pb-5 pt-1 border-t border-border/50">
-          {children}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function SessionPrep({ campaignId }: SessionPrepProps) {
@@ -131,6 +90,20 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
 
   const nextSessionNumber = (sessions?.[0]?.sessionNumber ?? 0) + 1;
 
+  // openThreadsToPull arrives as loose strings the flow otherwise discards.
+  // Promoting them into thread documents is what lets one survive the session.
+  const { data: threads } = useThreads(campaignId);
+  const { promoteThreads } = useThreadWriter(campaignId);
+  const [isPromoting, setIsPromoting] = React.useState(false);
+
+  const handleTrackThreads = async () => {
+    if (!prep?.openThreadsToPull?.length) return;
+    setIsPromoting(true);
+    await promoteThreads(prep.openThreadsToPull, threads);
+    setIsPromoting(false);
+    toast({ title: 'Threads tracked', description: 'Open threads are now in the Codex.' });
+  };
+
   const handleGenerate = async () => {
     if (!sessionGoals.trim()) {
       toast({ variant: 'destructive', title: 'Add session goals', description: 'Tell me what you want to accomplish this session.' });
@@ -195,213 +168,211 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-
-      {/* Header */}
-      <div className="text-center space-y-1">
-        <h2 className="font-headline text-3xl font-bold">Session Prep</h2>
-        <p className="text-muted-foreground text-base">
-          Session {nextSessionNumber} — {campaign?.name ?? '...'}
-        </p>
-      </div>
-
-      {/* Input form */}
-      {!prep && (
-        <Card className="border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-headline text-lg">What do you need for Session {nextSessionNumber}?</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="label-forge mb-2 block">Session Goals *</label>
-              <Textarea
-                value={sessionGoals}
-                onChange={e => setSessionGoals(e.target.value)}
-                placeholder="What do you want to accomplish? e.g. 'Introduce the Circle of Sundering agent in Mirathen, give Doc a consequence for the pickpocket incident, move the party toward the ruins district'"
-                className="min-h-[100px] text-base font-body"
-                disabled={isGenerating}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label-forge mb-2 block">Location</label>
-                <Input
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-                  placeholder="e.g. Mirathen, Broken Bell Tavern"
-                  className="text-base"
-                  disabled={isGenerating}
-                />
-              </div>
-              <div>
-                <label className="label-forge mb-2 block">Tone</label>
-                <Input
-                  value={tone}
-                  onChange={e => setTone(e.target.value)}
-                  placeholder="e.g. tense investigation, action-heavy"
-                  className="text-base"
-                  disabled={isGenerating}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="label-forge mb-2 block">DM Notes (optional)</label>
-              <Textarea
-                value={extraNotes}
-                onChange={e => setExtraNotes(e.target.value)}
-                placeholder="Player absent? Things to avoid? Pacing notes?"
-                className="min-h-[70px] text-base font-body"
-                disabled={isGenerating}
-              />
-            </div>
-
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || !sessionGoals.trim()}
-              className="w-full h-12 text-base font-headline tracking-wide"
-            >
-              {isGenerating
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparing Session {nextSessionNumber}...</>
-                : <><Wand2 className="mr-2 h-4 w-4" />Generate Prep Document</>}
-            </Button>
-
-            {isGenerating && (
-              <p className="text-center text-sm text-muted-foreground italic animate-pulse">
-                Reading your campaign history and crafting the prep document...
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Generated prep document */}
-      {prep && (
-        <div className="space-y-4 animate-in fade-in">
-
-          {/* Title bar */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-headline text-2xl text-accent">{prep.sessionTitle}</h3>
-              <p className="text-sm text-muted-foreground">Session {nextSessionNumber} Prep</p>
-            </div>
-            <div className="flex gap-2">
+    <div className="flex flex-col gap-3">
+      {/* ── Generator form ── */}
+      <section className="surface-card border-t-4 border-t-oxblood px-5 py-4">
+        <div className="font-mono text-[9px] font-extrabold tracking-[0.24em] text-oxblood-bright mb-2.5">
+          PREP · SESSION {nextSessionNumber}
+        </div>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <Textarea
+            value={sessionGoals}
+            onChange={e => setSessionGoals(e.target.value)}
+            placeholder="What do you want to accomplish this session? *"
+            className="sm:col-span-2 min-h-[72px] text-[13.5px]"
+            disabled={isGenerating}
+          />
+          <Input value={location} onChange={e => setLocation(e.target.value)}
+            placeholder="Where does it start?" disabled={isGenerating} className="text-[13px]" />
+          <Input value={tone} onChange={e => setTone(e.target.value)}
+            placeholder="Tone — tense, comic, elegiac…" disabled={isGenerating} className="text-[13px]" />
+          <Textarea
+            value={extraNotes}
+            onChange={e => setExtraNotes(e.target.value)}
+            placeholder="Anything else I should know?"
+            className="sm:col-span-2 min-h-[56px] text-[13px]"
+            disabled={isGenerating}
+          />
+        </div>
+        <div className="flex items-center gap-2 mt-3">
+          <Button onClick={handleGenerate} disabled={isGenerating || !sessionGoals.trim()} size="sm">
+            {isGenerating ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-2" />}
+            Generate beats
+          </Button>
+          {prep && (
+            <>
               <Button variant="outline" size="sm" onClick={copyAll}>
-                <Copy className="h-3.5 w-3.5 mr-2" />Copy All
+                <Copy className="h-3.5 w-3.5 mr-2" /> Copy all
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm">Start Over</Button>
+                  <Button variant="ghost" size="sm" className="ml-auto text-bone-faint hover:text-oxblood-bright">
+                    Discard
+                  </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Discard this prep document?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      &ldquo;{prep.sessionTitle}&rdquo; will be deleted and you&apos;ll return to the prep
-                      form. If you haven&apos;t copied it, this cannot be undone.
-                    </AlertDialogDescription>
+                    <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Keep it</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={discardPrep}
-                      className="bg-destructive text-destructive-foreground"
-                    >
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={discardPrep} className="bg-destructive text-destructive-foreground">
                       Discard
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
-          </div>
-
-          {/* Opening Scenes */}
-          <PrepSection icon={<Drama className="h-4 w-4" />} title="Opening Scene" accent>
-            <p className="text-base leading-relaxed text-foreground/90 font-body mt-2">{prep.openingScene}</p>
-            {prep.alternateOpening && (
-              <div className="mt-4 pt-4 border-t border-primary/15">
-                <p className="label-forge mb-2">Alternate Opening</p>
-                <p className="text-base leading-relaxed text-foreground/70 font-body italic">{prep.alternateOpening}</p>
-              </div>
-            )}
-          </PrepSection>
-
-          {/* Complications */}
-          <PrepSection icon={<Zap className="h-4 w-4" />} title="Complications">
-            <div className="space-y-4 mt-2">
-              {prep.complications.map((c, i) => (
-                <div key={i} className="flex gap-3">
-                  <span className="font-headline text-xs text-accent/60 pt-1 w-4 flex-shrink-0">{i + 1}</span>
-                  <div>
-                    <p className="font-headline text-sm text-foreground/90 mb-0.5">{c.title}</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed font-body">{c.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </PrepSection>
-
-          {/* NPC Motivations */}
-          {prep.npcMotivations.length > 0 && (
-            <PrepSection icon={<User className="h-4 w-4" />} title="NPC Motivations Today">
-              <div className="space-y-4 mt-2">
-                {prep.npcMotivations.map((n, i) => (
-                  <div key={i} className="border-l-2 border-accent/20 pl-4">
-                    <p className="font-headline text-sm text-accent/80 mb-1">{n.name}</p>
-                    <p className="text-sm text-foreground/80 font-body"><span className="text-muted-foreground">Goal: </span>{n.currentGoal}</p>
-                    <p className="text-sm text-foreground/70 font-body italic mt-0.5">{n.howTheyActToday}</p>
-                  </div>
-                ))}
-              </div>
-            </PrepSection>
+            </>
           )}
+        </div>
+      </section>
 
-          {/* Character Spotlights */}
-          {prep.characterSpotlights.length > 0 && (
-            <PrepSection icon={<Drama className="h-4 w-4" />} title="Character Spotlights">
-              <div className="space-y-3 mt-2">
-                {prep.characterSpotlights.map((c, i) => (
-                  <div key={i} className="flex gap-3">
-                    <span className="text-accent/50 pt-0.5">•</span>
-                    <div>
-                      <span className="font-headline text-sm text-foreground/90">{c.character}: </span>
-                      <span className="text-sm text-muted-foreground font-body">{c.opportunity}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </PrepSection>
-          )}
-
-          {/* Open Threads */}
-          {prep.openThreadsToPull.length > 0 && (
-            <PrepSection icon={<ScrollText className="h-4 w-4" />} title="Open Threads to Pull">
-              <ul className="space-y-2 mt-2">
-                {prep.openThreadsToPull.map((t, i) => (
-                  <li key={i} className="flex gap-3 text-sm">
-                    <span className="text-accent/50 pt-0.5 flex-shrink-0">◈</span>
-                    <span className="text-foreground/80 font-body leading-relaxed">{t}</span>
-                  </li>
-                ))}
-              </ul>
-            </PrepSection>
-          )}
-
-          {/* Prep Reminders */}
-          <PrepSection icon={<Brain className="h-4 w-4" />} title="Prep Reminders" defaultOpen>
-            <ul className="space-y-2 mt-2">
-              {prep.prepReminders.map((r, i) => (
-                <li key={i} className="flex gap-3 text-sm">
-                  <span className="text-primary/60 pt-0.5 flex-shrink-0">→</span>
-                  <span className="text-foreground/85 font-body leading-relaxed">{r}</span>
-                </li>
-              ))}
-            </ul>
-          </PrepSection>
-
+      {isGenerating && (
+        <div className="surface-card px-5 py-10 flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-oxblood-bright" />
+          <p className="label-forge">Forging the session…</p>
         </div>
       )}
+
+      {prep && !isGenerating && (
+        <>
+          <h2 className="font-headline text-[27px] font-bold uppercase tracking-[0.02em] text-bone mt-1">
+            {prep.sessionTitle}
+          </h2>
+
+          {/* ── Opening scene ── */}
+          <section className="surface-card border-t-4 border-t-oxblood px-5 py-[18px] animate-rise">
+            <div className="font-mono text-[9px] font-extrabold tracking-[0.24em] text-oxblood-bright mb-2.5">
+              OPENING SCENE
+            </div>
+            <p className="m-0 mb-3.5 text-[14px] leading-[1.62] text-bone-soft">{prep.openingScene}</p>
+            <div className="h-px bg-border/[0.08] mb-3" />
+            <div className="font-mono text-[8.5px] font-extrabold tracking-[0.2em] text-bone-faint mb-1.5">
+              ALTERNATE OPENING
+            </div>
+            <p className="m-0 text-[13.5px] leading-[1.6] text-bone-dim">{prep.alternateOpening}</p>
+          </section>
+
+          {/* ── Complications ── */}
+          <SectionHead label="COMPLICATIONS" />
+          <div className="flex flex-col gap-2">
+            {prep.complications.map((c, i) => (
+              <div key={c.title + i} className="surface-card surface-card-hover px-[17px] py-[15px] animate-rise"
+                   style={{ animationDelay: `${(0.2 + i * 0.07).toFixed(2)}s` }}>
+                <div className="grid grid-cols-[34px_minmax(0,1fr)] gap-3">
+                  <span className="font-mono text-[15px] font-extrabold text-oxblood">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div>
+                    <div className="font-headline text-[16px] font-bold uppercase text-bone-body mb-1.5">
+                      {c.title}
+                    </div>
+                    <p className="m-0 text-[13px] leading-[1.55] text-bone-dim">{c.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── NPC motivations ── */}
+          <SectionHead label="NPC MOTIVATIONS TODAY" />
+          <div className="flex flex-col gap-2">
+            {prep.npcMotivations.map((n, i) => (
+              <div key={n.name + i} className="surface-card px-[17px] py-[15px] animate-rise"
+                   style={{ animationDelay: `${(0.2 + i * 0.07).toFixed(2)}s` }}>
+                <div className="font-headline text-[16px] font-bold uppercase text-bone-body mb-2">
+                  {n.name}
+                </div>
+                <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-x-3 gap-y-1.5">
+                  <span className="font-mono text-[8.5px] font-extrabold tracking-[0.18em] text-oxblood-bright pt-0.5">GOAL</span>
+                  <span className="text-[13px] leading-[1.5] text-bone-soft">{n.currentGoal}</span>
+                  <span className="font-mono text-[8.5px] font-extrabold tracking-[0.18em] text-bone-faint pt-0.5">TODAY</span>
+                  <span className="text-[13px] leading-[1.5] text-bone-dim">{n.howTheyActToday}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Character spotlights ── */}
+          {prep.characterSpotlights.length > 0 && (
+            <>
+              <SectionHead label="CHARACTER SPOTLIGHTS" />
+              <div className="surface-card">
+                {prep.characterSpotlights.map((cs, i) => (
+                  <div key={cs.character + i}
+                       className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 px-4 py-[11px] items-baseline border-b border-border/[0.05] last:border-b-0">
+                    <span className="text-[13px] text-bone-body">{cs.character}</span>
+                    <span className="text-[13px] leading-[1.5] text-bone-dim">{cs.opportunity}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── Open threads ── */}
+          {prep.openThreadsToPull.length > 0 && (
+            <>
+              <SectionHead label="OPEN THREADS TO PULL">
+                <button
+                  onClick={handleTrackThreads}
+                  disabled={isPromoting}
+                  className="font-mono text-[9px] font-bold tracking-[0.14em] uppercase px-2 py-1
+                             border border-border/[0.12] text-bone-faint hover:text-bone-dim hover:border-oxblood
+                             transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isPromoting ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitBranch className="h-3 w-3" />}
+                  Track these
+                </button>
+              </SectionHead>
+              <div className="surface-card px-4 py-3 flex flex-col gap-2">
+                {prep.openThreadsToPull.map((t, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="text-oxblood-bright flex-shrink-0 text-[13px]">→</span>
+                    <span className="text-[13px] leading-[1.55] text-bone-soft">{t}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── Prep reminders ── */}
+          {prep.prepReminders.length > 0 && (
+            <>
+              <SectionHead label="PREP REMINDERS" />
+              <div className="surface-card px-4 py-3 flex flex-col gap-2">
+                {prep.prepReminders.map((r, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="text-brass flex-shrink-0 text-[13px]">→</span>
+                    <span className="text-[13px] leading-[1.55] text-bone-soft">{r}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {!prep && !isGenerating && (
+        <div className="surface-card px-5 py-12 text-center">
+          <Sparkles className="h-6 w-6 mx-auto text-oxblood/60 mb-3" />
+          <p className="text-[13px] text-bone-faint max-w-[42ch] mx-auto leading-relaxed">
+            Describe what you want from the session and the forge will draft an opening,
+            complications, NPC motivations, and beats to hit.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Section rule used between blocks of the prep document. */
+function SectionHead({ label, children }: { label: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 mt-4 mb-1">
+      <span className="font-mono text-[10px] font-extrabold tracking-[0.3em] text-bone-faint">{label}</span>
+      <span className="flex-1 h-[3px] bg-[hsl(var(--border)/0.06)]" />
+      {children}
     </div>
   );
 }

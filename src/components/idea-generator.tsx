@@ -97,7 +97,7 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-4xl font-headline font-bold">Idea Generator</h2>
+        <h2 className="font-headline text-[27px] font-bold uppercase tracking-[0.02em] text-bone">Idea Generator</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
           Describe what's happening at the table. The Grimlore will forge ideas grounded in your campaign's world, characters, and history.
         </p>

@@ -234,9 +234,16 @@ export function GrimloreForge() {
         key={mode}
         className={cn(
           'flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)]',
+          // The camera move owns `transform` on this element, so content
+          // parallax lives on the child below — two transforms on one element
+          // means the animation wins and the parallax silently does nothing.
           camFlip ? 'animate-camB' : 'animate-camA',
         )}
       >
+       <div
+         className="min-h-0 grid grid-rows-[minmax(0,1fr)]"
+         style={{ transform: 'translate3d(calc(var(--px, 0) * 10px), calc(var(--py, 0) * 6px), 0)' }}
+       >
         {!activeCampaign ? (
           <div className="flex items-center justify-center text-bone-faint italic">
             {campaignsLoading ? 'Loading your campaigns…' : 'Create a campaign to begin — use the campaign menu above.'}
@@ -259,6 +266,7 @@ export function GrimloreForge() {
             onFocusHandled={() => setCodexFocusId(null)}
           />
         )}
+       </div>
       </div>
 
       <Spotlight

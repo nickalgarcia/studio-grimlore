@@ -168,3 +168,20 @@
     border: 1px solid hsl(var(--border) / 0.09);
   }
 }
+
+@layer utilities {
+  /* Used from inline styles in the backdrop, where Tailwind's animation
+     utilities cannot reach. */
+  @keyframes circleSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes circleSpinR { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+}
+
+/* The owner asked for motion that never slows the app down. Everything above
+   animates only transform / translate / opacity — but a reader who has asked
+   the OS to stop animation gets none of it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
