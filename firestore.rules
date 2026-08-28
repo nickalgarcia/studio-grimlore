@@ -20,11 +20,6 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
-
-      // Deny all access to subcollections not explicitly matched below
-      match /{allPaths=**} {
-        allow read, write: if false;
-      }
     }
 
     match /users/{userId}/campaigns/{campaignId}/characters/{characterId} {
@@ -60,6 +55,22 @@ service cloud.firestore {
     }
 
     match /users/{userId}/campaigns/{campaignId}/sessions/{sessionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    match /users/{userId}/campaigns/{campaignId}/scenes/{sceneId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow update: if isExistingOwner(userId) && request.resource.data.campaignId == campaignId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    match /users/{userId}/campaigns/{campaignId}/threads/{threadId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.campaignId == campaignId;

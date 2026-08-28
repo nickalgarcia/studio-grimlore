@@ -45,6 +45,9 @@ export * from './provider';
 // It should be imported directly from '@/firebase/client-provider'
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
+export * from './firestore/campaign-collection';
+export * from './firestore/use-scenes';
+export * from './firestore/use-threads';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
