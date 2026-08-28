@@ -19,7 +19,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Encounter':    'border-[hsl(var(--oxblood)/0.5)] text-oxblood-pale',
   'NPC':          'border-[hsl(var(--brass)/0.5)] text-brass',
   'Location':     'border-[hsl(var(--kind-place))] text-bone-dim',
-  'Complication': 'border-[hsl(var(--violet)/0.5)] text-violet-text',
+  'Complication': 'border-[hsl(var(--border)/0.2)] text-bone-soft',
 };
 
 type InspirationGeneratorProps = {

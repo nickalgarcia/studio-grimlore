@@ -5,7 +5,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { Search } from 'lucide-react';
+import { CheckCheck, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CampaignSwitcher } from '@/components/campaign-switcher';
 import { Spotlight } from '@/components/spotlight';
@@ -13,6 +13,8 @@ import { TableMode, type TableView } from '@/components/modes/table-mode';
 import { ForgeMode, type ForgeView } from '@/components/modes/forge-mode';
 import { CodexMode } from '@/components/modes/codex-mode';
 import { useCodexEntries } from '@/components/codex/use-codex-entries';
+import { useLiveSession } from '@/components/table/use-live-session';
+import { ElapsedClock } from '@/components/table/elapsed-clock';
 import type { Campaign, CodexEntry, SavedConcept } from '@/lib/types';
 
 export type Mode = 'table' | 'forge' | 'codex';
@@ -98,6 +100,15 @@ export function GrimloreForge() {
 
   const codex = useCodexEntries(activeCampaign);
 
+  // Lifted out of Table so "close session" can live in the status bar, and fed
+  // from the codex subscriptions rather than opening its own — sessions and
+  // characters were being streamed twice while Table was open.
+  const live = useLiveSession(activeCampaign?.id ?? null, {
+    campaign: activeCampaign,
+    sessions: codex.raw.sessions,
+    characters: codex.raw.characters,
+  });
+
   const changeMode = React.useCallback((next: Mode) => {
     setMode(prev => {
       if (prev !== next) setCamFlip(f => !f);
@@ -176,6 +187,7 @@ export function GrimloreForge() {
           <span className="font-mono text-[10.5px] tracking-[0.12em] text-bone-faint">
             {sessionCount} {sessionCount === 1 ? 'SESSION' : 'SESSIONS'} LOGGED
           </span>
+          <ElapsedClock startedAt={live.startedAt} />
         </div>
 
         <div className="flex-1" />
@@ -190,6 +202,19 @@ export function GrimloreForge() {
             <span className="font-mono text-[9.5px] text-bone-faint border border-border/[0.14] px-1 py-px">⌘K</span>
           </button>
         </div>
+
+        {(live.messages.length > 0 || live.hasNotes) && (
+          <button
+            onClick={live.handleCloseSession}
+            disabled={live.isClosing}
+            className="h-full inline-flex items-center gap-[7px] px-4 border-l border-border/[0.09]
+                       font-mono text-[10.5px] font-extrabold tracking-[0.14em] uppercase text-oxblood-bright
+                       hover:bg-oxblood/20 hover:text-bone transition-colors disabled:opacity-50"
+          >
+            <CheckCheck className="h-3 w-3" />
+            Close session
+          </button>
+        )}
       </div>
 
       {/* ── Mode switcher ── */}
@@ -249,7 +274,13 @@ export function GrimloreForge() {
             {campaignsLoading ? 'Loading your campaigns…' : 'Create a campaign to begin — use the campaign menu above.'}
           </div>
         ) : mode === 'table' ? (
-          <TableMode campaign={activeCampaign} codex={codex} view={tableView} onViewChange={setTableView} />
+          <TableMode
+            campaign={activeCampaign}
+            codex={codex}
+            live={live}
+            view={tableView}
+            onViewChange={setTableView}
+          />
         ) : mode === 'forge' ? (
           <ForgeMode
             campaign={activeCampaign}

@@ -1,14 +1,28 @@
 'use client';
 
 import * as React from 'react';
-import { collection, doc, orderBy, query, serverTimestamp } from 'firebase/firestore';
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getSessionRecap } from '@/app/actions';
 import type { LiveSessionMessage } from '@/app/actions';
 import type { LiveSessionInput } from '@/ai/flows/live-session-flow';
 import { useToast } from '@/hooks/use-toast';
 import type { Campaign, Character, LiveSessionState, Session } from '@/lib/types';
+
+/**
+ * Campaign context is passed in rather than queried.
+ *
+ * The shell already streams sessions and characters for the Codex; subscribing
+ * again here meant four listeners doing two collections' work for as long as
+ * Table was open. The hook owns only the one document nothing else reads —
+ * liveSession/current.
+ */
+export type LiveSessionContext = {
+  campaign: Campaign | null;
+  sessions: (Session & { id: string })[] | null;
+  characters: (Character & { id: string })[] | null;
+};
 
 /** Display messages carry a stable id for React keys; stripped before sending. */
 export type DisplayMessage = LiveSessionMessage & { id: string };
@@ -26,31 +40,13 @@ export type DisplayMessage = LiveSessionMessage & { id: string };
  *   - SSE partial-line buffering, because a `data:` line can arrive split
  *     across two network chunks
  */
-export function useLiveSession(campaignId: string) {
+export function useLiveSession(
+  campaignId: string | null,
+  { campaign, sessions, characters }: LiveSessionContext,
+) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
-
-  const campaignDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid, 'campaigns', campaignId);
-  }, [user, firestore, campaignId]);
-  const { data: campaign } = useDoc<Campaign>(campaignDocRef);
-
-  const sessionsQuery = useMemoFirebase(() => {
-    if (!user || !campaignId) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'campaigns', campaignId, 'sessions'),
-      orderBy('sessionNumber', 'desc'),
-    );
-  }, [user, campaignId, firestore]);
-  const { data: sessions } = useCollection<Session>(sessionsQuery);
-
-  const charactersRef = useMemoFirebase(() => {
-    if (!user || !campaignId) return null;
-    return collection(firestore, 'users', user.uid, 'campaigns', campaignId, 'characters');
-  }, [user, campaignId, firestore]);
-  const { data: characters } = useCollection<Character>(charactersRef);
 
   const sessionsRef = useMemoFirebase(() => {
     if (!user || !campaignId) return null;

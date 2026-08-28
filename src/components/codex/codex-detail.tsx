@@ -171,7 +171,7 @@ export function CodexDetail({
             className={cn(
               'font-mono text-[9px] font-extrabold tracking-[0.16em] uppercase px-[7px] py-[3px]',
               tone === 'hostile' && 'text-bone bg-oxblood',
-              tone === 'ally' && 'text-bone-body bg-[hsl(var(--kind-faction)/0.35)]',
+              tone === 'ally' && 'text-bone-body bg-[hsl(var(--border)/0.14)]',
               tone === 'unknown' && 'text-bone-dim bg-[hsl(var(--border)/0.09)]',
             )}
           >

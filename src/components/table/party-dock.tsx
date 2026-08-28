@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { KIND_ACCENT } from '@/lib/codex';
 import type { Character } from '@/lib/types';
 
-const PLATE_ACCENTS = ['#8f2d24', '#5a5a5a', '#8b6fd8', '#c9a45c', '#3a3a3a'];
+/** Plate accents. No violet — that belongs to the co-pilot alone. */
+const PLATE_ACCENTS = ['#8f2d24', '#5a5a5a', '#c9a45c', '#8b847b', '#3a3a3a'];
 
 function Stat({ label, value, strong }: { label: string; value?: number; strong?: boolean }) {
   return (
@@ -54,12 +54,14 @@ export function PartyDock({ characters }: { characters: Character[] }) {
           {characters.slice(0, 5).map((c, i) => {
             const hasHp = typeof c.currentHp === 'number' && typeof c.maxHp === 'number' && c.maxHp > 0;
             const pct = hasHp ? Math.max(0, Math.min(1, c.currentHp! / c.maxHp!)) : 0;
-            const hpColor = pct > 0.6 ? 'hsl(var(--kind-faction))' : pct > 0.3 ? 'hsl(var(--brass))' : 'hsl(var(--oxblood))';
+            // Healthy reads as neutral bone rather than a colour: only injury
+            // is worth a hue, and violet is spoken for.
+            const hpColor = pct > 0.6 ? 'hsl(var(--bone-dim))' : pct > 0.3 ? 'hsl(var(--brass))' : 'hsl(var(--oxblood))';
             return (
               <div
                 key={c.id}
                 className="bg-[hsl(265_16%_7%/0.9)] px-[13px] pt-2.5 pb-[11px] cursor-pointer hover:bg-[hsl(265_16%_11%/0.95)] transition-colors"
-                style={{ borderTop: `3px solid ${PLATE_ACCENTS[i % PLATE_ACCENTS.length] ?? KIND_ACCENT.npc}` }}
+                style={{ borderTop: `3px solid ${PLATE_ACCENTS[i % PLATE_ACCENTS.length]}` }}
               >
                 {/* Name gets its own line so it never truncates to two characters. */}
                 <div className="font-headline text-[13px] font-bold uppercase text-bone-body truncate mb-0.5">

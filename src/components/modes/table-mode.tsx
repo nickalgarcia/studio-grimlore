@@ -7,7 +7,7 @@ import { CheckCheck, Loader2, RotateCcw, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CombatTracker } from '@/components/combat-tracker';
 import { useCurrentScene } from '@/firebase';
-import { useLiveSession } from '@/components/table/use-live-session';
+import type { useLiveSession } from '@/components/table/use-live-session';
 import { CoPilot } from '@/components/table/co-pilot';
 import { LiveNotes } from '@/components/table/live-notes';
 import { PartyDock } from '@/components/table/party-dock';
@@ -25,14 +25,15 @@ export type TableView = 'scene' | 'combat';
  * context when the question is "they attack — statblock?".
  */
 export function TableMode({
-  campaign, codex, view, onViewChange,
+  campaign, codex, live, view, onViewChange,
 }: {
   campaign: Campaign;
   codex: UseCodexEntriesResult;
+  /** Owned by the shell so the status bar can close a session too. */
+  live: ReturnType<typeof useLiveSession>;
   view: TableView;
   onViewChange: (v: TableView) => void;
 }) {
-  const live = useLiveSession(campaign.id);
   const { data: scene } = useCurrentScene(campaign.id);
 
   // Combat mounts on first use and stays mounted, so a half-typed HP edit
@@ -106,24 +107,14 @@ export function TableMode({
           ))}
           <div className="flex-1" />
           {(live.messages.length > 0 || live.hasNotes) && (
-            <>
-              <button
-                onClick={live.handleCloseSession}
-                disabled={live.isClosing}
-                className="font-mono text-[10.5px] font-extrabold tracking-[0.14em] uppercase px-3 py-1.5
-                           text-oxblood-bright hover:bg-oxblood/20 hover:text-bone transition-colors"
-              >
-                <CheckCheck className="h-3 w-3 mr-1.5 inline-block" />
-                Close session
-              </button>
-              <button
-                onClick={live.clearSession}
-                aria-label="Start a new session"
-                className="font-mono text-[10.5px] tracking-[0.14em] uppercase px-2 py-1.5 text-bone-faint hover:text-bone-dim"
-              >
-                <RotateCcw className="h-3 w-3" />
-              </button>
-            </>
+            <button
+              onClick={live.clearSession}
+              aria-label="Start a new session"
+              title="Start a new session"
+              className="font-mono text-[10.5px] tracking-[0.14em] uppercase px-2 py-1.5 text-bone-faint hover:text-bone-dim"
+            >
+              <RotateCcw className="h-3 w-3" />
+            </button>
           )}
         </div>
 

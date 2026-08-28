@@ -32,7 +32,7 @@ const ALL_CONDITIONS: Condition[] = [
  * Sixteen stock Tailwind colours read as a bug against ash and bone.
  */
 const CONDITION_COLORS: Record<Condition, string> = (() => {
-  const cold = 'bg-[hsl(var(--kind-faction)/0.18)] text-[hsl(var(--violet-text))] border-[hsl(var(--violet)/0.35)]';
+  const cold = 'bg-[hsl(var(--border)/0.09)] text-bone-dim border-[hsl(var(--border)/0.18)]';
   const warm = 'bg-[hsl(var(--brass)/0.15)] text-brass border-[hsl(var(--brass)/0.35)]';
   const hard = 'bg-[hsl(var(--oxblood)/0.25)] text-oxblood-pale border-[hsl(var(--oxblood)/0.5)]';
   return {
@@ -84,7 +84,7 @@ const HpControl = React.memo(function HpControl({
   const [draft, setDraft] = React.useState(String(currentHp));
 
   const pct = maxHp > 0 ? Math.max(0, Math.min(1, currentHp / maxHp)) : 0;
-  const barColor = pct > 0.5 ? 'bg-[hsl(var(--kind-faction))]' : pct > 0.25 ? 'bg-brass' : 'bg-oxblood';
+  const barColor = pct > 0.5 ? 'bg-bone-dim' : pct > 0.25 ? 'bg-brass' : 'bg-oxblood';
 
   const commit = () => {
     const val = parseInt(draft, 10);
@@ -136,7 +136,7 @@ const HpControl = React.memo(function HpControl({
         type="button"
         aria-label="Increase hit points by 1"
         onClick={() => onChange(Math.min(maxHp, currentHp + 1))}
-        className="w-6 h-6 rounded bg-[hsl(var(--kind-faction)/0.2)] hover:bg-[hsl(var(--kind-faction)/0.4)] text-violet-text flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
+        className="w-6 h-6 rounded bg-[hsl(var(--border)/0.09)] hover:bg-[hsl(var(--border)/0.18)] text-bone-soft flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
       >+</button>
     </div>
   );
