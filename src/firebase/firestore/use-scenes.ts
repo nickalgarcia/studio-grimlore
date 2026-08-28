@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import {
-  arrayRemove, arrayUnion, doc, orderBy, query, serverTimestamp,
+  arrayRemove, arrayUnion, doc, getDocs, limit, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase, useUser } from '@/firebase/provider';
 import {
@@ -36,6 +36,23 @@ export function useCurrentScene(campaignId: string | null | undefined): {
 } {
   const { data, isLoading, error } = useScenes(campaignId);
   return { data: data?.[0] ?? null, isLoading, error: error ?? null };
+}
+
+/**
+ * One-shot read of the current scene id.
+ *
+ * For callers that only need the scene when the user acts — the Codex's "put on
+ * stage" button — rather than rendering it. Holding a live listener open on
+ * every visit to a screen that never displays scenes is wasted work, and it is
+ * what surfaced a rules error on a screen with no scene UI at all.
+ */
+export function useCurrentSceneId(campaignId: string | null | undefined) {
+  const scenesRef = useCampaignCollectionRef(campaignId, 'scenes');
+  return React.useCallback(async (): Promise<string | null> => {
+    if (!scenesRef) return null;
+    const snap = await getDocs(query(scenesRef, orderBy('createdAt', 'desc'), limit(1)));
+    return snap.docs[0]?.id ?? null;
+  }, [scenesRef]);
 }
 
 export type NewScene = Omit<Scene, 'id' | 'campaignId' | 'createdAt' | 'updatedAt' | 'onStageNpcIds'>

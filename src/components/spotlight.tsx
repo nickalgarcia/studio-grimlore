@@ -145,10 +145,11 @@ export function Spotlight({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl p-0 gap-0 top-[12vh] translate-y-0">
+      <DialogContent className="sm:max-w-[660px] p-0 gap-0 top-[11vh] translate-y-0
+                                border-border/[0.12] border-t-4 border-t-oxblood shadow-modal animate-rise">
         <DialogTitle className="sr-only">Search everything</DialogTitle>
 
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-3 px-[17px] py-[15px] border-b border-border/[0.09]">
           {ruleTerm ? (
             <button
               type="button"
@@ -159,17 +160,21 @@ export function Spotlight({
               <ArrowLeft className="h-4 w-4" />
             </button>
           ) : (
-            <Search className="h-4 w-4 text-primary flex-shrink-0" aria-hidden="true" />
+            <Search className="h-[15px] w-[15px] text-oxblood-bright flex-shrink-0" aria-hidden="true" />
           )}
           <Input
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Anything — a name, a place, a rule, a session…"
-            className="border-0 shadow-none focus-visible:ring-0 px-0 h-8 text-base"
+            className="border-0 shadow-none focus-visible:ring-0 px-0 h-8 text-[15px] bg-transparent
+                       text-bone-body placeholder:text-bone-faint"
             autoFocus
             aria-label="Search everything"
           />
+          <span className="font-mono text-[9.5px] text-bone-faint border border-border/[0.14] px-1.5 py-0.5">
+            ESC
+          </span>
         </div>
 
         <div className="max-h-[54vh] overflow-y-auto">
@@ -200,10 +205,10 @@ export function Spotlight({
                 onClick={() => activate(row)}
                 onMouseEnter={() => setCursor(i)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-2.5 text-left border-l-2 transition-colors',
+                  'w-full flex items-center gap-3 px-[17px] py-2 text-left border-l-[3px] transition-colors',
                   i === cursor
-                    ? 'bg-primary/10 border-primary'
-                    : 'border-transparent hover:bg-white/5',
+                    ? 'bg-[hsl(var(--oxblood)/0.16)] border-l-oxblood'
+                    : 'border-l-transparent hover:bg-[hsl(var(--oxblood)/0.1)]',
                 )}
               >
                 <span className="text-muted-foreground flex-shrink-0" aria-hidden="true">
@@ -213,11 +218,9 @@ export function Spotlight({
                       ? <Sparkles className="h-3.5 w-3.5" />
                       : KIND_ICON[row.entry.kind] ?? <Scroll className="h-3.5 w-3.5" />}
                 </span>
-                <span className="text-sm flex-shrink-0">{row.title}</span>
-                <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
-                  {row.meta}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground flex-shrink-0">
+                <span className="text-[13.5px] text-bone-body flex-shrink-0">{row.title}</span>
+                <span className="text-[12px] text-bone-faint truncate flex-1 min-w-0">{row.meta}</span>
+                <span className="font-mono text-[9.5px] uppercase tracking-wider text-bone-faint flex-shrink-0">
                   {row.kind}
                 </span>
               </button>
@@ -225,7 +228,8 @@ export function Spotlight({
           )}
         </div>
 
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-border text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="flex items-center gap-4 px-[17px] py-2 border-t border-border/[0.09]
+                        bg-[hsl(var(--background)/0.6)] font-mono text-[9.5px] uppercase tracking-[0.14em] text-bone-faint">
           <span>↑↓ Navigate</span>
           <span>↵ Open</span>
           <span>Esc Close</span>

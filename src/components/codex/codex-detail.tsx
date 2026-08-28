@@ -5,7 +5,6 @@ import { doc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -23,11 +22,11 @@ import type {
 function Field({ label, value }: { label: string; value?: string | number }) {
   if (value === undefined || value === null || value === '') return null;
   return (
-    <div className="space-y-1">
-      <div className="label-forge">{label}</div>
-      <div className="text-sm text-foreground/85 font-body whitespace-pre-wrap leading-relaxed">
-        {value}
+    <div className="mb-3.5">
+      <div className="font-mono text-[9px] font-extrabold tracking-[0.16em] uppercase text-bone-faint mb-1.5">
+        {label}
       </div>
+      <div className="text-[13px] leading-[1.55] text-bone-soft whitespace-pre-wrap">{value}</div>
     </div>
   );
 }
@@ -119,7 +118,7 @@ export function CodexDetail({
 
   if (!entry) {
     return (
-      <div className="p-6 text-sm text-muted-foreground font-body italic">
+      <div className="p-6 text-[13px] text-bone-faint">
         Select an entry to see its details.
       </div>
     );
@@ -147,41 +146,44 @@ export function CodexDetail({
   const canEdit = EDITABLE_KINDS.includes(entry.kind);
 
   return (
-    <div className="p-5 space-y-5 overflow-y-auto">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-block w-1 h-4 flex-shrink-0"
-            style={{ background: entry.accent }}
-            aria-hidden="true"
-          />
-          <span className="label-forge">{KIND_LABEL[entry.kind]}</span>
-          {entry.lastSeen && (
-            <span className="text-[10px] text-muted-foreground ml-auto">{entry.lastSeen}</span>
-          )}
-        </div>
-        <h3 className="font-headline text-2xl leading-tight">{entry.name}</h3>
-        <div className="flex items-center gap-2 flex-wrap">
-          {entry.disposition && (
-            <Badge
-              variant="outline"
-              className={cn(
-                'text-xs',
-                tone === 'hostile' && 'border-destructive/50 text-destructive',
-                tone === 'ally' && 'border-primary/50 text-primary',
-                tone === 'unknown' && 'border-border text-muted-foreground',
-              )}
-            >
-              {entry.disposition}
-            </Badge>
-          )}
-          {entry.where && (
-            <span className="text-xs text-muted-foreground">{entry.where}</span>
-          )}
-        </div>
+    <div className="px-[18px] py-5">
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className="inline-block w-[3px] h-4 flex-shrink-0"
+          style={{ background: entry.accent }}
+          aria-hidden="true"
+        />
+        <span className="font-mono text-[9.5px] font-extrabold tracking-[0.14em] uppercase text-brass">
+          {KIND_LABEL[entry.kind]}
+        </span>
+        {entry.lastSeen && (
+          <span className="font-mono text-[10px] text-bone-faint ml-auto">{entry.lastSeen}</span>
+        )}
       </div>
 
-      <div className="space-y-4">
+      <h3 className="font-headline text-2xl font-semibold leading-[1.15] text-bone mb-2.5">
+        {entry.name}
+      </h3>
+
+      <div className="flex items-center gap-2 flex-wrap mb-4">
+        {entry.disposition && (
+          <span
+            className={cn(
+              'font-mono text-[9px] font-extrabold tracking-[0.16em] uppercase px-[7px] py-[3px]',
+              tone === 'hostile' && 'text-bone bg-oxblood',
+              tone === 'ally' && 'text-bone-body bg-[hsl(var(--kind-faction)/0.35)]',
+              tone === 'unknown' && 'text-bone-dim bg-[hsl(var(--border)/0.09)]',
+            )}
+          >
+            {entry.disposition}
+          </span>
+        )}
+        {entry.where && <span className="text-[12px] text-bone-dim">{entry.where}</span>}
+      </div>
+
+      <div className="h-px bg-border/[0.09] mb-4" />
+
+      <div>
         <DetailFields entry={entry} />
       </div>
 
@@ -194,7 +196,7 @@ export function CodexDetail({
         />
       )}
 
-      <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+      <div className="flex items-center gap-2 pt-4 mt-2 border-t border-border/[0.09]">
         {canEdit && (
           <Button variant="outline" size="sm" onClick={() => onEdit(entry)}>
             <Pencil className="h-3.5 w-3.5 mr-2" /> Edit

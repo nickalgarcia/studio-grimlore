@@ -1,18 +1,17 @@
 'use client';
 
 import * as React from 'react';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getNpc } from '@/app/actions';
 import type { GenerateNpcOutput } from '@/app/actions';
-import { Loader2, PlusCircle, Sparkles, Upload } from 'lucide-react';
+import { Loader2, Sparkles, Upload } from 'lucide-react';
 import { CREATABLE_KINDS, KIND_LABEL, type CodexFilter } from '@/lib/codex';
 import { CodexIndex } from '@/components/codex/codex-index';
 import { CodexDetail } from '@/components/codex/codex-detail';
 import { CodexEntryDialog } from '@/components/codex/codex-entry-dialog';
 import type { UseCodexEntriesResult } from '@/components/codex/use-codex-entries';
 import { ObsidianImportDialog } from '@/components/obsidian-import-dialog';
-import { useCurrentScene, useSceneWriter } from '@/firebase';
+import { useCurrentSceneId, useSceneWriter } from '@/firebase';
 import type { Campaign, CodexEntry, CodexKind, Faction } from '@/lib/types';
 
 /** Flattens a generated NPC into the single `description` field the model uses. */
@@ -55,7 +54,7 @@ export function CodexMode({
   const [importOpen, setImportOpen] = React.useState(false);
   const [isGenerating, setIsGenerating] = React.useState(false);
 
-  const { data: currentScene } = useCurrentScene(campaign.id);
+  const getCurrentSceneId = useCurrentSceneId(campaign.id);
   const { createScene, putOnStage } = useSceneWriter(campaign.id);
 
   const selected = React.useMemo(
@@ -130,7 +129,7 @@ export function CodexMode({
   };
 
   const handlePutOnStage = async (entry: CodexEntry) => {
-    let sceneId = currentScene?.id;
+    let sceneId = await getCurrentSceneId();
 
     if (!sceneId) {
       // No scene yet — the first "put on stage" is what creates one.
@@ -140,7 +139,7 @@ export function CodexMode({
         sessionNumber: latestSessionNumber || undefined,
         sceneNumber: 1,
       });
-      sceneId = created?.id;
+      sceneId = created?.id ?? null;
     }
 
     if (!sceneId) {
@@ -159,45 +158,62 @@ export function CodexMode({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-3xl font-headline font-bold">Codex</h2>
-          <p className="text-muted-foreground text-sm font-body mt-1">
-            Everything that exists in {campaign.name} — {entries.length} entries, one index.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+    <div className="min-h-0 grid grid-rows-[auto_minmax(0,1fr)]">
+      <div className="flex items-end gap-4 flex-wrap px-[26px] pt-3 pb-3 border-b border-border/[0.09]">
+        <h1 className="font-headline text-[40px] font-black uppercase leading-none text-bone
+                       [text-shadow:0_0_60px_hsl(var(--oxblood)/0.4)]">
+          Codex
+        </h1>
+        <span className="font-mono text-[10px] tracking-[0.16em] text-bone-faint pb-1.5 whitespace-nowrap">
+          {entries.length} ENTRIES
+        </span>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1.5 flex-wrap pb-1">
           {CREATABLE_KINDS.map(kind => (
-            <Button key={kind} size="sm" variant="outline" onClick={() => openCreate(kind)}>
-              <PlusCircle className="h-3.5 w-3.5 mr-2" />
-              {KIND_LABEL[kind]}
-            </Button>
+            <button
+              key={kind}
+              onClick={() => openCreate(kind)}
+              className="font-mono text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-[5px]
+                         border border-border/[0.12] text-bone-faint hover:text-bone-dim hover:border-oxblood transition-colors"
+            >
+              + {KIND_LABEL[kind]}
+            </button>
           ))}
-          <Button size="sm" variant="outline" onClick={handleGenerateNpc} disabled={isGenerating}>
-            {isGenerating
-              ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-              : <Sparkles className="h-3.5 w-3.5 mr-2" />}
-            Generate NPC
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="h-3.5 w-3.5 mr-2" /> Import
-          </Button>
+          <button
+            onClick={handleGenerateNpc}
+            disabled={isGenerating}
+            className="font-mono text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-[5px]
+                       border border-border/[0.12] text-bone-faint hover:text-bone-dim hover:border-oxblood
+                       transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+            Generate
+          </button>
+          <button
+            onClick={() => setImportOpen(true)}
+            className="font-mono text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-[5px]
+                       border border-border/[0.12] text-bone-faint hover:text-bone-dim hover:border-oxblood
+                       transition-colors inline-flex items-center gap-1.5"
+          >
+            <Upload className="h-3 w-3" /> Import
+          </button>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_372px] gap-4 items-start">
-        <CodexIndex
-          entries={entries}
-          isLoading={isLoading}
-          filter={filter}
-          onFilterChange={setFilter}
-          query={query}
-          onQueryChange={setQuery}
-          selectedId={selectedId}
-          onSelect={e => setSelectedId(e.id)}
-        />
-        <div className="border border-border rounded-lg bg-card max-h-[70vh] overflow-y-auto">
+      <div className="min-h-0 grid grid-cols-[minmax(0,1fr)_372px]">
+        <div className="min-w-0 min-h-0 flex flex-col border-r border-border/[0.09]">
+          <CodexIndex
+            entries={entries}
+            isLoading={isLoading}
+            filter={filter}
+            onFilterChange={setFilter}
+            query={query}
+            onQueryChange={setQuery}
+            selectedId={selectedId}
+            onSelect={e => setSelectedId(e.id)}
+          />
+        </div>
+        <div className="min-w-0 min-h-0 overflow-y-auto bg-[hsl(var(--background)/0.4)]">
           <CodexDetail
             entry={selected}
             campaign={campaign}

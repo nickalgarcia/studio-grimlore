@@ -26,24 +26,23 @@ const ALL_CONDITIONS: Condition[] = [
   'Poisoned', 'Prone', 'Restrained', 'Stunned', 'Unconscious',
 ];
 
-const CONDITION_COLORS: Record<Condition, string> = {
-  Blinded: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  Charmed: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-  Concentrating: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  Deafened: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  Exhausted: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  Frightened: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  Grappled: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  Incapacitated: 'bg-red-500/20 text-red-400 border-red-500/30',
-  Invisible: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-  Paralyzed: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  Petrified: 'bg-stone-500/20 text-stone-400 border-stone-500/30',
-  Poisoned: 'bg-green-500/20 text-green-400 border-green-500/30',
-  Prone: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  Restrained: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  Stunned: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-  Unconscious: 'bg-red-800/20 text-red-300 border-red-800/30',
-};
+/**
+ * Three families instead of sixteen hues: the palette has room for cold
+ * (concentration and stealth), warm (impairment), and oxblood (hard control).
+ * Sixteen stock Tailwind colours read as a bug against ash and bone.
+ */
+const CONDITION_COLORS: Record<Condition, string> = (() => {
+  const cold = 'bg-[hsl(var(--kind-faction)/0.18)] text-[hsl(var(--violet-text))] border-[hsl(var(--violet)/0.35)]';
+  const warm = 'bg-[hsl(var(--brass)/0.15)] text-brass border-[hsl(var(--brass)/0.35)]';
+  const hard = 'bg-[hsl(var(--oxblood)/0.25)] text-oxblood-pale border-[hsl(var(--oxblood)/0.5)]';
+  return {
+    Concentrating: cold, Invisible: cold, Charmed: cold,
+    Exhausted: warm, Frightened: warm, Grappled: warm, Prone: warm,
+    Restrained: warm, Blinded: warm, Deafened: warm, Poisoned: warm,
+    Incapacitated: hard, Paralyzed: hard, Petrified: hard,
+    Stunned: hard, Unconscious: hard,
+  };
+})();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
