@@ -10,7 +10,6 @@ import { Textarea } from './ui/textarea';
 import { PlusCircle, Trash2, Loader2, BookOpen, Swords, Scroll, Clock } from 'lucide-react';
 import { Campaign, Session } from '@/lib/types';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { CampaignDashboard } from './campaign-dashboard';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -197,12 +196,9 @@ export function CampaignManager({ activeCampaignId, setActiveCampaignId }: Campa
     toast({ title: 'Campaign deleted.' });
   };
 
-  if (activeCampaignId) {
-    const campaign = campaigns?.find(c => c.id === activeCampaignId);
-    if (campaign) {
-      return <CampaignDashboard campaign={campaign} onBack={() => setActiveCampaignId(null)} />;
-    }
-  }
+  // No longer swaps itself for a dashboard when a campaign is selected. The
+  // dashboard and its second-level tab bar are gone; selecting a campaign now
+  // just makes it active and the caller closes this picker.
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
