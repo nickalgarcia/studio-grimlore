@@ -71,7 +71,7 @@ export function CoPilot({
         </span>
         <div className="flex-1" />
         <span className="font-mono text-[9.5px] tracking-[0.1em] text-violet-dim">
-          {sessionCount} SESSIONS
+          {sessionCount} {sessionCount === 1 ? 'SESSION' : 'SESSIONS'}
         </span>
       </div>
 

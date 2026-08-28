@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { cn } from '@/lib/utils';
 
 /**
  * Always open. In the old live-session this sat behind a collapsed disclosure,
@@ -11,10 +12,12 @@ import * as React from 'react';
  * or clear to remount it with fresh content.
  */
 export const LiveNotes = React.memo(function LiveNotes({
-  initialValue, onNotesChange,
+  initialValue, onNotesChange, roomy = false,
 }: {
   initialValue: string;
   onNotesChange: (notes: string) => void;
+  /** Taller when there is no scene above to fill the stage. */
+  roomy?: boolean;
 }) {
   const [value, setValue] = React.useState(initialValue);
 
@@ -34,10 +37,13 @@ export const LiveNotes = React.memo(function LiveNotes({
         onChange={e => { setValue(e.target.value); onNotesChange(e.target.value); }}
         aria-label="Live session notes"
         placeholder="Names, promises, dice that mattered…"
-        className="w-full min-h-[98px] resize-y outline-none px-4 py-3.5
-                   bg-[hsl(var(--background)/0.72)] border border-border/[0.09] border-l-4 border-l-oxblood
-                   text-[13.5px] leading-[1.6] text-bone-soft placeholder:text-bone-faint
-                   shadow-[0_18px_40px_-22px_rgba(0,0,0,0.9)]"
+        className={cn(
+          'w-full resize-y outline-none px-4 py-3.5',
+          roomy ? 'min-h-[320px]' : 'min-h-[98px]',
+          'bg-[hsl(var(--background)/0.72)] border border-border/[0.09] border-l-4 border-l-oxblood',
+          'text-[13.5px] leading-[1.6] text-bone-soft placeholder:text-bone-faint',
+          'shadow-[0_18px_40px_-22px_rgba(0,0,0,0.9)]',
+        )}
       />
     </div>
   );

@@ -130,6 +130,7 @@ export function TableMode({
                 key={live.notesKey}
                 initialValue={live.initialNotes}
                 onNotesChange={live.handleNotesChange}
+                roomy={!scene}
               />
             </SceneStage>
           </div>
