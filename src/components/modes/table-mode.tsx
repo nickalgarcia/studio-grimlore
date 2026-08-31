@@ -25,7 +25,7 @@ export type TableView = 'scene' | 'combat';
  * context when the question is "they attack — statblock?".
  */
 export function TableMode({
-  campaign, codex, live, view, onViewChange,
+  campaign, codex, live, view, onViewChange, onOpenInCodex,
 }: {
   campaign: Campaign;
   codex: UseCodexEntriesResult;
@@ -33,6 +33,8 @@ export function TableMode({
   live: ReturnType<typeof useLiveSession>;
   view: TableView;
   onViewChange: (v: TableView) => void;
+  /** Reveals an entry in Codex mode — what the stage cards and party plates do. */
+  onOpenInCodex: (entryId: string) => void;
 }) {
   const { data: scene } = useCurrentScene(campaign.id);
 
@@ -125,6 +127,7 @@ export function TableMode({
               scene={scene}
               npcs={codex.raw.npcs ?? []}
               sessionNumber={latestSession}
+              onSelectNpc={n => onOpenInCodex(n.id)}
             >
               <LiveNotes
                 key={live.notesKey}
@@ -144,7 +147,12 @@ export function TableMode({
           )}
         </div>
 
-        {view === 'scene' && <PartyDock characters={codex.raw.characters ?? []} />}
+        {view === 'scene' && (
+          <PartyDock
+            characters={codex.raw.characters ?? []}
+            onSelect={c => onOpenInCodex(c.id)}
+          />
+        )}
       </div>
 
       {/* ── Co-pilot column ── */}

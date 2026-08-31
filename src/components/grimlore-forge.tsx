@@ -156,10 +156,17 @@ export function GrimloreForge() {
     [conceptsRef, user, toast, activeCampaign?.name],
   );
 
-  const handleSpotlightEntry = React.useCallback((entry: CodexEntry) => {
+  // Single path for "show me this in the Codex" — used by Spotlight, the
+  // on-stage cards and the party dock.
+  const openInCodex = React.useCallback((entryId: string) => {
     changeMode('codex');
-    setCodexFocusId(entry.id);
+    setCodexFocusId(entryId);
   }, [changeMode]);
+
+  const handleSpotlightEntry = React.useCallback(
+    (entry: CodexEntry) => openInCodex(entry.id),
+    [openInCodex],
+  );
 
   const modeHint =
     mode === 'table' ? 'Running a session'
@@ -280,6 +287,7 @@ export function GrimloreForge() {
             live={live}
             view={tableView}
             onViewChange={setTableView}
+            onOpenInCodex={openInCodex}
           />
         ) : mode === 'forge' ? (
           <ForgeMode

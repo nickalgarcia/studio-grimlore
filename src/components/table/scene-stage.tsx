@@ -45,12 +45,14 @@ function DispositionPill({ disposition }: { disposition?: Npc['disposition'] }) 
  * gets created the first time you put an entry on stage from the Codex.
  */
 export function SceneStage({
-  campaign, scene, npcs, sessionNumber, children,
+  campaign, scene, npcs, sessionNumber, onSelectNpc, children,
 }: {
   campaign: Campaign;
   scene: Scene | null;
   npcs: Npc[];
   sessionNumber?: number;
+  /** Opens the NPC in the Codex. */
+  onSelectNpc?: (npc: Npc) => void;
   children?: React.ReactNode;
 }) {
   const onStage = React.useMemo(() => {
@@ -115,9 +117,20 @@ export function SceneStage({
 
           <div className="flex flex-col gap-2.5">
             {onStage.map((n, i) => (
-              <div
+              <button
                 key={n.id}
-                className="surface-card surface-card-hover border-l-4 border-l-oxblood px-[17px] py-[15px] cursor-pointer animate-rise"
+                type="button"
+                onClick={onSelectNpc ? () => onSelectNpc(n) : undefined}
+                aria-label={onSelectNpc ? `Open ${n.name} in the Codex` : undefined}
+                // A button rather than a div with a pointer cursor, so the card
+                // is keyboard-reachable and the cursor only promises what is
+                // actually wired up.
+                className={cn(
+                  'surface-card border-l-4 border-l-oxblood px-[17px] py-[15px] text-left w-full animate-rise',
+                  onSelectNpc
+                    ? 'surface-card-hover cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood-bright'
+                    : 'cursor-default',
+                )}
                 style={{ animationDelay: `${(0.2 + i * 0.07).toFixed(2)}s` }}
               >
                 <div className="flex items-baseline gap-[11px] mb-2.5">
@@ -138,7 +151,7 @@ export function SceneStage({
                   <span className="font-mono text-[8.5px] font-extrabold tracking-[0.2em] text-bone-faint pt-1">KNOWS</span>
                   <span className="text-[13.5px] leading-[1.5] text-bone-dim">{n.knows || <em className="text-bone-faint not-italic">—</em>}</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </>
