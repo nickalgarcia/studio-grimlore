@@ -5,8 +5,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { BookMarked, Flame, Hammer, Search } from 'lucide-react';
+import { CheckCheck, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CampaignSwitcher } from '@/components/campaign-switcher';
 import { Spotlight } from '@/components/spotlight';
@@ -14,21 +13,17 @@ import { TableMode, type TableView } from '@/components/modes/table-mode';
 import { ForgeMode, type ForgeView } from '@/components/modes/forge-mode';
 import { CodexMode } from '@/components/modes/codex-mode';
 import { useCodexEntries } from '@/components/codex/use-codex-entries';
+import { useLiveSession } from '@/components/table/use-live-session';
+import { ElapsedClock } from '@/components/table/elapsed-clock';
 import type { Campaign, CodexEntry, SavedConcept } from '@/lib/types';
 
 export type Mode = 'table' | 'forge' | 'codex';
 
-const MODES: { id: Mode; label: string; icon: React.ReactNode }[] = [
-  { id: 'table', label: 'Table', icon: <Flame className="h-4 w-4" /> },
-  { id: 'forge', label: 'Forge', icon: <Hammer className="h-4 w-4" /> },
-  { id: 'codex', label: 'Codex', icon: <BookMarked className="h-4 w-4" /> },
+const MODES: { id: Mode; label: string }[] = [
+  { id: 'table', label: 'Table' },
+  { id: 'forge', label: 'Forge' },
+  { id: 'codex', label: 'Codex' },
 ];
-
-const MODE_HINT: Record<Mode, string> = {
-  table: 'Running a session',
-  forge: 'Preparing between sessions',
-  codex: 'Everything in the world',
-};
 
 const isMode = (v: string | null): v is Mode =>
   v === 'table' || v === 'forge' || v === 'codex';
@@ -46,10 +41,7 @@ function readUrlState(): { mode: Mode | null; campaignId: string | null } {
   if (typeof window === 'undefined') return { mode: null, campaignId: null };
   const params = new URLSearchParams(window.location.search);
   const mode = params.get('mode');
-  return {
-    mode: isMode(mode) ? mode : null,
-    campaignId: params.get('campaign'),
-  };
+  return { mode: isMode(mode) ? mode : null, campaignId: params.get('campaign') };
 }
 
 function writeUrlState(mode: Mode, campaignId: string | null) {
@@ -58,8 +50,7 @@ function writeUrlState(mode: Mode, campaignId: string | null) {
   params.set('mode', mode);
   if (campaignId) params.set('campaign', campaignId);
   else params.delete('campaign');
-  const next = `${window.location.pathname}?${params.toString()}`;
-  window.history.replaceState(null, '', next);
+  window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
 }
 
 export function GrimloreForge() {
@@ -73,10 +64,10 @@ export function GrimloreForge() {
   const [forgeView, setForgeView] = React.useState<ForgeView>('prep');
   const [spotlightOpen, setSpotlightOpen] = React.useState(false);
   const [codexFocusId, setCodexFocusId] = React.useState<string | null>(null);
+  // Alternates on every mode change so the camera move actually replays —
+  // re-rendering with the same animation-name does not restart it.
+  const [camFlip, setCamFlip] = React.useState(false);
 
-  // Read the URL once on mount. Reading it on every render would fight the
-  // writes below; hydrating once is the same shape as live-session's
-  // hydrate-once rule and for the same reason.
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => {
     const { mode: urlMode, campaignId } = readUrlState();
@@ -91,8 +82,6 @@ export function GrimloreForge() {
   }, [user, firestore]);
   const { data: campaigns, isLoading: campaignsLoading } = useCollection<Campaign>(campaignsRef);
 
-  // Fall back to the first campaign so the app never sits on an empty shell,
-  // and drop a campaign id from the URL that no longer resolves.
   React.useEffect(() => {
     if (!hydrated || campaignsLoading || !campaigns) return;
     if (activeCampaignId && campaigns.some(c => c.id === activeCampaignId)) return;
@@ -109,9 +98,23 @@ export function GrimloreForge() {
     [campaigns, activeCampaignId],
   );
 
-  // Spotlight searches the codex, so the index is built at shell level and
-  // handed to both the palette and Codex mode.
   const codex = useCodexEntries(activeCampaign);
+
+  // Lifted out of Table so "close session" can live in the status bar, and fed
+  // from the codex subscriptions rather than opening its own — sessions and
+  // characters were being streamed twice while Table was open.
+  const live = useLiveSession(activeCampaign?.id ?? null, {
+    campaign: activeCampaign,
+    sessions: codex.raw.sessions,
+    characters: codex.raw.characters,
+  });
+
+  const changeMode = React.useCallback((next: Mode) => {
+    setMode(prev => {
+      if (prev !== next) setCamFlip(f => !f);
+      return next;
+    });
+  }, []);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -154,66 +157,130 @@ export function GrimloreForge() {
   );
 
   const handleSpotlightEntry = React.useCallback((entry: CodexEntry) => {
-    setMode('codex');
+    changeMode('codex');
     setCodexFocusId(entry.id);
-  }, []);
+  }, [changeMode]);
+
+  const modeHint =
+    mode === 'table' ? 'Running a session'
+      : mode === 'forge' ? 'Preparing between sessions'
+        : `The world · ${codex.entries.length} entries`;
+
+  const sessionCount = codex.raw.sessions?.length ?? 0;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <nav className="border-b border-primary/10 bg-background/80 backdrop-blur sticky top-16 z-40">
-        <div className="container flex items-center gap-4 py-2 flex-wrap">
-          <CampaignSwitcher
-            campaigns={campaigns ?? []}
-            activeCampaignId={activeCampaignId}
-            onSelect={setActiveCampaignId}
-          />
+    <>
+      {/* ── Status bar (42px) ── */}
+      <div className="h-[42px] flex-shrink-0 flex items-stretch bg-[hsl(var(--background)/0.92)] border-b border-oxblood/40">
+        <CampaignSwitcher
+          campaigns={campaigns ?? []}
+          activeCampaignId={activeCampaignId}
+          onSelect={setActiveCampaignId}
+        />
 
-          <div className="flex items-end gap-0">
-            {MODES.map(m => (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                aria-current={mode === m.id ? 'page' : undefined}
-                className={cn(
-                  'flex items-center gap-2 px-5 py-3 font-headline text-[0.65rem] tracking-[0.12em]',
-                  'uppercase transition-all border-b-2 whitespace-nowrap',
-                  mode === m.id
-                    ? 'text-accent border-accent'
-                    : 'text-muted-foreground/60 border-transparent hover:text-foreground/80 hover:border-primary/30',
-                )}
-              >
-                {m.icon}
-                {m.label}
-              </button>
-            ))}
-          </div>
-
-          <span className="label-forge hidden md:inline">{MODE_HINT[mode]}</span>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSpotlightOpen(true)}
-            className="ml-auto gap-2 text-muted-foreground"
-          >
-            <Search className="h-3.5 w-3.5" />
-            Spotlight
-            <kbd className="text-[10px] border border-border rounded px-1 py-0.5">⌘K</kbd>
-          </Button>
+        <div className="flex items-center gap-4 px-[18px]">
+          {sessionCount > 0 && (
+            <span className="font-mono text-[10.5px] font-bold tracking-[0.12em] text-bone-body">
+              S{codex.raw.sessions?.[0]?.sessionNumber ?? sessionCount}
+            </span>
+          )}
+          <span className="font-mono text-[10.5px] tracking-[0.12em] text-bone-faint">
+            {sessionCount} {sessionCount === 1 ? 'SESSION' : 'SESSIONS'} LOGGED
+          </span>
+          <ElapsedClock startedAt={live.startedAt} />
         </div>
-      </nav>
 
-      <main className="flex-1 overflow-y-auto min-w-0 container px-4 py-6 lg:px-8">
+        <div className="flex-1" />
+
+        <div className="flex items-center pr-2.5">
+          <button
+            onClick={() => setSpotlightOpen(true)}
+            className="flex items-center gap-2.5 h-[26px] pl-[11px] pr-[9px] bg-[hsl(var(--border)/0.05)] border border-border/[0.12] hover:border-oxblood hover:bg-oxblood/[0.16] transition-colors"
+          >
+            <Search className="h-3 w-3 text-bone-dim" />
+            <span className="text-[11.5px] text-bone-dim">Spotlight</span>
+            <span className="font-mono text-[9.5px] text-bone-faint border border-border/[0.14] px-1 py-px">⌘K</span>
+          </button>
+        </div>
+
+        {(live.messages.length > 0 || live.hasNotes) && (
+          <button
+            onClick={live.handleCloseSession}
+            disabled={live.isClosing}
+            className="h-full inline-flex items-center gap-[7px] px-4 border-l border-border/[0.09]
+                       font-mono text-[10.5px] font-extrabold tracking-[0.14em] uppercase text-oxblood-bright
+                       hover:bg-oxblood/20 hover:text-bone transition-colors disabled:opacity-50"
+          >
+            <CheckCheck className="h-3 w-3" />
+            Close session
+          </button>
+        )}
+      </div>
+
+      {/* ── Mode switcher ── */}
+      <div className="flex-shrink-0 flex items-end gap-[26px] px-[26px] pt-4">
+        {MODES.map(m => {
+          const active = mode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => changeMode(m.id)}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'relative pb-[9px] font-headline text-[19px] font-extrabold uppercase tracking-[0.16em] transition-colors',
+                active
+                  ? 'text-bone [text-shadow:0_0_30px_hsl(var(--oxblood-bright)/0.6)]'
+                  : 'text-bone-faintest hover:text-bone-faint',
+              )}
+            >
+              {m.label}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute left-0 bottom-0 h-[3px] bg-oxblood transition-[width,opacity] duration-200',
+                  active
+                    ? 'w-full opacity-100 shadow-[0_0_16px_hsl(var(--oxblood-bright)/0.95)]'
+                    : 'w-0 opacity-0',
+                )}
+              />
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        <span className="font-mono text-[9.5px] tracking-[0.18em] uppercase text-bone-faint pb-[9px]">
+          {modeHint}
+        </span>
+      </div>
+
+      {/* ── Content ──
+          grid-rows-[minmax(0,1fr)] is load-bearing: without it the auto row
+          grows to its tallest child and pushes the party dock off screen. */}
+      <div
+        key={mode}
+        className={cn(
+          'flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)]',
+          // The camera move owns `transform` on this element, so content
+          // parallax lives on the child below — two transforms on one element
+          // means the animation wins and the parallax silently does nothing.
+          camFlip ? 'animate-camB' : 'animate-camA',
+        )}
+      >
+       <div
+         className="min-h-0 grid grid-rows-[minmax(0,1fr)]"
+         style={{ transform: 'translate3d(calc(var(--px, 0) * 10px), calc(var(--py, 0) * 6px), 0)' }}
+       >
         {!activeCampaign ? (
-          <EmptyState
-            message={
-              campaignsLoading
-                ? 'Loading your campaigns…'
-                : 'Create a campaign to begin — use the campaign menu above.'
-            }
-          />
+          <div className="flex items-center justify-center text-bone-faint italic">
+            {campaignsLoading ? 'Loading your campaigns…' : 'Create a campaign to begin — use the campaign menu above.'}
+          </div>
         ) : mode === 'table' ? (
-          <TableMode campaign={activeCampaign} view={tableView} onViewChange={setTableView} />
+          <TableMode
+            campaign={activeCampaign}
+            codex={codex}
+            live={live}
+            view={tableView}
+            onViewChange={setTableView}
+          />
         ) : mode === 'forge' ? (
           <ForgeMode
             campaign={activeCampaign}
@@ -224,14 +291,14 @@ export function GrimloreForge() {
           />
         ) : (
           <CodexMode
-            key={activeCampaign.id}
             campaign={activeCampaign}
             codex={codex}
             focusEntryId={codexFocusId}
             onFocusHandled={() => setCodexFocusId(null)}
           />
         )}
-      </main>
+       </div>
+      </div>
 
       <Spotlight
         open={spotlightOpen}
@@ -241,14 +308,6 @@ export function GrimloreForge() {
         onSelectEntry={handleSpotlightEntry}
         onSelectCampaign={c => setActiveCampaignId(c.id)}
       />
-    </div>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex items-center justify-center h-64 text-muted-foreground font-body italic text-lg">
-      {message}
-    </div>
+    </>
   );
 }

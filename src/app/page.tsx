@@ -1,101 +1,73 @@
 'use client';
 
 import { GrimloreForge } from '@/components/grimlore-forge';
-import { useUser, signOutUser, useAuth } from '@/firebase';
-import { Loader2, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useUser } from '@/firebase';
+import { Loader2 } from 'lucide-react';
 import { AuthGate } from '@/components/auth-gate';
+import { ForgeSigil } from '@/components/forge-sigil';
+import { Backdrop } from '@/components/backdrop';
+import { useParallax } from '@/hooks/use-parallax';
 
-// Forge sigil — the star mark from the mockup
-function ForgeSigil({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <polygon
-        points="16,2 20,12 30,12 22,19 25,30 16,23 7,30 10,19 2,12 12,12"
-        fill="none"
-        stroke="hsl(174 50% 48%)"
-        strokeWidth="1.2"
-        opacity="0.85"
-      />
-      <circle
-        cx="16"
-        cy="16"
-        r="3.2"
-        fill="hsl(174 50% 48% / 0.15)"
-        stroke="hsl(174 50% 48%)"
-        strokeWidth="0.8"
-      />
-    </svg>
-  );
-}
+/**
+ * Fixed cockpit: the page itself never scrolls, only the regions inside it.
+ * That is what keeps the party dock on screen for a whole session.
+ *
+ * The old sticky app header is gone — the 42px status bar inside GrimloreForge
+ * replaces it, and sign-out moved into the campaign menu there.
+ */
+/**
+ * Motion flags. Exposed here so both layers can be turned off per-user without
+ * touching the components that consume them.
+ */
+const MOTION = { backdrop: true, parallax: true, ambient: true };
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const rootRef = useParallax(MOTION.parallax);
+
+  if (isUserLoading) {
+    return (
+      <div className="h-screen overflow-hidden flex items-center justify-center gap-4 bg-background">
+        <Loader2 className="h-5 w-5 animate-spin text-oxblood-bright" />
+        <p className="label-forge">Summoning the spirits…</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // The gate is the one screen allowed to scroll on its own. It carries the
+    // mark itself now that the app header is gone — otherwise the sign-in
+    // screen would be unbranded.
+    return (
+      <div className="relative h-screen overflow-y-auto bg-background">
+        {/* The gate stands in the same world as the app behind it. */}
+        {MOTION.backdrop && <Backdrop ambient={MOTION.ambient} />}
+        <div className="relative z-[1] flex items-center gap-3 px-[26px] h-[42px] border-b border-oxblood/40">
+          <ForgeSigil className="w-5 h-5" />
+          <span className="font-headline text-[13px] font-extrabold tracking-[0.11em] uppercase text-bone">
+            Grimlore Forge
+          </span>
+          <span className="font-mono text-[9.5px] tracking-[0.18em] uppercase text-bone-faint">
+            DM Command Center
+          </span>
+        </div>
+        <div className="relative z-[1]">
+          <AuthGate />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container flex h-16 items-center justify-between">
-
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <ForgeSigil className="w-8 h-8" />
-            <div>
-              <div className="font-headline text-lg font-bold text-accent tracking-wide leading-none">
-                Grimlore Forge
-              </div>
-              <div className="label-forge mt-0.5">
-                DM Command Center
-              </div>
-            </div>
-          </div>
-
-          {/* Right side */}
-          {user && (
-            <div className="flex items-center gap-4">
-              {/* User avatar circle */}
-              <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-headline text-[9px] text-primary">
-                {user.email?.slice(0, 2).toUpperCase() ?? 'DM'}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => signOutUser(auth)}
-                className="text-muted-foreground hover:text-foreground font-headline text-xs tracking-widest"
-              >
-                <LogOut className="mr-2 h-3.5 w-3.5" />
-                Sign Out
-              </Button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* ── Main ── */}
-      <main className="flex-1 flex flex-col">
-        {isUserLoading ? (
-          <div className="flex items-center justify-center flex-1 py-24 gap-4">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-muted-foreground font-headline text-sm tracking-widest">
-              Summoning the spirits...
-            </p>
-          </div>
-        ) : user ? (
-          <GrimloreForge />
-        ) : (
-          <AuthGate />
-        )}
-      </main>
-
+    <div
+      ref={rootRef as React.RefObject<HTMLDivElement>}
+      className="relative h-screen overflow-hidden bg-background text-foreground"
+    >
+      {MOTION.backdrop && <Backdrop ambient={MOTION.ambient} />}
+      {/* Content sits at z-index 1 explicitly; the backdrop is pinned to 0. */}
+      <div className="relative z-[1] h-full flex flex-col">
+        <GrimloreForge />
+      </div>
     </div>
   );
 }

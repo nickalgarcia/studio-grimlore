@@ -180,12 +180,12 @@ export function CampaignOverview({
   return (
     <div className="grid lg:grid-cols-3 gap-6 items-start">
       <div className="lg:col-span-2 space-y-6">
-        <Card>
+        <Card className="surface-card">
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle className="font-headline text-2xl flex items-center gap-3">
-                  <BrainCircuit className="h-6 w-6 text-accent" /> The Story So Far
+                <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-bone-body flex items-center gap-2.5">
+                  <BrainCircuit className="h-4 w-4 text-oxblood-bright" /> The Story So Far
                 </CardTitle>
                 <CardDescription>An AI-generated summary of your campaign&apos;s progress.</CardDescription>
               </div>
@@ -209,20 +209,20 @@ export function CampaignOverview({
               </div>
             </div>
           </CardHeader>
-          <CardContent className="font-body text-base">
+          <CardContent className="text-[14px]">
             {currentCampaign.aiSummary ? (
-              <p className="whitespace-pre-wrap pt-2 leading-relaxed">{currentCampaign.aiSummary}</p>
+              <p className="whitespace-pre-wrap pt-1 text-[14px] leading-[1.62] text-bone-soft">{currentCampaign.aiSummary}</p>
             ) : (
-              <p className="text-muted-foreground">
+              <p className="text-[13px] text-bone-faint">
                 No summary yet. Log a session, then choose &ldquo;Update summary&rdquo;.
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="surface-card">
           <CardHeader>
-            <CardTitle className="font-headline text-2xl">Log New Session</CardTitle>
+            <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-bone-body">Log New Session</CardTitle>
             <CardDescription className="font-body tracking-wider">
               Add notes from your latest adventure.
             </CardDescription>
@@ -232,7 +232,7 @@ export function CampaignOverview({
               placeholder="Summarize the events of your latest session..."
               value={newSessionSummary}
               onChange={e => setNewSessionSummary(e.target.value)}
-              className="min-h-[100px] font-body text-base"
+              className="min-h-[100px] text-[13.5px]"
               disabled={isCreating}
             />
           </CardContent>
@@ -247,9 +247,9 @@ export function CampaignOverview({
         </Card>
       </div>
 
-      <Card className="sticky top-24">
+      <Card className="surface-card sticky top-4">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Campaign Ideas</CardTitle>
+          <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-bone-body">Campaign Ideas</CardTitle>
           <CardDescription className="font-body tracking-wider">Generated for this campaign.</CardDescription>
         </CardHeader>
         <CardContent className="font-body">
@@ -257,19 +257,19 @@ export function CampaignOverview({
             <div className="space-y-6">
               {Object.entries(groupedConcepts).map(([type, concepts]) => (
                 <div key={type}>
-                  <h4 className="font-headline flex items-center gap-2 mb-2 text-lg">
+                  <h4 className="font-headline flex items-center gap-2 mb-2 text-[14px] font-bold uppercase tracking-wide text-bone-body">
                     {iconMap[type]} {type}s
                   </h4>
                   <div className="space-y-3 text-sm border-l-2 border-accent/20 pl-4 ml-2">
                     {concepts.map(c => (
-                      <p key={c.id} className="text-muted-foreground">{c.content}</p>
+                      <p key={c.id} className="text-[13px] text-bone-faint">{c.content}</p>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-[13px] text-bone-faint">
               No ideas saved yet. Use Generate.
             </p>
           )}

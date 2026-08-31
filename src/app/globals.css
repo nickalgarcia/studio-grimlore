@@ -4,244 +4,184 @@
 
 @layer base {
   :root {
-    --background: 220 25% 6%;
-    --foreground: 38 30% 88%;
-    --card: 220 20% 9%;
-    --card-foreground: 38 30% 88%;
-    --popover: 220 25% 6%;
-    --popover-foreground: 38 30% 88%;
+    /* ───────────────────────────────────────────────────────────────────
+       Ash / bone / oxblood, with violet reserved for the AI column.
 
-    /* Runic Teal — interactive, AI, active states */
-    --primary: 174 50% 52%; 
-    --primary-foreground: 174 30% 96%;
+       shadcn primitives resolve every colour through `hsl(var(--token))`,
+       so the design's hex values live here as HSL triplets — that keeps
+       the primitives working untouched and lets Tailwind's `/opacity`
+       modifiers compose (see the `<alpha-value>` wiring in the config).
+       ─────────────────────────────────────────────────────────────────── */
 
-    --secondary: 174 20% 16%;
-    --secondary-foreground: 38 28% 80%;
+    --background: 264 19% 5%;          /* #0d0b10 warm ash-plum, not black */
+    --foreground: 39 35% 92%;          /* #f2ede4 */
 
-    --muted: 220 15% 13%;
-    --muted-foreground: 38 20% 62%;     /* much more readable muted text */
+    --card: 265 16% 7%;                /* panel, opaque form of rgba(20,16,22,.78) */
+    --card-foreground: 39 35% 92%;
+    --popover: 264 19% 6%;
+    --popover-foreground: 39 35% 92%;
 
-    /* Bone Parchment — headings, labels, accents */
-    --accent: 38 32% 80%;               /* brighter parchment */
-    --accent-foreground: 220 25% 8%;
+    /* Oxblood — command, slabs, spines, active state */
+    --primary: 5 60% 35%;              /* #8f2d24 */
+    --primary-foreground: 40 40% 94%;  /* #f6f2ea */
 
-    --destructive: 0 55% 48%;
-    --destructive-foreground: 0 0% 98%;
+    --secondary: 265 14% 12%;
+    --secondary-foreground: 37 21% 84%;
 
-    --border: 174 22% 20%;              /* more visible borders */
-    --input: 220 18% 13%;
-    --ring: 174 50% 52%;
+    --muted: 265 12% 11%;
+    --muted-foreground: 34 6% 51%;     /* #8b847b — floor for text under 11px */
 
-    --radius: 0.5rem;
+    /* Bone — display type and highlights */
+    --accent: 40 40% 94%;              /* #f6f2ea */
+    --accent-foreground: 264 19% 5%;
 
-    /* Custom forge tokens */
-    --teal: 174 50% 52%;
-    --teal-dim: 174 35% 38%;
-    --teal-glow: 174 50% 52%;
-    --parchment: 38 32% 80%;
-    --parchment-dim: 38 22% 62%;
-    --parchment-faint: 38 18% 40%;
+    --destructive: 5 61% 56%;          /* #d4574c oxblood bright */
+    --destructive-foreground: 40 40% 94%;
+
+    --border: 40 33% 92%;              /* hairline — used at low alpha */
+    --input: 265 14% 12%;
+    --ring: 5 61% 56%;
+
+    /* The design is deliberately hard-edged. */
+    --radius: 0rem;
+
+    /* ── Design-specific tokens, consumed via the Tailwind theme ── */
+    --bone: 40 40% 94%;
+    --bone-body: 39 35% 92%;
+    --bone-soft: 37 21% 84%;
+    --bone-dim: 30 7% 63%;
+    --bone-faint: 34 6% 51%;
+    --bone-faintest: 34 7% 41%;        /* only at 19px+ — 3.48:1 */
+
+    --oxblood: 5 60% 35%;
+    --oxblood-bright: 5 61% 56%;
+    --oxblood-pale: 6 58% 80%;
+
+    /* Violet means arcane. It appears only in the co-pilot column. */
+    --violet: 256 57% 64%;
+    --violet-bright: 258 73% 78%;
+    --violet-text: 258 76% 84%;
+    --violet-dim: 257 18% 58%;
+
+    --brass: 40 50% 57%;
+
+    /* Kind accents for the Codex */
+    --kind-npc: 5 60% 35%;
+    --kind-place: 0 0% 35%;
+    --kind-faction: 256 57% 64%;
+    --kind-item: 40 50% 57%;
+    --kind-session: 0 0% 23%;
+
+    /* Shadows — quoted in the spec as literals */
+    --shadow-card: 0 20px 46px -22px rgba(0, 0, 0, 0.95);
+    --shadow-panel: 0 22px 50px -22px rgba(0, 0, 0, 0.95);
+    --shadow-modal: 0 40px 100px -26px rgba(0, 0, 0, 0.95);
+    --shadow-slab: 0 0 34px -6px rgba(143, 45, 36, 0.9);
+    --shadow-violet: 0 0 40px -16px rgba(139, 111, 216, 0.8);
   }
 
+  /* Single-theme design. `.dark` mirrors :root so the class on <html>
+     (and any shadcn primitive keyed to it) resolves to the same palette
+     rather than silently falling back to shadcn defaults. */
   .dark {
-    --background: 220 25% 6%;
-    --foreground: 38 30% 88%;
-    --card: 220 20% 9%;
-    --card-foreground: 38 30% 88%;
-    --popover: 220 25% 6%;
-    --popover-foreground: 38 30% 88%;
-    --primary: 174 50% 52%;
-    --primary-foreground: 174 30% 96%;
-    --secondary: 174 20% 16%;
-    --secondary-foreground: 38 28% 80%;
-    --muted: 220 15% 13%;
-    --muted-foreground: 38 20% 62%;
-    --accent: 38 32% 80%;
-    --accent-foreground: 220 25% 8%;
-    --destructive: 0 55% 48%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 174 22% 20%;
-    --input: 220 18% 13%;
-    --ring: 174 50% 52%;
+    --background: 264 19% 5%;
+    --foreground: 39 35% 92%;
+    --card: 265 16% 7%;
+    --card-foreground: 39 35% 92%;
+    --popover: 264 19% 6%;
+    --popover-foreground: 39 35% 92%;
+    --primary: 5 60% 35%;
+    --primary-foreground: 40 40% 94%;
+    --secondary: 265 14% 12%;
+    --secondary-foreground: 37 21% 84%;
+    --muted: 265 12% 11%;
+    --muted-foreground: 34 6% 51%;
+    --accent: 40 40% 94%;
+    --accent-foreground: 264 19% 5%;
+    --destructive: 5 61% 56%;
+    --destructive-foreground: 40 40% 94%;
+    --border: 40 33% 92%;
+    --input: 265 14% 12%;
+    --ring: 5 61% 56%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    /* Hairline: rgba(242,237,228,0.09) */
+    border-color: hsl(var(--border) / 0.09);
   }
 
   html {
     @apply dark;
-    /* Scales with the reader's browser/OS text-size setting instead of
-       overriding it. 1.125rem == 18px at the default 16px root. */
-    font-size: 1.125rem;
+    /* Base must be 16px. The previous 1.125rem scaled every Tailwind rem
+       by 12.5% and is why the old UI read oversized. */
   }
 
   body {
     @apply bg-background text-foreground antialiased font-body;
-    line-height: 1.65;
+    font-size: 14px;
+    line-height: 1.45;
     background-image:
-      radial-gradient(ellipse 80% 40% at 50% 0%, hsl(174 50% 52% / 0.05) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 30% at 100% 100%, hsl(174 40% 35% / 0.04) 0%, transparent 50%);
-    background-attachment: fixed;
-  }
-
-  /* Forge rule — teal-to-parchment gradient line at very top */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      hsl(174 50% 48% / 0.5),
-      hsl(38 28% 75% / 0.25),
-      transparent
-    );
-    z-index: 100;
-    pointer-events: none;
+      radial-gradient(ellipse 90% 70% at 12% 8%, #171020 0%, transparent 62%),
+      radial-gradient(ellipse 80% 60% at 88% 96%, #14090a 0%, transparent 58%);
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-cinzel), serif;
   }
 
-  /* Scrollbar — subtle teal tint */
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: hsl(220 25% 6%);
-  }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(174 30% 22%);
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(174 40% 30%);
-  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--oxblood) / 0.55); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--oxblood)); }
+
+  input, textarea { font-family: inherit; }
 }
 
 @layer components {
-  /* ── Forge card — replaces default shadcn card feel ── */
-  .forge-card {
-    @apply rounded-lg border bg-card text-card-foreground;
-    border-color: hsl(174 20% 14%);
-    transition: border-color 0.2s ease;
-  }
-
-  .forge-card:hover {
-    border-color: hsl(174 30% 20%);
-  }
-
-  /* ── Teal glow button (primary actions) ── */
-  .btn-forge {
-    background: hsl(174 50% 48% / 0.12);
-    border: 1px solid hsl(174 50% 48% / 0.3);
-    color: hsl(174 50% 65%);
-    font-family: 'Cinzel', serif;
-    letter-spacing: 0.06em;
-    font-size: 0.8rem;
-    transition: all 0.2s ease;
-  }
-
-  .btn-forge:hover {
-    background: hsl(174 50% 48% / 0.2);
-    border-color: hsl(174 50% 48% / 0.5);
-    color: hsl(174 50% 75%);
-  }
-
-  /* ── Parchment label ── */
+  /* Micro-label: mono, 8.5–10px, 700–800, wide tracking, uppercase.
+     Never below --bone-faint. */
   .label-forge {
-    font-family: 'Cinzel', serif;
-    font-size: 0.62rem;
-    letter-spacing: 0.2em;
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: hsl(174 35% 48%);
+    color: hsl(var(--bone-faint));
   }
 
-  /* ── Teal pulse dot for live indicator ── */
-  .pulse-teal {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: hsl(174 50% 48%);
-    animation: forge-pulse 2s infinite;
-    display: inline-block;
+  /* The reused card surface. */
+  .surface-card {
+    background: hsl(var(--card) / 0.78);
+    border: 1px solid hsl(var(--border) / 0.09);
+    box-shadow: var(--shadow-card);
+  }
+  .surface-card-hover:hover {
+    background: hsl(var(--card) / 0.88);
+    border-color: hsl(var(--oxblood-bright) / 0.45);
   }
 
-  @keyframes forge-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.3; transform: scale(0.6); }
+  /* Inputs and tables sit on the solid panel. */
+  .surface-panel {
+    background: hsl(var(--background) / 0.72);
+    border: 1px solid hsl(var(--border) / 0.09);
   }
+}
 
-  /* ── Session number in Roman numeral style ── */
-  .session-label {
-    font-family: 'Cinzel', serif;
-    font-size: 0.65rem;
-    letter-spacing: 0.14em;
-    color: hsl(var(--primary));
-  }
+@layer utilities {
+  /* Used from inline styles in the backdrop, where Tailwind's animation
+     utilities cannot reach. */
+  @keyframes circleSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes circleSpinR { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+}
 
-  /* ── DM note aside (parchment left border) ── */
-  .dm-note {
-    border-left: 2px solid hsl(38 28% 75% / 0.2);
-    padding: 8px 12px;
-    background: hsl(38 15% 75% / 0.03);
-    border-radius: 0 6px 6px 0;
-    font-style: italic;
-    color: hsl(38 15% 48%);
-    font-size: 0.85rem;
-  }
-
-  /* ── Quick action chips ── */
-  .forge-chip {
-    font-family: 'Cinzel', serif;
-    font-size: 0.7rem;
-    letter-spacing: 0.06em;
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid hsl(174 30% 26%);
-    color: hsl(174 35% 58%);
-    background: hsl(174 30% 14% / 0.5);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-  }
-
-  .forge-chip:hover {
-    border-color: hsl(174 45% 40%);
-    color: hsl(174 45% 70%);
-    background: hsl(174 50% 52% / 0.1);
-  }
-
-  /* ── Active nav tab ── */
-  .nav-tab-active {
-    color: hsl(var(--primary));
-    border-bottom: 2px solid hsl(var(--primary));
-  }
-
-  /* ── Sidebar session card active ── */
-  .session-active {
-    border-color: hsl(174 40% 30% / 0.5);
-    background: hsl(174 50% 48% / 0.06);
-  }
-
-  /* ── AI chat bubble ── */
-  .bubble-ai {
-    background: hsl(174 50% 48% / 0.05);
-    border: 1px solid hsl(174 40% 30% / 0.25);
-    border-radius: 2px 10px 10px 10px;
-  }
-
-  /* ── DM chat bubble ── */
-  .bubble-dm {
-    background: hsl(38 15% 75% / 0.05);
-    border: 1px solid hsl(38 20% 50% / 0.12);
-    border-radius: 10px 2px 10px 10px;
+/* The owner asked for motion that never slows the app down. Everything above
+   animates only transform / translate / opacity — but a reader who has asked
+   the OS to stop animation gets none of it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

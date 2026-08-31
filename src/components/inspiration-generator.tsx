@@ -13,12 +13,13 @@ import { Sparkles, BookMarked, Copy, Loader2, Dices } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
 // Map category to a color hint for the badge
+// Kind accents, matching the Codex rather than stock Tailwind hues.
 const CATEGORY_COLORS: Record<string, string> = {
-  'Plot Hook':    'border-blue-500/40 text-blue-400',
-  'Encounter':    'border-red-500/40 text-red-400',
-  'NPC':          'border-green-500/40 text-green-400',
-  'Location':     'border-yellow-500/40 text-yellow-400',
-  'Complication': 'border-purple-500/40 text-purple-400',
+  'Plot Hook':    'border-[hsl(var(--oxblood)/0.5)] text-oxblood-bright',
+  'Encounter':    'border-[hsl(var(--oxblood)/0.5)] text-oxblood-pale',
+  'NPC':          'border-[hsl(var(--brass)/0.5)] text-brass',
+  'Location':     'border-[hsl(var(--kind-place))] text-bone-dim',
+  'Complication': 'border-[hsl(var(--border)/0.2)] text-bone-soft',
 };
 
 type InspirationGeneratorProps = {
@@ -61,7 +62,7 @@ export function InspirationGenerator({ onSave }: InspirationGeneratorProps) {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-4xl font-headline font-bold">Inspiration Generator</h2>
+        <h2 className="font-headline text-[27px] font-bold uppercase tracking-[0.02em] text-bone">Inspiration Generator</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
           Stuck in a creative rut? Let fate decide. Roll for a spark of divine (or diabolical) inspiration.
         </p>

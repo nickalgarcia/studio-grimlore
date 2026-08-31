@@ -26,24 +26,23 @@ const ALL_CONDITIONS: Condition[] = [
   'Poisoned', 'Prone', 'Restrained', 'Stunned', 'Unconscious',
 ];
 
-const CONDITION_COLORS: Record<Condition, string> = {
-  Blinded: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  Charmed: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-  Concentrating: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  Deafened: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  Exhausted: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  Frightened: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  Grappled: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  Incapacitated: 'bg-red-500/20 text-red-400 border-red-500/30',
-  Invisible: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-  Paralyzed: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  Petrified: 'bg-stone-500/20 text-stone-400 border-stone-500/30',
-  Poisoned: 'bg-green-500/20 text-green-400 border-green-500/30',
-  Prone: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  Restrained: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  Stunned: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-  Unconscious: 'bg-red-800/20 text-red-300 border-red-800/30',
-};
+/**
+ * Three families instead of sixteen hues: the palette has room for cold
+ * (concentration and stealth), warm (impairment), and oxblood (hard control).
+ * Sixteen stock Tailwind colours read as a bug against ash and bone.
+ */
+const CONDITION_COLORS: Record<Condition, string> = (() => {
+  const cold = 'bg-[hsl(var(--border)/0.09)] text-bone-dim border-[hsl(var(--border)/0.18)]';
+  const warm = 'bg-[hsl(var(--brass)/0.15)] text-brass border-[hsl(var(--brass)/0.35)]';
+  const hard = 'bg-[hsl(var(--oxblood)/0.25)] text-oxblood-pale border-[hsl(var(--oxblood)/0.5)]';
+  return {
+    Concentrating: cold, Invisible: cold, Charmed: cold,
+    Exhausted: warm, Frightened: warm, Grappled: warm, Prone: warm,
+    Restrained: warm, Blinded: warm, Deafened: warm, Poisoned: warm,
+    Incapacitated: hard, Paralyzed: hard, Petrified: hard,
+    Stunned: hard, Unconscious: hard,
+  };
+})();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -85,7 +84,7 @@ const HpControl = React.memo(function HpControl({
   const [draft, setDraft] = React.useState(String(currentHp));
 
   const pct = maxHp > 0 ? Math.max(0, Math.min(1, currentHp / maxHp)) : 0;
-  const barColor = pct > 0.5 ? 'bg-green-500' : pct > 0.25 ? 'bg-yellow-500' : 'bg-red-500';
+  const barColor = pct > 0.5 ? 'bg-bone-dim' : pct > 0.25 ? 'bg-brass' : 'bg-oxblood';
 
   const commit = () => {
     const val = parseInt(draft, 10);
@@ -100,7 +99,7 @@ const HpControl = React.memo(function HpControl({
         type="button"
         aria-label="Decrease hit points by 1"
         onClick={() => onChange(Math.max(0, currentHp - 1))}
-        className="w-6 h-6 rounded bg-red-500/15 hover:bg-red-500/30 text-red-400 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
+        className="w-6 h-6 bg-[hsl(var(--oxblood)/0.2)] hover:bg-[hsl(var(--oxblood)/0.4)] text-oxblood-pale flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
       >−</button>
 
       <div className="flex-1 space-y-1">
@@ -137,7 +136,7 @@ const HpControl = React.memo(function HpControl({
         type="button"
         aria-label="Increase hit points by 1"
         onClick={() => onChange(Math.min(maxHp, currentHp + 1))}
-        className="w-6 h-6 rounded bg-green-500/15 hover:bg-green-500/30 text-green-400 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
+        className="w-6 h-6 rounded bg-[hsl(var(--border)/0.09)] hover:bg-[hsl(var(--border)/0.18)] text-bone-soft flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
       >+</button>
     </div>
   );
@@ -264,11 +263,11 @@ function CombatantRow({
 
   return (
     <div className={cn(
-      'rounded-xl border transition-all',
+      'border transition-all',
       isActive
-        ? 'border-accent/60 bg-accent/8 shadow-[0_0_0_1px_hsl(var(--accent)/0.2)]'
+        ? 'border-border/[0.09] bg-[hsl(var(--oxblood)/0.14)] shadow-[inset_3px_0_0_hsl(var(--oxblood))]'
         : isDead
-          ? 'border-red-900/40 bg-red-950/20 opacity-60'
+          ? 'border-border/[0.05] bg-[hsl(var(--oxblood)/0.06)] opacity-60'
           : isMonster
             ? 'border-red-500/20 bg-red-500/4'
             : 'border-primary/15 bg-primary/3',
