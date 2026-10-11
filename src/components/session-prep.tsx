@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc, idTokenFor } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Session, Character, Campaign, SessionPrepState } from '@/lib/types';
@@ -117,7 +117,7 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
       .map(s => `Session ${s.sessionNumber}: ${s.summary}`)
       .join('\n\n');
 
-    const { data, error } = await getSessionPrep({
+    const { data, error } = await getSessionPrep(await idTokenFor(user), {
       campaignName: campaign?.name ?? 'Campaign',
       campaignDescription: campaign?.description,
       sessionGoals,

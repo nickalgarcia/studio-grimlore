@@ -42,8 +42,29 @@ import {
   type ParseObsidianSessionOutput,
 } from '@/ai/flows/parse-obsidian-session-flow';
 
+import { requireUser, authErrorMessage } from '@/firebase/require-user';
+
 // Re-export types so components can import from one place
 export type { GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Every export below is a public POST endpoint: its id ships in the client
+ * bundle, which loads before the auth gate. Each one therefore starts by
+ * calling this, ahead of validation, caches and anything that spends tokens.
+ * Returns the message to hand back, or null when the caller may proceed.
+ */
+async function denyReason(idToken: string): Promise<string | null> {
+  try {
+    await requireUser(idToken);
+    return null;
+  } catch (e) {
+    return authErrorMessage(e);
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cache (inspiration only — rules and live session should not cache)
@@ -70,8 +91,11 @@ function getCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getContextualIdeas(
+  idToken: string,
   input: GenerateContextSensitiveIdeasInput
 ): Promise<{ data: GenerateContextSensitiveIdeasOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   if (!input.partyActions.trim()) {
     return { data: null, error: 'Please describe what is happening at the table.' };
   }
@@ -89,8 +113,11 @@ export async function getContextualIdeas(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getLiveSessionResponse(
+  idToken: string,
   input: LiveSessionInput
 ): Promise<{ data: LiveSessionOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   try {
     const result = await runLiveSession(input);
     return { data: result, error: null };
@@ -104,10 +131,13 @@ export async function getLiveSessionResponse(
 // Inspiration (cached)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getInspiration(): Promise<{
+export async function getInspiration(idToken: string): Promise<{
   data: InspirationPromptOutput | null;
   error: string | null;
 }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
+
   const cached = getCache(inspirationCache, 'inspiration');
   if (cached) return { data: cached, error: null };
 
@@ -126,8 +156,11 @@ export async function getInspiration(): Promise<{
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getRuleInfo(
+  idToken: string,
   term: string
 ): Promise<{ data: LookupRuleOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   if (!term.trim()) return { data: null, error: 'Please enter a term to look up.' };
   try {
     const data = await lookupRule({ term });
@@ -143,8 +176,11 @@ export async function getRuleInfo(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getNpc(
+  idToken: string,
   input: GenerateNpcInput
 ): Promise<{ data: GenerateNpcOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   try {
     const data = await generateNpc(input);
     return { data, error: null };
@@ -159,8 +195,11 @@ export async function getNpc(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getCampaignSummary(
+  idToken: string,
   input: SummarizeCampaignInput
 ): Promise<{ data: SummarizeCampaignOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   try {
     const data = await summarizeCampaign(input);
     return { data, error: null };
@@ -175,8 +214,11 @@ export async function getCampaignSummary(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getSessionRecap(
+  idToken: string,
   input: GenerateSessionRecapInput
 ): Promise<{ data: GenerateSessionRecapOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   try {
     const data = await generateSessionRecap(input);
     return { data, error: null };
@@ -191,8 +233,11 @@ export async function getSessionRecap(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getSessionPrep(
+  idToken: string,
   input: SessionPrepInput
 ): Promise<{ data: SessionPrepOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   try {
     const data = await generateSessionPrep(input);
     return { data, error: null };
@@ -207,8 +252,11 @@ export async function getSessionPrep(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function parseObsidianSessionAction(
+  idToken: string,
   input: ParseObsidianSessionInput
 ): Promise<{ data: ParseObsidianSessionOutput | null; error: string | null }> {
+  const denied = await denyReason(idToken);
+  if (denied) return { data: null, error: denied };
   try {
     const data = await parseObsidianSession(input);
     return { data, error: null };

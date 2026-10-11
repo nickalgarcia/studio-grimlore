@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { getLiveSessionResponse } from '@/app/actions';
+import { idTokenFor, useUser } from '@/firebase';
 import { Brain, Loader2 } from 'lucide-react';
 import type { Faction } from '@/lib/types';
 
@@ -25,6 +26,7 @@ export function FactionAiPanel({
   const [response, setResponse] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
 
   const handleAsk = async () => {
     if (!situation.trim()) return;
@@ -44,7 +46,7 @@ export function FactionAiPanel({
       sessionContext ? `Recent campaign events: ${sessionContext}` : '',
     ].filter(Boolean).join('\n');
 
-    const { data, error } = await getLiveSessionResponse({
+    const { data, error } = await getLiveSessionResponse(await idTokenFor(user), {
       messages: [{
         role: 'user',
         content: `${systemContext}\n\nGiven everything you know about ${faction.name} and their current situation, how would they respond to this:\n\n${situation}\n\nAnswer as the faction's leadership — what do they decide, what orders do they give, and what might the party see or hear as a result? Be specific and grounded in the faction's goals and current disposition.`,

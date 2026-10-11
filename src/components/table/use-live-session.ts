@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { idTokenFor, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getSessionRecap } from '@/app/actions';
 import type { LiveSessionMessage } from '@/app/actions';
@@ -253,7 +253,7 @@ export function useLiveSession(
 
     const nextSessionNumber = (sessions?.[0]?.sessionNumber ?? 0) + 1;
 
-    const { data, error } = await getSessionRecap({
+    const { data, error } = await getSessionRecap(await idTokenFor(user), {
       campaignName: campaign?.name ?? 'Campaign',
       sessionNumber: nextSessionNumber,
       dmNotes: notesRef.current || 'No notes taken.',
@@ -269,7 +269,7 @@ export function useLiveSession(
       return;
     }
     setRecapPreview(data.recap);
-  }, [campaign, characters, sessions, toast]);
+  }, [campaign, characters, sessions, toast, user]);
 
   const handleSaveRecap = React.useCallback(async () => {
     if (!recapPreview || !sessionsRef || !user) return;

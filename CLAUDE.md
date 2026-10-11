@@ -43,7 +43,7 @@ scaffold. `docs/blueprint.md` describes an OLD design (purple/green/parchment) �
 
 ```
 src/app/page.tsx                 auth gate → <GrimloreForge/>
-src/app/actions.ts               server actions, one per AI feature, return { data, error }
+src/app/actions.ts               server actions, one per AI feature, take idToken first, return { data, error }
 src/app/api/live-session/route.ts  streaming co-pilot (SSE passthrough); verifies Firebase ID token
 src/ai/anthropic-client.ts       callClaude / callClaudeJson, CLAUDE_MODEL
 src/ai/flows/*.ts                one file per AI feature: zod schema + prompt builder
@@ -54,6 +54,7 @@ src/components/codex/            use-codex-entries (merges every collection into
 src/components/combat-tracker.tsx  largest file; persists to combatState
 src/components/markdown.tsx      safe renderer for AI output (builds React nodes; no innerHTML)
 src/firebase/                    provider, useCollection/useDoc/useMemoFirebase, non-blocking writes, error emitter
+src/firebase/require-user.ts     server-only auth gate for AI entry points (admin.ts verifies the token)
 src/lib/types.ts                 every Firestore document type
 src/lib/codex.ts                 Codex kind colours/labels/order
 firestore.rules                  owner-only rules per subcollection
@@ -109,7 +110,8 @@ anything without a rule, which surfaces as a "permission" error.
 ## Security rules for any change
 
 - Every AI entry point (server action or route) must verify the caller's Firebase ID token on the server
-  before spending tokens. See `docs/REVIEW-2026-10.md` S1 — the server actions don't do this yet.
+  before spending tokens: call `requireUser()` from `src/firebase/require-user.ts` first. Server actions
+  take `idToken` as their first argument; clients pass `await idTokenFor(user)`.
 - No secrets in client code, logs returned to the browser, or commits. Don't read or echo `.env*`.
 - New Firestore paths need rules; keep everything scoped to `request.auth.uid == userId`.
 
