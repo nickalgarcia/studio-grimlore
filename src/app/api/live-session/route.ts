@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { getAnthropicHeaders, CLAUDE_MODEL } from '@/ai/anthropic-client';
 import { LiveSessionInputSchema, buildCampaignSystemPrompt } from '@/ai/flows/live-session-flow';
-import { requireUser } from '@/firebase/require-user';
+import { AuthError, requireUser } from '@/firebase/require-user';
 
 export const runtime = 'nodejs';
 
@@ -9,8 +9,9 @@ export async function POST(req: NextRequest) {
   const idToken = req.headers.get('Authorization')?.replace('Bearer ', '');
   try {
     await requireUser(idToken);
-  } catch {
-    return new Response('Unauthorized', { status: 401 });
+  } catch (e) {
+    const forbidden = e instanceof AuthError && e.reason === 'forbidden';
+    return new Response(forbidden ? 'Forbidden' : 'Unauthorized', { status: forbidden ? 403 : 401 });
   }
 
   let body: unknown;

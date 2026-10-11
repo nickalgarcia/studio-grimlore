@@ -29,6 +29,8 @@ No test runner yet.
 
 `.env.local` (gitignored — never commit it, never print its values):
 - `ANTHROPIC_API_KEY` — server-only. Never prefix with `NEXT_PUBLIC_`, never import `anthropic-client.ts` from a client component.
+- `ALLOWED_UIDS` — server-only, comma-separated Firebase uids allowed to use the AI. Fails closed:
+  unset or empty means every AI call is refused. Must also be set in Vercel.
 - `NEXT_PUBLIC_FIREBASE_*` — public by design (Firebase web config).
 
 ## Deployment
