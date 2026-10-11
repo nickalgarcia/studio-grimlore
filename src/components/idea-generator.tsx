@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { useToast } from '@/hooks/use-toast';
 import { Swords, BookMarked, Copy, Loader2, Skull, Scroll, User, Quote, Lightbulb } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
-import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc, idTokenFor } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import type { Session, Character } from '@/lib/types';
 
@@ -68,7 +68,7 @@ export function IdeaGenerator({ onSave, campaignId }: IdeaGeneratorProps) {
     }));
 
     startTransition(async () => {
-      const { data, error } = await getContextualIdeas({
+      const { data, error } = await getContextualIdeas(await idTokenFor(user), {
         partyActions,
         campaignName: campaign?.name,
         campaignDescription: campaign?.description,

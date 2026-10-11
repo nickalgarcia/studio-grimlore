@@ -11,7 +11,7 @@ import { CodexDetail } from '@/components/codex/codex-detail';
 import { CodexEntryDialog } from '@/components/codex/codex-entry-dialog';
 import type { UseCodexEntriesResult } from '@/components/codex/use-codex-entries';
 import { ObsidianImportDialog } from '@/components/obsidian-import-dialog';
-import { useCurrentSceneId, useSceneWriter } from '@/firebase';
+import { idTokenFor, useCurrentSceneId, useSceneWriter, useUser } from '@/firebase';
 import type { Campaign, CodexEntry, CodexKind, Faction } from '@/lib/types';
 
 /** Flattens a generated NPC into the single `description` field the model uses. */
@@ -41,6 +41,7 @@ export function CodexMode({
   onFocusHandled?: () => void;
 }) {
   const { toast } = useToast();
+  const { user } = useUser();
   const { entries, isLoading, raw } = codex;
 
   const [filter, setFilter] = React.useState<CodexFilter>('All');
@@ -105,7 +106,7 @@ export function CodexMode({
 
   const handleGenerateNpc = async () => {
     setIsGenerating(true);
-    const { data, error } = await getNpc({
+    const { data, error } = await getNpc(await idTokenFor(user), {
       campaignContext: `Campaign: ${campaign.name}\nDescription: ${campaign.description}`,
     });
     setIsGenerating(false);

@@ -50,5 +50,6 @@ export * from './firestore/use-scenes';
 export * from './firestore/use-threads';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
+export * from './id-token';
 export * from './errors';
 export * from './error-emitter';

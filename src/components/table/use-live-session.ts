@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { idTokenFor, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getSessionRecap } from '@/app/actions';
 import type { LiveSessionMessage } from '@/app/actions';
@@ -159,6 +159,7 @@ export function useLiveSession(
 
     const controller = new AbortController();
     abortRef.current = controller;
+    let failure = 'Failed to get response.';
 
     try {
       const idToken = await user?.getIdToken();
@@ -171,7 +172,13 @@ export function useLiveSession(
         signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok || !res.body) {
+        // For an auth failure the route's body says why (expired sign-in, not
+        // on the allowlist, server can't verify). Show that instead of the
+        // generic line, which reads like a network blip and hides the fix.
+        if ([401, 403, 503].includes(res.status)) failure = (await res.text()) || failure;
+        throw new Error(`HTTP ${res.status}`);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -209,7 +216,7 @@ export function useLiveSession(
     } catch (e) {
       // An abort is a deliberate cancellation, not a failure worth reporting.
       if ((e as Error)?.name !== 'AbortError') {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to get response.' });
+        toast({ variant: 'destructive', title: 'Error', description: failure });
         setMessages(newMessages);
       }
     } finally {
@@ -253,7 +260,7 @@ export function useLiveSession(
 
     const nextSessionNumber = (sessions?.[0]?.sessionNumber ?? 0) + 1;
 
-    const { data, error } = await getSessionRecap({
+    const { data, error } = await getSessionRecap(await idTokenFor(user), {
       campaignName: campaign?.name ?? 'Campaign',
       sessionNumber: nextSessionNumber,
       dmNotes: notesRef.current || 'No notes taken.',
@@ -269,7 +276,7 @@ export function useLiveSession(
       return;
     }
     setRecapPreview(data.recap);
-  }, [campaign, characters, sessions, toast]);
+  }, [campaign, characters, sessions, toast, user]);
 
   const handleSaveRecap = React.useCallback(async () => {
     if (!recapPreview || !sessionsRef || !user) return;

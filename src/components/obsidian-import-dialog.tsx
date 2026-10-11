@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useMemoFirebase, idTokenFor } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import type { Session } from '@/lib/types';
 import { Loader2, Upload, FileText, CheckCircle2, RotateCcw, Wand2 } from 'lucide-react';
@@ -91,7 +91,7 @@ export function ObsidianImportDialog({
     }
     setStep('parsing');
 
-    const { data, error } = await parseObsidianSessionAction({
+    const { data, error } = await parseObsidianSessionAction(await idTokenFor(user), {
       markdown,
       campaignName,
       hintSessionNumber: nextSessionNumber,

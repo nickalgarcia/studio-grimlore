@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { idTokenFor, useUser } from '@/firebase';
 import { Sparkles, BookMarked, Copy, Loader2, Dices } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
@@ -29,13 +30,14 @@ type InspirationGeneratorProps = {
 export function InspirationGenerator({ onSave }: InspirationGeneratorProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useUser();
   const [inspiration, setInspiration] = React.useState<InspirationPromptOutput | null>(null);
 
   const handleClick = () => {
     // Clear cache bust: always fetch fresh on manual click
     setInspiration(null);
     startTransition(async () => {
-      const { data, error } = await getInspiration();
+      const { data, error } = await getInspiration(await idTokenFor(user));
       if (error) {
         toast({ variant: 'destructive', title: 'Error', description: error });
       } else if (data) {

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Markdown } from '@/components/markdown';
 import { getRuleInfo } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { idTokenFor, useUser } from '@/firebase';
 import { ArrowLeft, HelpCircle, Loader2, Scroll, Search, Sparkles, User } from 'lucide-react';
 import { KIND_LABEL } from '@/lib/codex';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ export function Spotlight({
   onSelectCampaign: (campaign: Campaign) => void;
 }) {
   const { toast } = useToast();
+  const { user } = useUser();
   const [query, setQuery] = React.useState('');
   const [cursor, setCursor] = React.useState(0);
   const [ruleTerm, setRuleTerm] = React.useState<string | null>(null);
@@ -103,7 +105,7 @@ export function Spotlight({
     setRuleTerm(term);
     setRuleText(null);
     setRuleLoading(true);
-    const { data, error } = await getRuleInfo(term);
+    const { data, error } = await getRuleInfo(await idTokenFor(user), term);
     setRuleLoading(false);
     if (error || !data) {
       toast({ variant: 'destructive', title: 'Lookup failed', description: error ?? 'Try again.' });
@@ -111,7 +113,7 @@ export function Spotlight({
       return;
     }
     setRuleText(data.explanation);
-  }, [toast]);
+  }, [toast, user]);
 
   const activate = React.useCallback((row: Row) => {
     if (row.type === 'entry') {

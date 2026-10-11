@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { idTokenFor, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getCampaignSummary } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -123,7 +123,7 @@ export function CampaignOverview({
     }
     setIsSummarizing(true);
 
-    const { data, error } = await getCampaignSummary({
+    const { data, error } = await getCampaignSummary(await idTokenFor(user), {
       campaignName: campaign.name,
       campaignDescription: campaign.description,
       sessions: sessions.map(s => ({ sessionNumber: s.sessionNumber, summary: s.summary })),
