@@ -10,7 +10,10 @@ import type { User } from 'firebase/auth';
 export async function idTokenFor(user: User | null | undefined): Promise<string> {
   try {
     return (await user?.getIdToken()) ?? '';
-  } catch {
+  } catch (e) {
+    // The server only ever sees '' and reports "sign in again", so this log is
+    // the one place the real cause (offline, disabled account) survives.
+    console.error('[idTokenFor] could not get an ID token:', (e as { code?: string })?.code ?? e);
     return '';
   }
 }

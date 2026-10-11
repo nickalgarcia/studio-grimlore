@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { getAnthropicHeaders, CLAUDE_MODEL } from '@/ai/anthropic-client';
 import { LiveSessionInputSchema, buildCampaignSystemPrompt } from '@/ai/flows/live-session-flow';
-import { AuthError, requireUser } from '@/firebase/require-user';
+import { authErrorMessage, authErrorStatus, requireUser } from '@/firebase/require-user';
 
 export const runtime = 'nodejs';
 
@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
   try {
     await requireUser(idToken);
   } catch (e) {
-    const forbidden = e instanceof AuthError && e.reason === 'forbidden';
-    return new Response(forbidden ? 'Forbidden' : 'Unauthorized', { status: forbidden ? 403 : 401 });
+    // The body is the reason, written for the DM: the co-pilot shows it as-is.
+    return new Response(authErrorMessage(e), { status: authErrorStatus(e) });
   }
 
   let body: unknown;

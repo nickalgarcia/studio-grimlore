@@ -48,21 +48,41 @@ import { requireUser, authErrorMessage } from '@/firebase/require-user';
 export type { GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Auth
+// Gate
 // ─────────────────────────────────────────────────────────────────────────────
 
+type Result<T> = { data: T | null; error: string | null };
+
+/** Thrown inside an action body for a message the user should see as written. */
+class InputError extends Error {}
+
 /**
- * Every export below is a public POST endpoint: its id ships in the client
- * bundle, which loads before the auth gate. Each one therefore starts by
- * calling this, ahead of validation, caches and anything that spends tokens.
- * Returns the message to hand back, or null when the caller may proceed.
+ * The body of every action in this file. New actions go through it too.
+ *
+ * Every export here is a public POST endpoint: its id ships in the client
+ * bundle, which loads before the auth gate. So nothing runs until the token is
+ * verified, and that includes input checks and the cache, not just the model
+ * call. Keeping `run` inside the try also means a malformed argument comes back
+ * as `{ error }` rather than a rejected promise, which the callers (who set a
+ * loading flag and then await) would never recover from.
  */
-async function denyReason(idToken: string): Promise<string | null> {
+async function gated<T>(
+  idToken: string,
+  label: string,
+  failure: string,
+  run: () => Promise<T>
+): Promise<Result<T>> {
   try {
     await requireUser(idToken);
-    return null;
   } catch (e) {
-    return authErrorMessage(e);
+    return { data: null, error: authErrorMessage(e) };
+  }
+  try {
+    return { data: await run(), error: null };
+  } catch (e) {
+    if (e instanceof InputError) return { data: null, error: e.message };
+    console.error(`[${label}]`, e);
+    return { data: null, error: failure };
   }
 }
 
@@ -93,19 +113,13 @@ function getCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
 export async function getContextualIdeas(
   idToken: string,
   input: GenerateContextSensitiveIdeasInput
-): Promise<{ data: GenerateContextSensitiveIdeasOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  if (!input.partyActions.trim()) {
-    return { data: null, error: 'Please describe what is happening at the table.' };
-  }
-  try {
-    const ideas = await generateContextSensitiveIdeas(input);
-    return { data: ideas, error: null };
-  } catch (e) {
-    console.error('[getContextualIdeas]', e);
-    return { data: null, error: 'Failed to generate ideas. Please try again.' };
-  }
+): Promise<Result<GenerateContextSensitiveIdeasOutput>> {
+  return gated(idToken, 'getContextualIdeas', 'Failed to generate ideas. Please try again.', async () => {
+    if (!input.partyActions.trim()) {
+      throw new InputError('Please describe what is happening at the table.');
+    }
+    return generateContextSensitiveIdeas(input);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,40 +129,22 @@ export async function getContextualIdeas(
 export async function getLiveSessionResponse(
   idToken: string,
   input: LiveSessionInput
-): Promise<{ data: LiveSessionOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  try {
-    const result = await runLiveSession(input);
-    return { data: result, error: null };
-  } catch (e) {
-    console.error('[getLiveSessionResponse]', e);
-    return { data: null, error: 'Failed to get a response. Please try again.' };
-  }
+): Promise<Result<LiveSessionOutput>> {
+  return gated(idToken, 'getLiveSessionResponse', 'Failed to get a response. Please try again.', () =>
+    runLiveSession(input)
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Inspiration (cached)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getInspiration(idToken: string): Promise<{
-  data: InspirationPromptOutput | null;
-  error: string | null;
-}> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-
-  const cached = getCache(inspirationCache, 'inspiration');
-  if (cached) return { data: cached, error: null };
-
-  try {
-    const inspiration = await generateInspirationPrompt();
-    setCache(inspirationCache, 'inspiration', inspiration);
-    return { data: inspiration, error: null };
-  } catch (e) {
-    console.error('[getInspiration]', e);
-    return { data: null, error: 'Failed to generate inspiration. Please try again.' };
-  }
+export async function getInspiration(idToken: string): Promise<Result<InspirationPromptOutput>> {
+  return gated(idToken, 'getInspiration', 'Failed to generate inspiration. Please try again.', async () => {
+    const cached = getCache(inspirationCache, 'inspiration');
+    if (cached) return cached;
+    return setCache(inspirationCache, 'inspiration', await generateInspirationPrompt());
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -158,17 +154,11 @@ export async function getInspiration(idToken: string): Promise<{
 export async function getRuleInfo(
   idToken: string,
   term: string
-): Promise<{ data: LookupRuleOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  if (!term.trim()) return { data: null, error: 'Please enter a term to look up.' };
-  try {
-    const data = await lookupRule({ term });
-    return { data, error: null };
-  } catch (e) {
-    console.error('[getRuleInfo]', e);
-    return { data: null, error: 'Failed to look up rule. Please try again.' };
-  }
+): Promise<Result<LookupRuleOutput>> {
+  return gated(idToken, 'getRuleInfo', 'Failed to look up rule. Please try again.', async () => {
+    if (!term.trim()) throw new InputError('Please enter a term to look up.');
+    return lookupRule({ term });
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -178,16 +168,10 @@ export async function getRuleInfo(
 export async function getNpc(
   idToken: string,
   input: GenerateNpcInput
-): Promise<{ data: GenerateNpcOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  try {
-    const data = await generateNpc(input);
-    return { data, error: null };
-  } catch (e) {
-    console.error('[getNpc]', e);
-    return { data: null, error: 'Failed to generate NPC. Please try again.' };
-  }
+): Promise<Result<GenerateNpcOutput>> {
+  return gated(idToken, 'getNpc', 'Failed to generate NPC. Please try again.', () =>
+    generateNpc(input)
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -197,16 +181,10 @@ export async function getNpc(
 export async function getCampaignSummary(
   idToken: string,
   input: SummarizeCampaignInput
-): Promise<{ data: SummarizeCampaignOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  try {
-    const data = await summarizeCampaign(input);
-    return { data, error: null };
-  } catch (e) {
-    console.error('[getCampaignSummary]', e);
-    return { data: null, error: 'Failed to generate campaign summary. Please try again.' };
-  }
+): Promise<Result<SummarizeCampaignOutput>> {
+  return gated(idToken, 'getCampaignSummary', 'Failed to generate campaign summary. Please try again.', () =>
+    summarizeCampaign(input)
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,16 +194,10 @@ export async function getCampaignSummary(
 export async function getSessionRecap(
   idToken: string,
   input: GenerateSessionRecapInput
-): Promise<{ data: GenerateSessionRecapOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  try {
-    const data = await generateSessionRecap(input);
-    return { data, error: null };
-  } catch (e) {
-    console.error('[getSessionRecap]', e);
-    return { data: null, error: 'Failed to generate session recap. Please try again.' };
-  }
+): Promise<Result<GenerateSessionRecapOutput>> {
+  return gated(idToken, 'getSessionRecap', 'Failed to generate session recap. Please try again.', () =>
+    generateSessionRecap(input)
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -235,16 +207,10 @@ export async function getSessionRecap(
 export async function getSessionPrep(
   idToken: string,
   input: SessionPrepInput
-): Promise<{ data: SessionPrepOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  try {
-    const data = await generateSessionPrep(input);
-    return { data, error: null };
-  } catch (e) {
-    console.error('[getSessionPrep]', e);
-    return { data: null, error: 'Failed to generate session prep. Please try again.' };
-  }
+): Promise<Result<SessionPrepOutput>> {
+  return gated(idToken, 'getSessionPrep', 'Failed to generate session prep. Please try again.', () =>
+    generateSessionPrep(input)
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -254,14 +220,8 @@ export async function getSessionPrep(
 export async function parseObsidianSessionAction(
   idToken: string,
   input: ParseObsidianSessionInput
-): Promise<{ data: ParseObsidianSessionOutput | null; error: string | null }> {
-  const denied = await denyReason(idToken);
-  if (denied) return { data: null, error: denied };
-  try {
-    const data = await parseObsidianSession(input);
-    return { data, error: null };
-  } catch (e) {
-    console.error('[parseObsidianSessionAction]', e);
-    return { data: null, error: 'Failed to parse session file. Please try again.' };
-  }
+): Promise<Result<ParseObsidianSessionOutput>> {
+  return gated(idToken, 'parseObsidianSessionAction', 'Failed to parse session file. Please try again.', () =>
+    parseObsidianSession(input)
+  );
 }

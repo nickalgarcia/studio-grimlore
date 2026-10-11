@@ -112,8 +112,11 @@ anything without a rule, which surfaces as a "permission" error.
 ## Security rules for any change
 
 - Every AI entry point (server action or route) must verify the caller's Firebase ID token on the server
-  before spending tokens: call `requireUser()` from `src/firebase/require-user.ts` first. Server actions
-  take `idToken` as their first argument; clients pass `await idTokenFor(user)`.
+  before spending tokens. Server actions take `idToken` as their first argument and run their body
+  through `gated()` in `actions.ts`, which calls `requireUser()` (`src/firebase/require-user.ts`);
+  clients pass `await idTokenFor(user)`. Routes call `requireUser()` directly.
+- Only `src/app/actions.ts` carries `'use server'`. Don't add the directive to flow files: every
+  exported async function in such a file becomes a public endpoint.
 - No secrets in client code, logs returned to the browser, or commits. Don't read or echo `.env*`.
 - New Firestore paths need rules; keep everything scoped to `request.auth.uid == userId`.
 

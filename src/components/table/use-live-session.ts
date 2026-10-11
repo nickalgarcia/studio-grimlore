@@ -159,6 +159,7 @@ export function useLiveSession(
 
     const controller = new AbortController();
     abortRef.current = controller;
+    let failure = 'Failed to get response.';
 
     try {
       const idToken = await user?.getIdToken();
@@ -171,7 +172,13 @@ export function useLiveSession(
         signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok || !res.body) {
+        // For an auth failure the route's body says why (expired sign-in, not
+        // on the allowlist, server can't verify). Show that instead of the
+        // generic line, which reads like a network blip and hides the fix.
+        if ([401, 403, 503].includes(res.status)) failure = (await res.text()) || failure;
+        throw new Error(`HTTP ${res.status}`);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -209,7 +216,7 @@ export function useLiveSession(
     } catch (e) {
       // An abort is a deliberate cancellation, not a failure worth reporting.
       if ((e as Error)?.name !== 'AbortError') {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to get response.' });
+        toast({ variant: 'destructive', title: 'Error', description: failure });
         setMessages(newMessages);
       }
     } finally {
