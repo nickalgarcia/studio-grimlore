@@ -8,7 +8,7 @@ import { getSessionRecap } from '@/app/actions';
 import type { LiveSessionMessage } from '@/app/actions';
 import type { LiveSessionInput } from '@/ai/flows/live-session-flow';
 import { useToast } from '@/hooks/use-toast';
-import type { Campaign, Character, LiveSessionState, Session } from '@/lib/types';
+import type { Campaign, Capture, Character, LiveSessionState, Session } from '@/lib/types';
 
 /**
  * Campaign context is passed in rather than queried.
@@ -66,6 +66,10 @@ export function useLiveSession(
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const abortRef = React.useRef<AbortController | null>(null);
 
+  // Captures from the command bar's `+`. Held here, not written separately,
+  // because this hook's merge write would race any other writer of the doc.
+  const [captures, setCaptures] = React.useState<Capture[]>([]);
+
   const notesRef = React.useRef('');
   const [hasNotes, setHasNotes] = React.useState(false);
   const startedAtRef = React.useRef<string | null>(null);
@@ -79,6 +83,9 @@ export function useLiveSession(
     if (hydrated || storedSessionLoading) return;
     if (storedSession) {
       setMessages(storedSession.messages ?? []);
+      // Merged, not replaced: a capture taken in the first moments after load,
+      // before the stored doc arrived, would otherwise be dropped here.
+      setCaptures(prev => [...(storedSession.captures ?? []), ...prev]);
       notesRef.current = storedSession.notes ?? '';
       setInitialNotes(storedSession.notes ?? '');
       setHasNotes((storedSession.notes ?? '').trim().length > 0);
@@ -92,6 +99,8 @@ export function useLiveSession(
   // ── Persistence: 800ms debounce, messages read through a ref. ──
   const messagesRef = React.useRef<DisplayMessage[]>([]);
   React.useEffect(() => { messagesRef.current = messages; }, [messages]);
+  const capturesRef = React.useRef<Capture[]>([]);
+  React.useEffect(() => { capturesRef.current = captures; }, [captures]);
 
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const persist = React.useCallback(() => {
@@ -102,6 +111,7 @@ export function useLiveSession(
         campaignId,
         messages: messagesRef.current,
         notes: notesRef.current,
+        captures: capturesRef.current,
         // Stamped on the first write of a session so the status bar has a real
         // clock to count from. Client ISO string: it is displayed, not ordered
         // on, and a pending server timestamp would read back null.
@@ -111,7 +121,17 @@ export function useLiveSession(
     }, 800);
   }, [hydrated, liveSessionDocRef, campaignId]);
 
-  React.useEffect(() => { persist(); }, [messages, persist]);
+  React.useEffect(() => { persist(); }, [messages, captures, persist]);
+
+  /**
+   * Append a capture. It deliberately does not start the session clock: a
+   * note captured midweek shouldn't make Saturday's session read as running.
+   */
+  const addCapture = React.useCallback((text: string, links: string[]): Capture => {
+    const capture: Capture = { id: crypto.randomUUID(), at: new Date().toISOString(), text, links };
+    setCaptures(prev => [...prev, capture]);
+    return capture;
+  }, []);
 
   const handleNotesChange = React.useCallback((val: string) => {
     notesRef.current = val;
@@ -229,6 +249,7 @@ export function useLiveSession(
   const clearSession = React.useCallback(() => {
     abortRef.current?.abort();
     setMessages([]);
+    setCaptures([]);
     notesRef.current = '';
     startedAtRef.current = null;
     setInitialNotes('');
@@ -241,7 +262,7 @@ export function useLiveSession(
   }, []);
 
   const handleCloseSession = React.useCallback(async () => {
-    if (!notesRef.current.trim() && messagesRef.current.length === 0) {
+    if (!notesRef.current.trim() && messagesRef.current.length === 0 && capturesRef.current.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Nothing to recap',
@@ -263,7 +284,10 @@ export function useLiveSession(
     const { data, error } = await getSessionRecap(await idTokenFor(user), {
       campaignName: campaign?.name ?? 'Campaign',
       sessionNumber: nextSessionNumber,
-      dmNotes: notesRef.current || 'No notes taken.',
+      dmNotes: [
+        notesRef.current.trim(),
+        capturesRef.current.length ? `Captured during play:\n${capturesRef.current.map(c => `- ${c.text}`).join('\n')}` : '',
+      ].filter(Boolean).join('\n\n') || 'No notes taken.',
       conversationHighlights: highlights || undefined,
       characters: characters?.slice(0, 8).map(c => ({ name: c.name, class: c.class })),
       previousSummary: campaign?.aiSummary,
@@ -303,6 +327,7 @@ export function useLiveSession(
     messages, input, setInput, isLoading, sendMessage,
     textareaRef,
     initialNotes, notesKey, handleNotesChange, hasNotes,
+    captures, addCapture,
     startedAt: startedAtRef.current,
     clearSession,
     isClosing, recapPreview, setRecapPreview, showCloseFlow, setShowCloseFlow,

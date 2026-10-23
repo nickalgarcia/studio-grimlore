@@ -5,6 +5,12 @@ export type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
   requestResourceData?: any;
+  /**
+   * Firestore's own error code. Every failed write is reported through this
+   * class, but most aren't permission problems (quota, an oversized document,
+   * an invalid field), so the real code travels with it.
+   */
+  code?: string;
 };
 
 interface FirebaseAuthToken {
@@ -113,11 +119,15 @@ ${JSON.stringify(requestObject, null, 2)}`;
  */
 export class FirestorePermissionError extends Error {
   public readonly request: SecurityRuleRequest;
+  public readonly code?: string;
+  public readonly operation: SecurityRuleContext['operation'];
 
   constructor(context: SecurityRuleContext) {
     const requestObject = buildRequestObject(context);
     super(buildErrorMessage(requestObject));
     this.name = 'FirestoreError';
     this.request = requestObject;
+    this.code = context.code;
+    this.operation = context.operation;
   }
 }

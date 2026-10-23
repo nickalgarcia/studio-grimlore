@@ -256,7 +256,16 @@ axis), and `firebase/storage` is already in the `firebase` package.
   `recap ← summary` and `logline ←` the first sentence, and leaves `title` empty (the display falls
   back to "Issue #N"). An optional co-pilot pass drafts titles and links for the DM to review. No UI
   beyond a "run migration" item.
-- [ ] **Stage 3 — Routes and shell, unstyled.** `(app)` layout, `CampaignProvider`, all six routes,
+- [x] **Stage 3 — Routes and shell, unstyled.** *Done 2026-10-23, pending review.* Notes:
+  the tabs are a `<nav>` of links with `aria-current` (not `role=tablist`, since they change the URL).
+  The v3 AI rule lookup from Spotlight survives as the last command-bar row, which opens `/rules?q=` until
+  the Rulebook. `/prep` mounts the whole v3 Forge (prep, overview, generators). `/table` mounts v3 Table
+  plus its Close session button. "+ New …" rows in the no-results state open the v3 entry dialog. The
+  Obsidian import moved into the campaign menu. Page and Issue use the v3 detail panel and dialog as
+  stand-ins. Caveat: the combat tracker unmounts on leaving `/table` until `use-combat` moves into the
+  provider in Stage 6 (it saves every change, so only a half-typed HP number is at risk).
+  Captures don't start the session clock. U2 done (production toasts, `app/error.tsx`, real error codes).
+  Original scope: `(app)` layout, `CampaignProvider`, all six routes,
   header, command bar (search, ↑/↓/Enter, `/` and ⌘K, Esc, `+` capture with linking and toast), and
   the wordmark menu. Remove the mode switcher and Spotlight. Add U2 (toast, not throw; `error.tsx`).
   To keep the branch usable for a real session mid-redesign, `/table` and `/prep` temporarily mount the

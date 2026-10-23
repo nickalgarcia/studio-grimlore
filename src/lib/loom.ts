@@ -1,3 +1,6 @@
+import type { MentionRef, Npc, Thread } from '@/lib/types';
+import { refKey } from '@/lib/mentions';
+
 /**
  * Loom geometry, kept apart from rendering so the rules in the spec live in
  * one testable function rather than in JSX conditionals.
@@ -116,4 +119,70 @@ export function recentTicks(
     : columns.filter(n => n > lastSeen).length;
 
   return { ticks, quiet };
+}
+
+export type LaneTone = 'spot' | 'sand' | 'mute';
+
+export type LoomLane = {
+  ref: MentionRef;
+  group: 'threads' | 'people';
+  name: string;
+  color: string;
+  /** Uppercase label for the lane: LIVE / SEEDED / COLD, or a disposition. */
+  status: string;
+  /** LIVE and HOSTILE are spot; SEEDED and UNFRIENDLY are sand; the rest mute. */
+  tone: LaneTone;
+  pullNext: boolean;
+  /** Issue numbers, ascending. */
+  appearances: number[];
+};
+
+function toneOf(status: string): LaneTone {
+  if (status === 'LIVE' || status === 'HOSTILE') return 'spot';
+  if (status === 'SEEDED' || status === 'UNFRIENDLY') return 'sand';
+  return 'mute';
+}
+
+/** First appearance ascending; lanes that never appear go last, in input order. */
+function byFirstAppearance(a: LoomLane, b: LoomLane): number {
+  const fa = a.appearances[0] ?? Infinity;
+  const fb = b.appearances[0] ?? Infinity;
+  return fa === fb ? 0 : fa - fb;
+}
+
+/**
+ * The Loom's rows: every thread, then every key NPC. Colours are assigned
+ * after sorting, so a lane keeps its colour as long as its first appearance
+ * doesn't move.
+ */
+export function buildLanes({
+  threads, npcs, appearances,
+}: {
+  threads: readonly Thread[] | null | undefined;
+  npcs: readonly Npc[] | null | undefined;
+  appearances: ReadonlyMap<string, number[]>;
+}): LoomLane[] {
+  const lane = (
+    ref: MentionRef, group: LoomLane['group'], name: string, stored: string | undefined,
+    status: string, pullNext: boolean,
+  ): LoomLane & { stored?: string } => ({
+    ref, group, name, color: '', stored, status, tone: toneOf(status), pullNext,
+    appearances: appearances.get(refKey(ref)) ?? [],
+  });
+
+  const threadLanes = (threads ?? [])
+    .map(t => lane({ kind: 'thread', id: t.id }, 'threads', t.title, t.color, t.status.toUpperCase(), !!t.pullNext))
+    .sort(byFirstAppearance);
+
+  const peopleLanes = (npcs ?? [])
+    .filter(n => n.importance === 'Key')
+    .map(n => lane(
+      { kind: 'npc', id: n.id }, 'people', n.name, n.color,
+      (n.disposition ?? n.status ?? '').toUpperCase(), false,
+    ))
+    .sort(byFirstAppearance);
+
+  return [threadLanes, peopleLanes].flatMap(group =>
+    group.map(({ stored, ...l }, i) => ({ ...l, color: laneColor(stored, i) })),
+  );
 }

@@ -44,15 +44,18 @@ scaffold. `docs/blueprint.md` describes an OLD design (purple/green/parchment) �
 ## Where things live
 
 ```
-src/app/page.tsx                 auth gate → <GrimloreForge/>
+src/app/(app)/layout.tsx         auth gate → CampaignProvider → Header; routes / issue/[n] page/[kind]/[id] rules prep table
+                                 (Director's Cut redesign in progress on redesign/directors-cut: see docs/DIRECTORS-CUT-PLAN.md)
 src/app/actions.ts               server actions, one per AI feature, take idToken first, return { data, error }
 src/app/api/live-session/route.ts  streaming co-pilot (SSE passthrough); verifies Firebase ID token
 src/ai/anthropic-client.ts       callClaude / callClaudeJson, CLAUDE_MODEL
 src/ai/flows/*.ts                one file per AI feature: zod schema + prompt builder
-src/components/grimlore-forge.tsx  shell: status bar, mode switcher, URL state, owns codex + live session
-src/components/modes/            table-mode, forge-mode, codex-mode
+src/components/campaign/campaign-provider.tsx  shared data for every route: campaigns, codex, threads, mentions, live session
+src/components/shell/            header, command-bar (search + `+` capture; replaced the ⌘K Spotlight)
+src/components/modes/            table-mode, forge-mode: v3 screens mounted by /table and /prep until Stage 6
+src/lib/mentions.ts, loom.ts     derived mentions index (never stored) and Loom geometry
 src/components/table/            co-pilot, live-notes, party-dock, scene-stage, use-live-session
-src/components/codex/            use-codex-entries (merges every collection into CodexEntry[]), index/detail/dialog
+src/components/codex/            use-codex-entries (merges every collection into CodexEntry[]), detail/dialog
 src/components/combat-tracker.tsx  largest file; persists to combatState
 src/components/markdown.tsx      safe renderer for AI output (builds React nodes; no innerHTML)
 src/firebase/                    provider, useCollection/useDoc/useMemoFirebase, non-blocking writes, error emitter

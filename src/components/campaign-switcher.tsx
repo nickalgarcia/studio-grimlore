@@ -12,7 +12,7 @@ import { CampaignManager } from '@/components/campaign-manager';
 import { MigrateDialog } from '@/components/migrate-dialog';
 import { needsMigration } from '@/lib/migrate';
 import { signOutUser, useAuth, useUser } from '@/firebase';
-import { ArrowUpCircle, Check, ChevronDown, LayoutGrid, LogOut } from 'lucide-react';
+import { ArrowUpCircle, Check, ChevronDown, LayoutGrid, LogOut, Upload } from 'lucide-react';
 import { ForgeSigil } from '@/components/forge-sigil';
 import { cn } from '@/lib/utils';
 import type { Campaign } from '@/lib/types';
@@ -26,11 +26,13 @@ import type { Campaign } from '@/lib/types';
  * replaced by the status bar.
  */
 export function CampaignSwitcher({
-  campaigns, activeCampaignId, onSelect,
+  campaigns, activeCampaignId, onSelect, onImportObsidian,
 }: {
   campaigns: Campaign[];
   activeCampaignId: string | null;
   onSelect: (id: string | null) => void;
+  /** The Codex screen that held the import is gone; it waits here for the wordmark menu design. */
+  onImportObsidian?: () => void;
 }) {
   const auth = useAuth();
   const { user } = useUser();
@@ -76,6 +78,12 @@ export function CampaignSwitcher({
             <LayoutGrid className="h-3.5 w-3.5" />
             All campaigns…
           </DropdownMenuItem>
+          {active && onImportObsidian && (
+            <DropdownMenuItem onSelect={onImportObsidian} className="gap-2">
+              <Upload className="h-3.5 w-3.5" />
+              Import Obsidian session…
+            </DropdownMenuItem>
+          )}
           {active && needsMigration(active) && (
             <DropdownMenuItem onSelect={() => setMigrateOpen(true)} className="gap-2">
               <ArrowUpCircle className="h-3.5 w-3.5" />

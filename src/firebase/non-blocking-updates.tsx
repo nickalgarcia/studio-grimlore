@@ -24,6 +24,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
         path: docRef.path,
         operation: 'write', // or 'create'/'update' based on options
         requestResourceData: data,
+        code: error?.code,
       })
     )
   })
@@ -45,6 +46,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
           path: colRef.path,
           operation: 'create',
           requestResourceData: data,
+          code: error?.code,
         })
       )
       // re-throw to allow individual components to handle promise rejection if needed
@@ -67,6 +69,7 @@ export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) 
           path: docRef.path,
           operation: 'update',
           requestResourceData: data,
+          code: error?.code,
         })
       )
       // re-throw to allow individual components to handle promise rejection if needed
@@ -87,6 +90,7 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
         new FirestorePermissionError({
           path: docRef.path,
           operation: 'delete',
+          code: error?.code,
         })
       )
       // re-throw to allow individual components to handle promise rejection if needed
