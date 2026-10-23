@@ -48,6 +48,7 @@ export * from './firestore/use-doc';
 export * from './firestore/campaign-collection';
 export * from './firestore/use-scenes';
 export * from './firestore/use-threads';
+export * from './firestore/use-sessions';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './id-token';

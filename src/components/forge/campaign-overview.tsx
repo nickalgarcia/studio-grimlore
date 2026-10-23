@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { idTokenFor, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { idTokenFor, recapFields, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getCampaignSummary } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -101,7 +101,7 @@ export function CampaignOverview({
         campaignId: campaign.id,
         sessionNumber: nextSessionNumber,
         date: serverTimestamp(),
-        summary: newSessionSummary,
+        ...recapFields(newSessionSummary),
       });
       setNewSessionSummary('');
       toast({

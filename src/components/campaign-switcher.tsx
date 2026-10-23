@@ -9,8 +9,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { CampaignManager } from '@/components/campaign-manager';
+import { MigrateDialog } from '@/components/migrate-dialog';
+import { needsMigration } from '@/lib/migrate';
 import { signOutUser, useAuth, useUser } from '@/firebase';
-import { Check, ChevronDown, LayoutGrid, LogOut } from 'lucide-react';
+import { ArrowUpCircle, Check, ChevronDown, LayoutGrid, LogOut } from 'lucide-react';
 import { ForgeSigil } from '@/components/forge-sigil';
 import { cn } from '@/lib/utils';
 import type { Campaign } from '@/lib/types';
@@ -33,6 +35,7 @@ export function CampaignSwitcher({
   const auth = useAuth();
   const { user } = useUser();
   const [managerOpen, setManagerOpen] = React.useState(false);
+  const [migrateOpen, setMigrateOpen] = React.useState(false);
   const active = campaigns.find(c => c.id === activeCampaignId) ?? null;
 
   return (
@@ -73,6 +76,12 @@ export function CampaignSwitcher({
             <LayoutGrid className="h-3.5 w-3.5" />
             All campaigns…
           </DropdownMenuItem>
+          {active && needsMigration(active) && (
+            <DropdownMenuItem onSelect={() => setMigrateOpen(true)} className="gap-2">
+              <ArrowUpCircle className="h-3.5 w-3.5" />
+              Upgrade campaign data…
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator className="bg-border/[0.09]" />
           <DropdownMenuItem disabled className="font-mono text-[10px] tracking-wider opacity-60">
             {user?.email ?? ''}
@@ -103,6 +112,10 @@ export function CampaignSwitcher({
           />
         </DialogContent>
       </Dialog>
+
+      {active && (
+        <MigrateDialog campaign={active} open={migrateOpen} onOpenChange={setMigrateOpen} />
+      )}
     </>
   );
 }

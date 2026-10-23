@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { useFirestore, useUser, useMemoFirebase, idTokenFor } from '@/firebase';
+import { useFirestore, useUser, useMemoFirebase, idTokenFor, recapFields } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import type { Session } from '@/lib/types';
 import { Loader2, Upload, FileText, CheckCircle2, RotateCcw, Wand2 } from 'lucide-react';
@@ -116,7 +116,7 @@ export function ObsidianImportDialog({
       await addDocumentNonBlocking(sessionsRef, {
         campaignId,
         sessionNumber: parsed.sessionNumber,
-        summary: parsed.summary,
+        ...recapFields(parsed.summary),
         date: serverTimestamp(),
       });
       toast({ title: `Session ${parsed.sessionNumber} imported!`, description: 'Added to your campaign logs.' });

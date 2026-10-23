@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { idTokenFor, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { idTokenFor, recapFields, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getSessionRecap } from '@/app/actions';
 import type { LiveSessionMessage } from '@/app/actions';
@@ -286,7 +286,7 @@ export function useLiveSession(
       await addDocumentNonBlocking(sessionsRef, {
         campaignId,
         sessionNumber: nextSessionNumber,
-        summary: recapPreview,
+        ...recapFields(recapPreview),
         date: serverTimestamp(),
       });
       toast({ title: `Session ${nextSessionNumber} logged!`, description: 'The recap has been saved to your campaign.' });
