@@ -54,11 +54,7 @@ export function CoPilot({
   return (
     <aside
       className="min-w-0 min-h-0 relative flex flex-col border-l border-[hsl(var(--violet)/0.34)]
-                 shadow-[-30px_0_70px_-30px_rgba(0,0,0,0.9),inset_0_1px_0_hsl(var(--violet-bright)/0.28)]"
-      style={{
-        background:
-          'linear-gradient(180deg, hsl(258 40% 22% / 0.96) 0%, hsl(265 22% 9% / 0.97) 34%, hsl(264 17% 6% / 0.97) 100%)',
-      }}
+"
     >
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-[linear-gradient(90deg,transparent,hsl(var(--violet-bright)/0.9),transparent)]" />
       <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-[hsl(var(--violet-bright)/0.7)] pointer-events-none" />
@@ -66,7 +62,7 @@ export function CoPilot({
 
       <div className="flex items-center gap-[11px] px-[18px] h-[42px] flex-shrink-0 border-b border-[hsl(var(--violet)/0.26)]">
         <Sparkles className="h-3.5 w-3.5 text-violet-bright" />
-        <span className="font-mono text-[10px] font-extrabold tracking-[0.24em] text-violet-text [text-shadow:0_0_18px_hsl(var(--violet)/0.9)]">
+        <span className="font-mono text-[10px] font-extrabold tracking-[0.24em] text-violet-text">
           CO-PILOT
         </span>
         <div className="flex-1" />
@@ -81,9 +77,9 @@ export function CoPilot({
             key={s}
             onClick={() => onSend(s)}
             disabled={isLoading}
-            className="text-[11.5px] text-[hsl(258_15%_72%)] bg-[hsl(var(--violet)/0.1)] border border-[hsl(var(--violet)/0.26)]
+            className="text-[11.5px] text-ink bg-[hsl(var(--violet)/0.1)] border border-[hsl(var(--violet)/0.26)]
                        px-2.5 py-[5px] whitespace-nowrap transition-colors
-                       hover:bg-[hsl(var(--violet)/0.3)] hover:text-[hsl(258_60%_94%)] hover:border-[hsl(var(--violet-bright)/0.7)]
+                       hover:bg-[hsl(var(--violet)/0.3)] hover:text-ink hover:border-[hsl(var(--violet-bright)/0.7)]
                        disabled:opacity-50"
           >
             {s}
@@ -100,7 +96,7 @@ export function CoPilot({
         ) : (
           messages.map(m => (
             m.role === 'user' ? (
-              <div key={m.id} className="flex gap-2.5 mb-[11px] animate-slideIn">
+              <div key={m.id} className="flex gap-2.5 mb-[11px]">
                 <span className="font-mono text-[9.5px] font-extrabold text-oxblood-bright pt-0.5 flex-shrink-0 tracking-[0.1em]">
                   DM
                 </span>
@@ -111,10 +107,10 @@ export function CoPilot({
               <div
                 key={m.id}
                 className="mb-5 bg-[hsl(var(--violet)/0.1)] border border-[hsl(var(--violet)/0.28)]
-                           border-l-4 border-l-violet px-4 py-3.5 shadow-violet animate-slideIn"
+                           border-l-4 border-l-violet px-4 py-3.5 shadow-violet"
               >
                 {m.content
-                  ? <Markdown content={m.content} className="text-[13.5px] text-[hsl(258_45%_90%)] leading-[1.64]" />
+                  ? <Markdown content={m.content} className="text-[13.5px] text-ink leading-[1.64]" />
                   : <Loader2 className="h-4 w-4 animate-spin text-violet-bright" />}
               </div>
             )
@@ -133,16 +129,16 @@ export function CoPilot({
           aria-label="Ask the co-pilot"
           className={cn(
             'flex-1 min-h-[46px] max-h-[110px] resize-none outline-none px-2.5 py-2.5',
-            'bg-[hsl(264_30%_5%/0.7)] border border-[hsl(var(--violet)/0.3)]',
-            'text-[13px] text-[hsl(258_45%_90%)] placeholder:text-violet-dim',
+            'bg-panel border border-[hsl(var(--violet)/0.3)]',
+            'text-[13px] text-ink placeholder:text-violet-dim',
           )}
         />
         <button
           onClick={() => onSend(input)}
           disabled={!input.trim() || isLoading}
           aria-label="Send"
-          className="w-11 h-[46px] flex-shrink-0 bg-violet text-[hsl(264_30%_8%)] flex items-center justify-center
-                     shadow-[0_0_30px_-8px_hsl(var(--violet)/0.95)] hover:bg-violet-bright disabled:opacity-40 transition-colors"
+          className="w-11 h-[46px] flex-shrink-0 bg-holo text-bg flex items-center justify-center
+ hover:bg-violet-bright disabled:opacity-40 transition-colors"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-[17px] w-[17px]" />}
         </button>

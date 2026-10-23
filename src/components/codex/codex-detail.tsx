@@ -170,7 +170,7 @@ export function CodexDetail({
           <span
             className={cn(
               'font-mono text-[9px] font-extrabold tracking-[0.16em] uppercase px-[7px] py-[3px]',
-              tone === 'hostile' && 'text-bone bg-oxblood',
+              tone === 'hostile' && 'text-spot-on bg-oxblood',
               tone === 'ally' && 'text-bone-body bg-[hsl(var(--border)/0.14)]',
               tone === 'unknown' && 'text-bone-dim bg-[hsl(var(--border)/0.09)]',
             )}

@@ -42,7 +42,7 @@ export const LiveNotes = React.memo(function LiveNotes({
           roomy ? 'min-h-[320px]' : 'min-h-[98px]',
           'bg-[hsl(var(--background)/0.72)] border border-border/[0.09] border-l-4 border-l-oxblood',
           'text-[13.5px] leading-[1.6] text-bone-soft placeholder:text-bone-faint',
-          'shadow-[0_18px_40px_-22px_rgba(0,0,0,0.9)]',
+          '',
         )}
       />
     </div>

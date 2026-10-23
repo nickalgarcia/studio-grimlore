@@ -90,20 +90,28 @@ anything without a rule, which surfaces as a "permission" error.
 - `grid-rows-[minmax(0,1fr)]` on the cockpit containers keeps the party dock on screen.
 - Comments in this codebase explain *why*. Keep that style; don't strip them.
 
-## Design system (ash / bone / oxblood)
+## Design system (Director's Cut)
 
-- Tokens are HSL triplets in `src/app/globals.css`, exposed in `tailwind.config.ts`:
-  `bone`, `bone-body`, `bone-soft`, `bone-dim`, `bone-faint`, `bone-faintest`, `oxblood`,
-  `oxblood-bright`, `oxblood-pale`, `violet*`, `brass`. Use tokens, not new hex values.
-- **Violet is reserved for the AI co-pilot column.** Don't use it on ordinary chrome.
-- Hard edges: `--radius: 0`. Single dark theme (`.dark` mirrors `:root`).
-- Fonts: `font-headline` = Cinzel (uppercase display), `font-body` = Archivo (UI/body),
-  `font-mono` = JetBrains Mono (numbers, labels, timestamps).
-- Shared classes: `.label-forge` (micro label), `.surface-card`, `.surface-panel`.
-- Motion: animate only `transform`/`opacity`; honour `prefers-reduced-motion`; no `backdrop-filter`
-  over the animated backdrop. `bone-faintest` only at 19px+ (contrast).
-- Readability at the table matters more than density: don't introduce new text under 11px for
-  anything the DM reads mid-session (HP, AC, names, AI output).
+Spec: `design_handoff_grimlore_directors_cut/README.md` (authoritative; match its sizes and borders).
+
+- **Palettes:** Hyperspace (default) and World's Finest, each dark and light. Set by `data-palette` /
+  `data-theme` on `<html>`, applied before paint by `PREFS_SCRIPT` (`src/lib/prefs.ts`), persisted in
+  localStorage `grimlore.palette` / `grimlore.theme`. Switchers: `components/shell/appearance.tsx`.
+- **Tokens** (`src/app/globals.css`, HSL triplets): `bg`, `panel`, `ink`, `mute`, `spot`, `spot-on`, `sand`,
+  `cap`, `cap-ink`, `holo`, plus `line` / `line2` / `scrim` (whole rgba colours, no `/opacity`). Use these
+  names in new code (`bg-spot text-spot-on`, `border-line2`); shadcn's names map onto them.
+- **`--spot` is the only saturated UI colour**, one thing per region. Text on a spot fill is `text-spot-on`.
+- **`--holo` is reserved for the AI co-pilot** and "draft with co-pilot" buttons.
+- The v3 names (`bone*`, `oxblood*`, `violet*`, `brass`, `.label-forge`, `.surface-*`) are temporary
+  aliases for the v3 stand-in screens. Don't use them in new code; they're removed in Stage 6.
+- **Fonts:** `font-headline` = Big Shoulders (always uppercase, pinned to its display cut, opsz 72),
+  `font-body` = Newsreader (prose, inputs), `font-mono` = JetBrains Mono (labels, numbers).
+- **Edges:** radius 0 (circles excepted). Borders carry meaning: 3px ink for panels and covers, 1.5px for
+  cards/buttons/tabs, 1px `line` for separators; dashed = "not yet". The only shadow is the hard print
+  shadow (`shadow-print-sm/print/print-lg`, offset in spot). No blur shadows.
+- **Glyphs:** Unicode only for content types (`GLYPH` in `src/lib/pages.ts`); lucide for functional icons.
+- **Motion:** nearly none: only the transitions the spec lists, all dropped under `prefers-reduced-motion`.
+- **Readability:** 11px floor for anything read mid-session (HP, AC, names, AI output).
 
 ## AI conventions
 

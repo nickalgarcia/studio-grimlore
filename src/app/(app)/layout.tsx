@@ -16,7 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isUserLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center gap-3 bg-background">
+      <div className="min-h-screen flex items-center justify-center gap-3 bg-bg">
         <Loader2 className="h-5 w-5 animate-spin" />
         <p className="font-mono text-[12px] tracking-[0.16em] uppercase">Opening the longbox…</p>
       </div>
@@ -25,8 +25,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="h-16 flex items-center px-5 border-b border-border/10">
+      <div className="min-h-screen bg-bg">
+        <div className="h-16 flex items-center px-5 border-b border-line">
           <span className="font-headline font-black text-[26px] tracking-[0.07em] uppercase">Grimlore</span>
         </div>
         <AuthGate />
@@ -36,7 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <CampaignProvider>
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <div className="min-h-screen flex flex-col bg-bg text-ink">
         <Header />
         <main className="flex-1 min-h-0 flex flex-col">
           <CampaignGate>{children}</CampaignGate>
@@ -51,7 +51,7 @@ function CampaignGate({ children }: { children: React.ReactNode }) {
   const { activeCampaign, campaignsLoading } = useCampaign();
   if (activeCampaign) return <>{children}</>;
   return (
-    <div className="flex-1 flex items-center justify-center italic text-muted-foreground p-8 text-center">
+    <div className="flex-1 flex items-center justify-center italic text-mute p-8 text-center">
       {campaignsLoading ? 'Loading your campaigns…' : 'Create a campaign to begin: use the campaign menu above.'}
     </div>
   );

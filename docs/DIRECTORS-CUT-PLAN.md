@@ -270,7 +270,13 @@ axis), and `firebase/storage` is already in the `firebase` package.
   the wordmark menu. Remove the mode switcher and Spotlight. Add U2 (toast, not throw; `error.tsx`).
   To keep the branch usable for a real session mid-redesign, `/table` and `/prep` temporarily mount the
   v3 table and prep components until Stage 6.
-- [ ] **Stage 4 — Visual system.** Tokens, fonts, palette and theme switchers with pre-paint, delete
+- [x] **Stage 4 — Visual system.** *Done 2026-10-23, pending review.* Deviation: the old token
+  names are **aliased** onto the new palette instead of grepped to zero. ~240 uses sit in v3 stand-in
+  screens that Stages 5–6 replace, so restyling them would be thrown away; the aliases are deleted in
+  Stage 6. Text on spot fills in those screens was fixed to `text-spot-on`, and their glows, blur shadows,
+  violet and stock colours were mapped to tokens. Google merged Big Shoulders Display into "Big Shoulders"
+  (opsz axis), pinned to opsz 72. Toasts: 2.6s for confirmations, 7s for errors or anything with text to read.
+  shadcn open/close animations removed. Original scope: Tokens, fonts, palette and theme switchers with pre-paint, delete
   backdrop and motion, restyle the shadcn primitives in use. Afterwards, `grep` for the old tokens
   must return nothing.
 - [ ] **Stage 5 — Story, Issue, Page.** Longbox (Storage covers, scroll to newest), Loom (geometry,

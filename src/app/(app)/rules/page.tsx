@@ -50,7 +50,7 @@ function Rules() {
   return (
     <div className="max-w-[1240px] mx-auto w-full px-[clamp(20px,3vw,48px)] pt-9 pb-24 flex flex-col gap-10">
       <header className="flex flex-col gap-3">
-        <MonoLabel className="text-muted-foreground">{GLYPH.rule} Rules</MonoLabel>
+        <MonoLabel className="text-mute">{GLYPH.rule} Rules</MonoLabel>
         <h1 className="font-headline font-black uppercase leading-[0.84] text-[clamp(56px,7vw,112px)]">The Rulebook</h1>
         <p className="italic text-[21px] max-w-[46ch]">
           House rules, 5e core and conditions arrive in Stage 6. Until then, look up any rule or term.
@@ -66,9 +66,9 @@ function Rules() {
           onChange={e => setDraft(e.target.value)}
           placeholder="Grappling, opportunity attacks, Exhausted…"
           aria-label="Rule, condition or term"
-          className="flex-1 h-[42px] px-3 bg-card border-[1.5px] border-border/30 outline-none text-[18px]"
+          className="flex-1 h-[42px] px-3 bg-panel border-[1.5px] border-line2 outline-none text-[18px]"
         />
-        <button type="submit" disabled={!draft.trim() || loading} className="h-[42px] px-4 border-[1.5px] border-foreground font-mono font-bold text-[12px] tracking-[0.14em] disabled:opacity-50">
+        <button type="submit" disabled={!draft.trim() || loading} className="h-[42px] px-4 border-[1.5px] border-ink font-mono font-bold text-[12px] tracking-[0.14em] disabled:opacity-50">
           LOOK UP
         </button>
       </form>
@@ -77,7 +77,7 @@ function Rules() {
         <section className="flex flex-col gap-3 max-w-[68ch]">
           <SectionHeader glyph={GLYPH.rule} label={loading ? q : result!.term} />
           {loading ? (
-            <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Looking it up…</p>
+            <p className="flex items-center gap-2 text-mute"><Loader2 className="h-4 w-4 animate-spin" /> Looking it up…</p>
           ) : result?.error ? (
             <p className="text-destructive">{result.error}</p>
           ) : (

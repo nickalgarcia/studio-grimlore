@@ -124,7 +124,7 @@ const HpControl = React.memo(function HpControl({
             {currentHp}/{maxHp}
           </button>
         )}
-        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-ink/10 overflow-hidden">
           <div
             className={cn('h-full rounded-full transition-all', barColor)}
             style={{ width: `${pct * 100}%` }}
@@ -176,7 +176,7 @@ function AddMonsterForm({ onAdd }: { onAdd: (c: Omit<Combatant, 'seq'>) => void 
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-red-500/25 hover:border-red-500/50 hover:bg-red-500/5 transition-colors text-sm text-red-400/70 hover:text-red-400"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-spot/25 hover:border-spot/50 hover:bg-spot/5 transition-colors text-sm text-spot/70 hover:text-spot"
       >
         <Plus className="h-4 w-4" />
         Add Monster / NPC
@@ -185,8 +185,8 @@ function AddMonsterForm({ onAdd }: { onAdd: (c: Omit<Combatant, 'seq'>) => void 
   }
 
   return (
-    <div className="rounded-lg border border-red-500/25 bg-red-500/5 p-4 space-y-3">
-      <p className="label-forge text-red-400/70">Add Monster / NPC</p>
+    <div className="rounded-lg border border-spot/25 bg-spot/5 p-4 space-y-3">
+      <p className="label-forge text-spot/70">Add Monster / NPC</p>
       <div className="grid grid-cols-2 gap-3">
         <Input
           placeholder="Name *"
@@ -265,11 +265,11 @@ function CombatantRow({
     <div className={cn(
       'border transition-all',
       isActive
-        ? 'border-border/[0.09] bg-[hsl(var(--oxblood)/0.14)] shadow-[inset_3px_0_0_hsl(var(--oxblood))]'
+        ? 'border-border/[0.09] bg-[hsl(var(--oxblood)/0.14)]'
         : isDead
           ? 'border-border/[0.05] bg-[hsl(var(--oxblood)/0.06)] opacity-60'
           : isMonster
-            ? 'border-red-500/20 bg-red-500/4'
+            ? 'border-spot/20 bg-spot/4'
             : 'border-primary/15 bg-primary/3',
     )}>
       <div className="flex items-center gap-3 px-4 py-3">
@@ -301,7 +301,7 @@ function CombatantRow({
             aria-label={`Initiative for ${combatant.name}`}
             value={combatant.initiative}
             onChange={e => onInitiativeChange(combatant.id, e.target.value ? parseInt(e.target.value, 10) : '')}
-            className="w-12 text-center text-base font-headline bg-background/50 border border-white/10 rounded px-1 py-0.5 outline-none focus:border-primary/50"
+            className="w-12 text-center text-base font-headline bg-background/50 border border-ink/10 rounded px-1 py-0.5 outline-none focus:border-primary/50"
           />
           <button
             type="button"
@@ -317,7 +317,7 @@ function CombatantRow({
         {/* Name + type icon */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {isMonster
-            ? <Swords className="h-3.5 w-3.5 text-red-400/70 flex-shrink-0" />
+            ? <Swords className="h-3.5 w-3.5 text-spot/70 flex-shrink-0" />
             : <Shield className="h-3.5 w-3.5 text-primary/70 flex-shrink-0" />}
           <span className={cn(
             'font-headline text-sm truncate',
@@ -354,7 +354,7 @@ function CombatantRow({
             onClick={() => setShowConditions(o => !o)}
             aria-expanded={showConditions}
             aria-label={`Add a condition to ${combatant.name}`}
-            className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-muted-foreground/50 hover:border-white/20 hover:text-muted-foreground transition-colors font-headline"
+            className="text-[10px] px-1.5 py-0.5 rounded border border-ink/10 text-muted-foreground/50 hover:border-ink/20 hover:text-muted-foreground transition-colors font-headline"
           >
             +
           </button>
@@ -378,7 +378,7 @@ function CombatantRow({
               rel="noopener noreferrer"
               title="Open stat block"
               aria-label={`Open stat block for ${combatant.name} in a new tab`}
-              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/8 text-muted-foreground/50 hover:text-primary transition-colors"
+              className="h-7 w-7 flex items-center justify-center rounded hover:bg-ink/8 text-muted-foreground/50 hover:text-primary transition-colors"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -387,7 +387,7 @@ function CombatantRow({
             type="button"
             onClick={() => onRemove(combatant.id)}
             aria-label={`Remove ${combatant.name} from combat`}
-            className="h-7 w-7 flex items-center justify-center rounded hover:bg-red-500/15 text-muted-foreground/40 hover:text-red-400 transition-colors"
+            className="h-7 w-7 flex items-center justify-center rounded hover:bg-spot/15 text-muted-foreground/40 hover:text-spot transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -396,7 +396,7 @@ function CombatantRow({
 
       {/* Condition picker */}
       {showConditions && (
-        <div className="px-4 pb-3 pt-1 border-t border-white/5">
+        <div className="px-4 pb-3 pt-1 border-t border-ink/5">
           <div className="flex flex-wrap gap-1.5">
             {ALL_CONDITIONS.filter(c => !combatant.conditions.includes(c)).map(c => (
               <button

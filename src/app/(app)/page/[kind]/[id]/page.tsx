@@ -36,8 +36,8 @@ export default function EntityPage() {
   if (!kind || (!loading && !name)) {
     return (
       <div className="max-w-[1240px] mx-auto w-full px-[clamp(20px,3vw,48px)] pt-8 pb-24">
-        <Link href="/" className="font-mono text-[12px] text-muted-foreground">← STORY</Link>
-        <p className="mt-6 italic text-muted-foreground">This page doesn&apos;t exist, or it was deleted.</p>
+        <Link href="/" className="font-mono text-[12px] text-mute">← STORY</Link>
+        <p className="mt-6 italic text-mute">This page doesn&apos;t exist, or it was deleted.</p>
       </div>
     );
   }
@@ -54,11 +54,11 @@ export default function EntityPage() {
 
   return (
     <div className="max-w-[1240px] mx-auto w-full px-[clamp(20px,3vw,48px)] pt-8 pb-24 flex flex-col gap-10">
-      <nav aria-label="Breadcrumb" className="font-mono text-[12px] tracking-[0.12em] text-muted-foreground">
+      <nav aria-label="Breadcrumb" className="font-mono text-[12px] tracking-[0.12em] text-mute">
         <Link href="/">← STORY</Link> / {DISPLAY_KIND[kind]} / {name.toUpperCase()}
       </nav>
 
-      <header className="pb-8 border-b-[3px] border-foreground flex flex-col gap-3">
+      <header className="pb-8 border-b-[3px] border-ink flex flex-col gap-3">
         <div className="flex items-center gap-3">
           {lane && <span aria-hidden="true" className="w-4 h-1" style={{ background: lane.color }} />}
           <MonoLabel>{glyphFor(kind)} {DISPLAY_KIND[kind]}{lane?.status ? ` · ${lane.status}` : ''}</MonoLabel>
@@ -84,24 +84,24 @@ export default function EntityPage() {
           {thread && (
             <div className="flex flex-col gap-6">
               <section>
-                <MonoLabel className="text-primary">Where it stands</MonoLabel>
+                <MonoLabel className="text-spot">Where it stands</MonoLabel>
                 <p className="text-[20px] leading-[1.6] mt-1">{thread.body?.whereItStands || thread.note || 'Nothing written yet.'}</p>
               </section>
-              <p className="font-mono text-[12px] text-muted-foreground">
+              <p className="font-mono text-[12px] text-mute">
                 {thread.tag} · {thread.status.toUpperCase()}{thread.pullNext ? ' · PULLING NEXT' : ''}
               </p>
-              <p className="italic text-muted-foreground">Editing threads arrives with the inline-editing design.</p>
+              <p className="italic text-mute">Editing threads arrives with the inline-editing design.</p>
             </div>
           )}
         </article>
 
         <aside className="flex-[1_1_300px] max-w-[400px] flex flex-col gap-[26px]">
-          <section className="border-[1.5px] border-foreground">
-            <div className="bg-foreground text-background px-3 py-1.5"><MonoLabel>At a glance</MonoLabel></div>
+          <section className="border-[1.5px] border-ink">
+            <div className="bg-ink text-bg px-3 py-1.5"><MonoLabel>At a glance</MonoLabel></div>
             <dl className="px-3 py-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
-              <dt><MonoLabel className="text-muted-foreground">First seen</MonoLabel></dt>
+              <dt><MonoLabel className="text-mute">First seen</MonoLabel></dt>
               <dd className="text-right text-[17px]">{seen.length ? `Issue #${seen[0]}` : '—'}</dd>
-              <dt><MonoLabel className="text-muted-foreground">Last seen</MonoLabel></dt>
+              <dt><MonoLabel className="text-mute">Last seen</MonoLabel></dt>
               <dd className="text-right text-[17px]">{seen.length ? `Issue #${seen[seen.length - 1]}` : '—'}</dd>
             </dl>
           </section>
@@ -110,11 +110,11 @@ export default function EntityPage() {
             <section className="flex flex-col gap-2">
               <SectionHeader label={`On the Loom · ${seen.length} of ${issues.length}`} as="h3" />
               <SectionHeader glyph={GLYPH.issue} label="Mentioned in" as="h3" />
-              {recent.length === 0 && <p className="italic text-muted-foreground">No recap mentions this yet.</p>}
+              {recent.length === 0 && <p className="italic text-mute">No recap mentions this yet.</p>}
               {recent.map(s => s && (
-                <Link key={s.id} href={issueHref(s.sessionNumber)} className="py-1.5 border-b border-border/10">
+                <Link key={s.id} href={issueHref(s.sessionNumber)} className="py-1.5 border-b border-line">
                   <span className="block font-semibold">{GLYPH.issue} Issue #{s.sessionNumber} — {issueTitle(s)}</span>
-                  {s.logline && <span className="block italic text-[15px] text-muted-foreground">{s.logline}</span>}
+                  {s.logline && <span className="block italic text-[15px] text-mute">{s.logline}</span>}
                 </Link>
               ))}
             </section>

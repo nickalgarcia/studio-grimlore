@@ -251,11 +251,11 @@ export function CommandBar() {
     <div className="relative flex-1 min-w-0 max-w-[620px] ml-auto">
       <div
         className={cn(
-          'h-[42px] flex items-center gap-2 px-3 bg-card border-[1.5px]',
-          capturing ? 'border-primary' : 'border-border/30',
+          'h-[42px] flex items-center gap-2 px-3 bg-panel border-[1.5px]',
+          capturing ? 'border-spot' : 'border-line2',
         )}
       >
-        <span aria-hidden="true" className={cn('font-mono w-4 text-center', capturing ? 'text-primary' : 'text-muted-foreground')}>
+        <span aria-hidden="true" className={cn('font-mono w-4 text-center', capturing ? 'text-spot' : 'text-mute')}>
           {capturing ? '+' : '⌕'}
         </span>
         <input
@@ -273,9 +273,9 @@ export function CommandBar() {
           aria-activedescendant={open && !capturing && rows[highlight] ? `cmd-${rows[highlight].key}` : undefined}
           autoComplete="off"
           spellCheck={false}
-          className="flex-1 min-w-0 bg-transparent outline-none text-[18px] placeholder:text-muted-foreground"
+          className="flex-1 min-w-0 bg-transparent outline-none text-[18px] placeholder:text-mute"
         />
-        <kbd className="font-mono text-[11px] px-1.5 border border-border/30 text-muted-foreground">/</kbd>
+        <kbd className="font-mono text-[11px] px-1.5 border border-line2 text-mute">/</kbd>
       </div>
 
       {open && (
@@ -283,7 +283,7 @@ export function CommandBar() {
           id={listId}
           role="listbox"
           aria-label={capturing ? 'Capture' : 'Search results'}
-          className="absolute left-0 right-0 top-[48px] z-50 bg-background border-2 border-foreground shadow-[8px_8px_0_hsl(var(--primary))]"
+          className="absolute left-0 right-0 top-[48px] z-50 bg-bg border-2 border-ink shadow-print"
           // Keep focus in the input so a click doesn't blur and close the list first.
           onMouseDown={e => e.preventDefault()}
         >
@@ -294,15 +294,15 @@ export function CommandBar() {
               aria-selected="true"
               onClick={doCapture}
               disabled={!captureText}
-              className="w-full text-left px-4 py-3 bg-card disabled:opacity-60"
+              className="w-full text-left px-4 py-3 bg-panel disabled:opacity-60"
             >
-              <div className="flex justify-between font-mono text-[11px] font-bold tracking-[0.16em] text-primary">
+              <div className="flex justify-between font-mono text-[11px] font-bold tracking-[0.16em] text-spot">
                 <span>{GLYPH.note} CAPTURE TO SESSION {nextIssueNumber} NOTES</span>
                 <span>ENTER ↵</span>
               </div>
               <div className="text-[19px] mt-1">{captureText || 'Type the note…'}</div>
               {captureLinked.length > 0 && (
-                <div className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground mt-1">
+                <div className="font-mono text-[11px] tracking-[0.14em] text-mute mt-1">
                   WILL LINK → {captureLinked.join(' · ').toUpperCase()}
                 </div>
               )}
@@ -310,7 +310,7 @@ export function CommandBar() {
           ) : (
             <>
               {noMatches && (
-                <p className="px-4 py-3 italic text-[15px] text-muted-foreground">
+                <p className="px-4 py-3 italic text-[15px] text-mute">
                   No page yet. Start with + to capture it as a note.
                 </p>
               )}
@@ -325,17 +325,17 @@ export function CommandBar() {
                   onMouseEnter={() => setHighlight(i)}
                   className={cn(
                     'w-full grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 text-left',
-                    i === highlight && 'bg-card',
+                    i === highlight && 'bg-panel',
                   )}
                 >
                   <span aria-hidden="true" className="text-center">{r.glyph}</span>
                   <span className="min-w-0">
                     <span className="block font-semibold text-[18px] truncate">{r.title}</span>
                     {r.subtitle && (
-                      <span className="block italic text-[15px] text-muted-foreground truncate">{r.subtitle}</span>
+                      <span className="block italic text-[15px] text-mute truncate">{r.subtitle}</span>
                     )}
                   </span>
-                  <span className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground">{r.type}</span>
+                  <span className="font-mono text-[11px] tracking-[0.14em] text-mute">{r.type}</span>
                 </button>
               ))}
             </>

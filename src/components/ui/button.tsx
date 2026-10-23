@@ -4,25 +4,26 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Buttons are display type: Big Shoulders, uppercase, hard 1.5px edges.
+ * `default` is the spot-filled primary CTA, so keep it to one per region.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap border-[1.5px] font-headline font-extrabold uppercase tracking-[0.1em] text-[16px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_-5px] shadow-primary/50 hover:shadow-primary/70",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-input bg-transparent hover:bg-white/5 hover:text-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-white/5 hover:text-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "bg-spot text-spot-on border-spot hover:bg-ink hover:text-bg hover:border-ink",
+        destructive: "bg-spot text-spot-on border-spot hover:bg-ink hover:text-bg hover:border-ink",
+        outline: "border-ink bg-transparent text-ink hover:bg-panel",
+        secondary: "border-line2 bg-panel text-ink hover:border-ink",
+        ghost: "border-transparent text-ink hover:bg-panel",
+        link: "border-transparent text-spot underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
+        default: "h-10 px-4",
+        sm: "h-9 px-3 text-[14px]",
+        lg: "h-12 px-6 text-[19px]",
         icon: "h-10 w-10",
       },
     },

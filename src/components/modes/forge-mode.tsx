@@ -46,8 +46,8 @@ export function ForgeMode({
       {/* box-sizing + width:100% on a padded max-width container, or the
           fixed-track siblings refuse to shrink and overflow horizontally. */}
       <div className="w-full box-border max-w-[1240px] mx-auto px-[28px] pt-[26px] pb-[60px]">
-        <div className="flex items-center gap-3 mb-3 animate-rise">
-          <span className="h-[13px] w-[4px] bg-oxblood shadow-[0_0_14px_hsl(var(--oxblood-bright)/0.9)]" />
+        <div className="flex items-center gap-3 mb-3">
+          <span className="h-[13px] w-[4px] bg-oxblood" />
           <span className="font-mono text-[10px] font-extrabold tracking-[0.3em] text-oxblood-bright uppercase">
             Forge · {campaign.name}
           </span>
@@ -55,7 +55,7 @@ export function ForgeMode({
         </div>
 
         <h1 className="font-headline text-[46px] font-black uppercase leading-[0.98] text-bone
-                       [text-shadow:0_0_60px_hsl(var(--oxblood)/0.45)] mb-5 animate-rise [animation-delay:.05s]">
+ mb-5">
           {TITLE[view]}
         </h1>
 
@@ -68,7 +68,7 @@ export function ForgeMode({
               className={cn(
                 'font-mono text-[10px] font-bold tracking-[0.12em] uppercase px-[11px] py-[5px] border transition-colors',
                 view === v.id
-                  ? 'text-bone bg-oxblood border-oxblood'
+                  ? 'text-spot-on bg-oxblood border-oxblood'
                   : 'text-bone-faint border-border/[0.12] hover:text-bone-dim',
               )}
             >
@@ -77,7 +77,7 @@ export function ForgeMode({
           ))}
         </div>
 
-        <div className="animate-rise [animation-delay:.12s]">
+        <div className="">
           {view === 'prep' && <SessionPrep campaignId={campaign.id} />}
           {view === 'overview' && <CampaignOverview campaign={campaign} codex={codex} />}
           {view === 'generate' && (

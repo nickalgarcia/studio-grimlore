@@ -13,7 +13,6 @@ import { MigrateDialog } from '@/components/migrate-dialog';
 import { needsMigration } from '@/lib/migrate';
 import { signOutUser, useAuth, useUser } from '@/firebase';
 import { ArrowUpCircle, Check, ChevronDown, LayoutGrid, LogOut, Upload } from 'lucide-react';
-import { ForgeSigil } from '@/components/forge-sigil';
 import { cn } from '@/lib/utils';
 import type { Campaign } from '@/lib/types';
 
@@ -45,17 +44,16 @@ export function CampaignSwitcher({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="h-full flex items-center gap-2.5 px-[18px] bg-oxblood shadow-slab hover:bg-oxblood/90 transition-colors max-w-[22rem]"
+            className="h-full flex items-center gap-2.5 px-3.5 border-[1.5px] border-line2 hover:bg-panel max-w-[16rem]"
           >
-            <ForgeSigil className="w-4 h-4 [--oxblood-bright:40_40%_94%] [--oxblood:40_40%_94%]" />
-            <span className="font-headline text-[13px] font-extrabold tracking-[0.11em] uppercase text-bone truncate">
+            <span className="font-headline text-[16px] font-extrabold tracking-[0.1em] uppercase text-ink truncate">
               {active ? active.name : 'Choose a campaign'}
             </span>
-            <ChevronDown className="h-3 w-3 flex-shrink-0 text-bone/70" />
+            <ChevronDown className="h-3 w-3 flex-shrink-0 text-mute" />
           </button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start" className="w-64 bg-popover border-border/[0.12]">
+        <DropdownMenuContent align="start" className="w-64">
           <DropdownMenuLabel className="label-forge">Campaigns</DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-border/[0.09]" />
           {campaigns.length === 0 ? (

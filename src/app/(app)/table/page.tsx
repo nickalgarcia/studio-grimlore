@@ -26,7 +26,7 @@ export default function TablePage() {
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       {/* The v3 status bar held these; they wait here for the live bar. */}
-      <div className="flex-none flex items-center gap-4 px-6 h-10 border-b border-border/10">
+      <div className="flex-none flex items-center gap-4 px-6 h-10 border-b border-line">
         <MonoLabel>Issue #{nextIssueNumber}</MonoLabel>
         <ElapsedClock startedAt={live.startedAt} />
         <span className="flex-1" />

@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import type { Character } from '@/lib/types';
 
 /** Plate accents. No violet — that belongs to the co-pilot alone. */
-const PLATE_ACCENTS = ['#8f2d24', '#5a5a5a', '#c9a45c', '#8b847b', '#3a3a3a'];
+const PLATE_ACCENTS = ['hsl(var(--ink))', 'hsl(var(--mute))', 'hsl(var(--sand))', 'hsl(var(--mute))', 'hsl(var(--ink))'];
 
 /** Five across is the designed layout; beyond that the dock scrolls. */
 const FITS_WITHOUT_SCROLL = 5;
@@ -47,14 +47,14 @@ export function PartyDock({
   const overflows = characters.length > FITS_WITHOUT_SCROLL;
 
   return (
-    <div className="flex-shrink-0 px-[26px] pb-[18px] animate-rise">
+    <div className="flex-shrink-0 px-[26px] pb-[18px]">
       <div
         // No ambient drift here on purpose. Every other panel may breathe, but
         // this one is a click target — the plates are the most-used control on
         // the screen, and a button that oscillates under the cursor is a worse
         // trade than a slightly stiller dock.
         className="bg-[hsl(264_17%_6%/0.95)] border border-border/[0.09] border-t-4 border-t-oxblood
-                   shadow-[0_-6px_40px_-14px_hsl(var(--oxblood)/0.5),0_22px_50px_-18px_rgba(0,0,0,0.95)]"
+"
       >
         <div className="flex items-center gap-3 px-4 pt-[7px] pb-[5px]">
           <span className="font-mono text-[9px] font-extrabold tracking-[0.26em] text-bone-faint">

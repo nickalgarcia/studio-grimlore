@@ -100,7 +100,7 @@ export function TableMode({
               className={cn(
                 'font-mono text-[10.5px] font-bold tracking-[0.14em] uppercase px-3 py-1.5 border transition-colors',
                 view === v
-                  ? 'text-bone bg-oxblood border-oxblood'
+                  ? 'text-spot-on bg-oxblood border-oxblood'
                   : 'text-bone-faint border-border/[0.12] hover:text-bone-dim',
               )}
             >

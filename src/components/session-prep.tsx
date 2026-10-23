@@ -242,7 +242,7 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
           </h2>
 
           {/* ── Opening scene ── */}
-          <section className="surface-card border-t-4 border-t-oxblood px-5 py-[18px] animate-rise">
+          <section className="surface-card border-t-4 border-t-oxblood px-5 py-[18px]">
             <div className="font-mono text-[9px] font-extrabold tracking-[0.24em] text-oxblood-bright mb-2.5">
               OPENING SCENE
             </div>
@@ -258,7 +258,7 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
           <SectionHead label="COMPLICATIONS" />
           <div className="flex flex-col gap-2">
             {prep.complications.map((c, i) => (
-              <div key={c.title + i} className="surface-card surface-card-hover px-[17px] py-[15px] animate-rise"
+              <div key={c.title + i} className="surface-card surface-card-hover px-[17px] py-[15px]"
                    style={{ animationDelay: `${(0.2 + i * 0.07).toFixed(2)}s` }}>
                 <div className="grid grid-cols-[34px_minmax(0,1fr)] gap-3">
                   <span className="font-mono text-[15px] font-extrabold text-oxblood">
@@ -279,7 +279,7 @@ export function SessionPrep({ campaignId }: SessionPrepProps) {
           <SectionHead label="NPC MOTIVATIONS TODAY" />
           <div className="flex flex-col gap-2">
             {prep.npcMotivations.map((n, i) => (
-              <div key={n.name + i} className="surface-card px-[17px] py-[15px] animate-rise"
+              <div key={n.name + i} className="surface-card px-[17px] py-[15px]"
                    style={{ animationDelay: `${(0.2 + i * 0.07).toFixed(2)}s` }}>
                 <div className="font-headline text-[16px] font-bold uppercase text-bone-body mb-2">
                   {n.name}

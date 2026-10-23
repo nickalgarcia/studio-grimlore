@@ -83,7 +83,7 @@ function CampaignCard({
   const lastPlayed = latestSession?.date ? timeAgo(latestSession.date) : null;
 
   return (
-    <Card className="flex flex-col group hover:border-primary/40 transition-all hover:shadow-[0_0_20px_hsl(174_50%_48%/0.06)] cursor-pointer"
+    <Card className="flex flex-col group hover:border-primary/40 transition-all cursor-pointer"
       onClick={onOpen}>
       <CardHeader className="pb-3">
         <CardTitle className="font-headline text-xl leading-snug">{campaign.name}</CardTitle>

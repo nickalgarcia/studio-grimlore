@@ -7,8 +7,8 @@ import type { Campaign, Npc, Scene } from '@/lib/types';
 
 function Eyebrow({ label, right }: { label: string; right?: string }) {
   return (
-    <div className="flex items-center gap-3 mb-3 animate-rise">
-      <span className="h-[13px] w-[4px] bg-oxblood shadow-[0_0_14px_hsl(var(--oxblood-bright)/0.9)]" />
+    <div className="flex items-center gap-3 mb-3">
+      <span className="h-[13px] w-[4px] bg-oxblood" />
       <span className="font-mono text-[10px] font-extrabold tracking-[0.3em] text-oxblood-bright">
         {label}
       </span>
@@ -27,7 +27,7 @@ function DispositionPill({ disposition }: { disposition?: Npc['disposition'] }) 
       className={cn(
         'font-mono text-[9px] font-extrabold tracking-[0.16em] uppercase px-[7px] py-[3px] flex-shrink-0',
         tone === 'hostile'
-          ? 'text-bone bg-oxblood shadow-[0_0_18px_-4px_hsl(var(--oxblood-bright)/0.9)]'
+          ? 'text-spot-on bg-oxblood'
           : 'text-bone-dim bg-[hsl(var(--border)/0.09)]',
       )}
     >
@@ -76,14 +76,14 @@ export function SceneStage({
       <Eyebrow label="THE SCENE" right={ref || undefined} />
 
       <h1 className="font-headline text-[58px] font-black uppercase leading-[0.95] tracking-[-0.008em] text-bone
-                     [text-shadow:0_0_60px_hsl(var(--oxblood)/0.45),0_8px_40px_rgba(0,0,0,0.8)]
-                     mb-4 animate-rise [animation-delay:.05s]">
+
+                     mb-4">
         {scene?.name || campaign.name}
       </h1>
 
       {(scene?.location || scene?.timeOfDay || scene?.constraint) && (
         <div className="flex items-stretch bg-[hsl(var(--background)/0.66)] border border-border/[0.09]
-                        shadow-[0_18px_44px_-20px_rgba(0,0,0,0.95)] animate-rise [animation-delay:.12s]">
+">
           {scene?.location && (
             <div className="px-[18px] py-2.5 border-r border-border/[0.08]">
               <div className="font-mono text-[8.5px] font-extrabold tracking-[0.22em] text-bone-faint mb-[3px]">WHERE</div>
@@ -110,7 +110,7 @@ export function SceneStage({
 
       {onStage.length > 0 && (
         <>
-          <div className="flex items-center gap-3 mt-[26px] mb-3 animate-rise [animation-delay:.18s]">
+          <div className="flex items-center gap-3 mt-[26px] mb-3">
             <span className="font-mono text-[10px] font-extrabold tracking-[0.3em] text-bone-faint">ON STAGE</span>
             <span className="flex-1 h-[3px] bg-[hsl(var(--border)/0.06)]" />
           </div>
@@ -126,7 +126,7 @@ export function SceneStage({
                 // is keyboard-reachable and the cursor only promises what is
                 // actually wired up.
                 className={cn(
-                  'surface-card border-l-4 border-l-oxblood px-[17px] py-[15px] text-left w-full animate-rise',
+                  'surface-card border-l-4 border-l-oxblood px-[17px] py-[15px] text-left w-full',
                   onSelectNpc
                     ? 'surface-card-hover cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood-bright'
                     : 'cursor-default',
@@ -162,7 +162,7 @@ export function SceneStage({
           {inPlay.map((c, i) => (
             <div
               key={c.label}
-              className="surface-card px-4 py-3.5 h-full animate-rise"
+              className="surface-card px-4 py-3.5 h-full"
               style={{ borderTop: `3px solid ${c.top}`, animationDelay: `${(0.28 + i * 0.06).toFixed(2)}s` }}
             >
               <div className={cn('font-mono text-[9px] font-extrabold tracking-[0.22em] mb-2', c.color)}>
@@ -175,7 +175,7 @@ export function SceneStage({
       )}
 
       {!scene && (
-        <p className="mt-4 text-[13px] text-bone-faint leading-relaxed max-w-[46ch] animate-rise [animation-delay:.12s]">
+        <p className="mt-4 text-[13px] text-bone-faint leading-relaxed max-w-[46ch]">
           No scene set. Put an NPC on stage from the Codex to start one — or just
           take notes below and ask the co-pilot.
         </p>

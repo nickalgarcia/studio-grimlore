@@ -20,9 +20,9 @@ export function SectionHeader({
         {glyph && <span aria-hidden="true" className="mr-2">{glyph}</span>}
         {label}
       </Tag>
-      <span aria-hidden="true" className="flex-1 h-px bg-border/30" />
+      <span aria-hidden="true" className="flex-1 h-px bg-line2" />
       {meta && (
-        <span className="flex-none font-mono text-[11px] tracking-[0.14em] uppercase text-muted-foreground">
+        <span className="flex-none font-mono text-[11px] tracking-[0.14em] uppercase text-mute">
           {meta}
         </span>
       )}
