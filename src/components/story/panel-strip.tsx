@@ -3,12 +3,14 @@
 import * as React from 'react';
 import { Loader2 } from 'lucide-react';
 import { getBeatsDraft } from '@/app/actions';
+import { GenerateArtDialog } from '@/components/art/generate-art-dialog';
 import { useCampaign } from '@/components/campaign/campaign-provider';
 import { ImageSlot } from '@/components/shared/image-slot';
 import { MonoLabel } from '@/components/shared/section-header';
 import { idTokenFor, useImageUpload, useSessionWriter, useUser, type WithId } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { recapOf } from '@/lib/issues';
+import { castIdsOf } from '@/lib/art';
+import { issueTitle, recapOf } from '@/lib/issues';
 import { GLYPH } from '@/lib/pages';
 import { cn } from '@/lib/utils';
 import type { Session, SessionBeat } from '@/lib/types';
@@ -55,11 +57,13 @@ function PanelNumber({ i, of }: { i: number; of: number }) {
 
 /** Three comic panels. Image panels take dropped art; word panels are spot fill and one big word. */
 export function PanelStrip({
-  beats, size = 'sm', onImage,
+  beats, size = 'sm', onImage, onGenerate,
 }: {
   beats: SessionBeat[];
   size?: Size;
   onImage?: (index: number, file: File) => Promise<void>;
+  /** Open the generate dialog for an image panel. */
+  onGenerate?: (index: number) => void;
 }) {
   const s = SIZES[size];
   return (
@@ -83,6 +87,7 @@ export function PanelStrip({
             url={b.imageUrl}
             alt={`Panel ${i + 1} art`}
             onFile={file => onImage ? onImage(i, file) : Promise.resolve()}
+            onGenerate={onGenerate ? () => onGenerate(i) : undefined}
             clickToUpload={false}
             className={cn('border-[3px] border-ink', s.panel)}
           >
@@ -192,7 +197,7 @@ function BeatsEditor({
  * NOT ILLUSTRATED YET state, co-pilot drafting, and editing.
  */
 export function IssueStrip({ issue, size = 'sm' }: { issue: WithId<Session>; size?: Size }) {
-  const { activeCampaign } = useCampaign();
+  const { activeCampaign, mentions } = useCampaign();
   const { user } = useUser();
   const { toast } = useToast();
   const { updateSession } = useSessionWriter(activeCampaign?.id);
@@ -200,6 +205,8 @@ export function IssueStrip({ issue, size = 'sm' }: { issue: WithId<Session>; siz
 
   const [editing, setEditing] = React.useState<{ beats: SessionBeat[]; fromCopilot: boolean } | null>(null);
   const [drafting, setDrafting] = React.useState(false);
+  /** Index of the panel the generate dialog is open for. */
+  const [generating, setGenerating] = React.useState<number | null>(null);
 
   // A different issue selected on Story: drop any half-finished edit.
   React.useEffect(() => { setEditing(null); }, [issue.id]);
@@ -282,7 +289,18 @@ export function IssueStrip({ issue, size = 'sm' }: { issue: WithId<Session>; siz
 
   return (
     <div className="flex flex-col gap-2">
-      <PanelStrip beats={beats} size={size} onImage={onImage} />
+      <PanelStrip beats={beats} size={size} onImage={onImage} onGenerate={setGenerating} />
+      <GenerateArtDialog
+        open={generating !== null}
+        onOpenChange={o => { if (!o) setGenerating(null); }}
+        kind="panel"
+        title={`Issue #${issue.sessionNumber} · Panel ${(generating ?? 0) + 1} of ${beats.length}`}
+        initialBrief={generating !== null ? beats[generating]?.caption : undefined}
+        caption={generating !== null ? beats[generating]?.caption : undefined}
+        context={[issueTitle(issue), issue.logline, recap].filter(Boolean).join('\n\n')}
+        suggestedCast={castIdsOf(mentions.byIssue.get(issue.sessionNumber)?.refs)}
+        onUse={file => onImage(generating ?? 0, file)}
+      />
       <button
         type="button"
         onClick={() => setEditing({ beats, fromCopilot: false })}

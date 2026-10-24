@@ -12,7 +12,7 @@ import { CampaignManager } from '@/components/campaign-manager';
 import { MigrateDialog } from '@/components/migrate-dialog';
 import { needsMigration } from '@/lib/migrate';
 import { signOutUser, useAuth, useUser } from '@/firebase';
-import { ArrowUpCircle, BookOpen, Check, ChevronDown, LayoutGrid, LogOut, Upload } from 'lucide-react';
+import { ArrowUpCircle, BookOpen, Check, ChevronDown, LayoutGrid, LogOut, Palette, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Campaign } from '@/lib/types';
 
@@ -25,7 +25,7 @@ import type { Campaign } from '@/lib/types';
  * upgrade, and sign-out.
  */
 export function CampaignSwitcher({
-  campaigns, activeCampaignId, onSelect, onImportObsidian, onOverview,
+  campaigns, activeCampaignId, onSelect, onImportObsidian, onOverview, onArtDirection,
 }: {
   campaigns: Campaign[];
   activeCampaignId: string | null;
@@ -34,6 +34,8 @@ export function CampaignSwitcher({
   onImportObsidian?: () => void;
   /** Story so far, session log and export: the v3 Forge Overview, waiting for the menu design. */
   onOverview?: () => void;
+  /** House style for generated art. */
+  onArtDirection?: () => void;
 }) {
   const auth = useAuth();
   const { user } = useUser();
@@ -82,6 +84,12 @@ export function CampaignSwitcher({
             <DropdownMenuItem onSelect={onOverview} className="gap-2">
               <BookOpen className="h-3.5 w-3.5" />
               Campaign overview…
+            </DropdownMenuItem>
+          )}
+          {active && onArtDirection && (
+            <DropdownMenuItem onSelect={onArtDirection} className="gap-2">
+              <Palette className="h-3.5 w-3.5" />
+              Art direction…
             </DropdownMenuItem>
           )}
           {active && onImportObsidian && (

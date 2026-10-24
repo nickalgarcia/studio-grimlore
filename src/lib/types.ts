@@ -20,6 +20,10 @@ export type Campaign = {
    * Absent means 1: everything saved before the Director's Cut.
    */
   schemaVersion?: number;
+  /** Art direction for generated images. Absent means DEFAULT_ART_STYLE (lib/art.ts). */
+  artStyle?: string;
+  /** Approved images Gemini copies the look of, at most MAX_STYLE_REFS. */
+  styleRefUrls?: string[];
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,6 +76,11 @@ export type Character = {
   currentHp?: number;
   maxHp?: number;
   portraitUrl?: string;
+  /**
+   * What they look like, head to toe, in a line or two. Sent with the portrait
+   * when generating art: a portrait shows a face, the Look covers the rest.
+   */
+  look?: string;
   /** Issue number of this PC's last spotlight. Prep flags them OVERDUE after 5. */
   lastSpotlightSession?: number;
 };
@@ -120,6 +129,11 @@ export type Npc = {
   /** Session number this entry was last on stage. Written by "put on stage". */
   lastSeenSession?: number;
   portraitUrl?: string;
+  /**
+   * What they look like, head to toe, in a line or two. Sent with the portrait
+   * when generating art: a portrait shows a face, the Look covers the rest.
+   */
+  look?: string;
   /** DM eyes only. The players can see the screen, so it renders behind a dashed box. */
   secret?: string;
   /** Loom lane colour (one of `LANE_COLORS`). Absent means assigned by order at display time. */

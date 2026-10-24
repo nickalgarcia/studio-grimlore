@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useCampaign } from '@/components/campaign/campaign-provider';
+import { GenerateArtDialog } from '@/components/art/generate-art-dialog';
 import { PrepDraftDialog } from '@/components/prep/prep-draft-dialog';
 import { ImageSlot } from '@/components/shared/image-slot';
 import { MonoLabel, SectionHeader } from '@/components/shared/section-header';
@@ -118,6 +119,7 @@ function SceneCard({
   const { toast } = useToast();
   const [alt, setAlt] = React.useState(false);
   const [editing, setEditing] = React.useState<PrepScene | null>(null);
+  const [generating, setGenerating] = React.useState(false);
 
   const cliff = scene.role === 'cliffhanger';
   const beat = index === 0 && alt && prep.alternateOpening ? prep.alternateOpening : scene.beat;
@@ -167,6 +169,17 @@ function SceneCard({
         clickToUpload
         emptyLabel="Drop scene art"
         className="h-[130px] border-b-[3px] border-ink"
+        onGenerate={() => setGenerating(true)}
+      />
+      <GenerateArtDialog
+        open={generating}
+        onOpenChange={setGenerating}
+        kind="scene"
+        title={`Scene ${index + 1} · ${scene.title || ROLE_LABEL[scene.role]}`}
+        initialBrief={[scene.where, scene.beat].filter(s => s?.trim()).join('. ')}
+        context={[scene.title, scene.where && `Where: ${scene.where}`, scene.beat].filter(Boolean).join('\n')}
+        suggestedCast={scene.castIds}
+        onUse={onImage}
       />
       {editing ? (
         <div className="p-3.5 flex flex-col gap-2">
@@ -222,6 +235,7 @@ export function PrepView() {
   const { promoteThreads } = useThreadWriter(activeCampaign?.id);
   const { upload, remove } = useImageUpload(activeCampaign?.id);
   const [drafting, setDrafting] = React.useState(false);
+  const [generatingCover, setGeneratingCover] = React.useState(false);
   const [rolled, setRolled] = React.useState<number | null>(null);
 
   const prep = state?.prep ?? null;
@@ -281,11 +295,26 @@ export function PrepView() {
           clickToUpload
           emptyLabel="Drop the cover"
           className="flex-none w-[clamp(160px,16vw,210px)] aspect-[2/3] border-[3px] border-dashed border-spot"
+          onGenerate={() => setGeneratingCover(true)}
         >
           <span className="absolute top-0 left-0 z-[1] px-2 bg-spot text-spot-on font-headline font-black text-[40px] leading-tight pointer-events-none">
             #{nextIssueNumber}
           </span>
         </ImageSlot>
+        <GenerateArtDialog
+          open={generatingCover}
+          onOpenChange={setGeneratingCover}
+          kind="teaser"
+          title={`Issue #${nextIssueNumber}${prep?.sessionTitle ? `: ${prep.sessionTitle}` : ''}`}
+          // Only the scenes the players will see first: the turn and the
+          // cliffhanger stay out, because the players can see this screen.
+          context={[
+            prep?.sessionTitle,
+            ...scenes.filter(s => s.role === 'open' || s.role === 'pressure').map(s => [s.title, s.where, s.beat].filter(Boolean).join(' · ')),
+          ].filter(Boolean).join('\n')}
+          suggestedCast={[...new Set(scenes.flatMap(s => s.castIds))]}
+          onUse={onCover}
+        />
 
         <div className="flex-1 min-w-[300px] flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3 font-mono font-bold text-[12px] tracking-[0.16em]">

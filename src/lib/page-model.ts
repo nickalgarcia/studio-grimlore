@@ -86,7 +86,10 @@ export function buildPageModel(kind: PageKind, source: unknown): PageModel {
           ...tag(n.disposition, dispositionTone(n.disposition)),
           ...(n.status && n.status !== 'Active' ? tag(n.status, n.status === 'Dead' ? 'spot' : 'mute') : []),
         ],
-        sections: [...section('Wants · now', n.wants, true), ...section('Knows', n.knows), ...section('Who they are', rest)],
+        sections: [
+          ...section('Wants · now', n.wants, true), ...section('Knows', n.knows), ...section('Who they are', rest),
+          ...section('Look', n.look),
+        ],
         secret: n.secret?.trim() || undefined,
         history: n.history?.length ? n.history : undefined,
         historyLabel: 'With the party',
@@ -104,7 +107,10 @@ export function buildPageModel(kind: PageKind, source: unknown): PageModel {
         name: c.name,
         lede,
         tags: [...tag('Party'), ...tag(c.class), ...tag(c.species)],
-        sections: [...section('Backstory', rest), ...section("How they've changed", c.developmentLog, true)],
+        sections: [
+          ...section('Backstory', rest), ...section("How they've changed", c.developmentLog, true),
+          ...section('Look', c.look),
+        ],
         historyLabel: 'With the party',
         facts: [
           ...fact('Class', c.class), ...fact('Species', c.species), ...fact('Origin', c.originCity),
