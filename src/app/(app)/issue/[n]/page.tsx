@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useCampaign } from '@/components/campaign/campaign-provider';
+import { GenerateArtDialog } from '@/components/art/generate-art-dialog';
 import { CodexEntryDialog } from '@/components/codex/codex-entry-dialog';
 import { RecapDraft } from '@/components/issue/recap-draft';
 import { RecapText } from '@/components/issue/recap-text';
@@ -11,6 +12,7 @@ import { ImageSlot } from '@/components/shared/image-slot';
 import { MonoLabel, SectionHeader } from '@/components/shared/section-header';
 import { IssueStrip } from '@/components/story/panel-strip';
 import { useImageUpload, useSessionWriter } from '@/firebase';
+import { castIdsOf } from '@/lib/art';
 import { agoLabel, issueLabel, issueTitle, recapOf, sessionDate } from '@/lib/issues';
 import { refKey } from '@/lib/mentions';
 import { DISPLAY_KIND, GLYPH, issueHref, pageHref } from '@/lib/pages';
@@ -39,6 +41,7 @@ function Issue() {
   // Captured on click, not derived: the dialog resets its form whenever
   // `initial` changes, and a live snapshot would do that mid-edit.
   const [editInitial, setEditInitial] = React.useState<Record<string, unknown> | null>(null);
+  const [generatingCover, setGeneratingCover] = React.useState(false);
 
   const index = issues.findIndex(s => s.sessionNumber === number);
   const issue = index === -1 ? null : issues[index];
@@ -118,6 +121,7 @@ function Issue() {
           clickToUpload
           emptyLabel="Click or drop to add a cover"
           className="flex-none w-[clamp(200px,22vw,280px)] aspect-[2/3] border-[3px] border-ink shadow-print-lg"
+          onGenerate={() => setGeneratingCover(true)}
         >
           <span className="absolute top-0 left-0 z-[1] px-2.5 bg-ink text-bg font-headline font-black text-[44px] leading-tight pointer-events-none">
             #{issue.sessionNumber}
@@ -199,6 +203,17 @@ function Issue() {
           )}
         </aside>
       </div>
+
+      <GenerateArtDialog
+        open={generatingCover}
+        onOpenChange={setGeneratingCover}
+        kind="cover"
+        // issueTitle falls back to "Issue #N", which would read "Issue #2: Issue #2".
+        title={issue.title?.trim() ? `Issue #${issue.sessionNumber}: ${issue.title.trim()}` : issueTitle(issue)}
+        context={[issue.logline, recap].filter(Boolean).join('\n\n')}
+        suggestedCast={castIdsOf(idx?.refs)}
+        onUse={onCover}
+      />
 
       {activeCampaign && (
         <CodexEntryDialog

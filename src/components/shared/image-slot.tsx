@@ -2,7 +2,12 @@
 
 import * as React from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { GLYPH } from '@/lib/pages';
 import { cn } from '@/lib/utils';
+
+const slotButton = 'px-1.5 py-0.5 font-mono font-bold text-[11px] tracking-[0.14em]';
+/** Revealed on hover or keyboard focus, like the original REPLACE ART button. */
+const revealOnHover = 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto';
 
 /**
  * A user-supplied image: a cover, a panel, a portrait. Empty slots are a
@@ -11,9 +16,13 @@ import { cn } from '@/lib/utils';
  * Dropping an image file on the slot always uploads. Clicking only uploads
  * when `clickToUpload` is set, because on the Longbox a click selects the
  * issue; those slots still get a keyboard-reachable upload button.
+ *
+ * `onGenerate` adds a GENERATE button that opens the Gemini dialog. It is
+ * always shown on an empty slot (that's when it's wanted) and on hover once
+ * the slot has art, like REPLACE ART.
  */
 export function ImageSlot({
-  url, alt, onFile, clickToUpload = false, className, imgClassName, children, emptyLabel,
+  url, alt, onFile, clickToUpload = false, className, imgClassName, children, emptyLabel, onGenerate,
 }: {
   url?: string;
   alt: string;
@@ -26,6 +35,8 @@ export function ImageSlot({
   children?: React.ReactNode;
   /** Shown in an empty slot, e.g. "PORTRAIT". */
   emptyLabel?: string;
+  /** Open the generate dialog for this slot. Absent means no GENERATE button. */
+  onGenerate?: () => void;
 }) {
   const { toast } = useToast();
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -86,14 +97,25 @@ export function ImageSlot({
           className="absolute inset-0 w-full h-full focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-spot focus-visible:-outline-offset-[3px]"
         />
       )}
-      {!clickToUpload && (
-        <button
-          type="button"
-          onClick={pick}
-          className="absolute bottom-1.5 left-1.5 z-[2] px-1.5 py-0.5 bg-ink text-bg font-mono font-bold text-[11px] tracking-[0.14em] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto"
-        >
-          {url ? 'REPLACE ART' : '+ ART'}
-        </button>
+      {(!clickToUpload || onGenerate) && (
+        // Above the whole-slot button of clickToUpload slots (z-auto) and the overlays (z-[1]).
+        <div className="absolute bottom-1.5 left-1.5 z-[2] flex gap-1.5">
+          {!clickToUpload && (
+            <button type="button" onClick={pick} className={cn(slotButton, 'bg-ink text-bg', revealOnHover)}>
+              {url ? 'REPLACE ART' : '+ ART'}
+            </button>
+          )}
+          {onGenerate && (
+            <button
+              type="button"
+              onClick={onGenerate}
+              aria-label={`Generate ${alt}`}
+              className={cn(slotButton, 'bg-bg text-holo border-[1.5px] border-holo', url && revealOnHover)}
+            >
+              {GLYPH.copilot} GENERATE
+            </button>
+          )}
+        </div>
       )}
 
       {(over || busy) && (

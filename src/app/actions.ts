@@ -25,12 +25,13 @@ import {
 
 import { draftBeats, type DraftBeatsInput, type DraftBeatsOutput } from '@/ai/flows/draft-beats-flow';
 import { draftPage, type DraftPageInput, type DraftPageOutput } from '@/ai/flows/draft-page-flow';
+import { draftArtBrief, type DraftArtBriefInput, type DraftArtBriefOutput } from '@/ai/flows/draft-art-brief-flow';
 
 import { requireUser, authErrorMessage } from '@/firebase/require-user';
 import { FlowInputError } from '@/ai/errors';
 
 // Re-export types so components can import from one place
-export type { DraftBeatsOutput, DraftPageOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
+export type { DraftArtBriefOutput, DraftBeatsOutput, DraftPageOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Gate
@@ -143,5 +144,19 @@ export async function getPageDraft(
 ): Promise<Result<DraftPageOutput>> {
   return gated(idToken, 'getPageDraft', 'Could not draft the page. Please try again.', () =>
     draftPage(input)
+  );
+}
+
+/**
+ * The brief for one generated image. Drawing it is a separate step, through
+ * app/api/generate-art (it returns image bytes, which a server action can't
+ * stream back efficiently).
+ */
+export async function getArtBriefDraft(
+  idToken: string,
+  input: DraftArtBriefInput
+): Promise<Result<DraftArtBriefOutput>> {
+  return gated(idToken, 'getArtBriefDraft', 'Could not draft the brief. Please try again.', () =>
+    draftArtBrief(input)
   );
 }

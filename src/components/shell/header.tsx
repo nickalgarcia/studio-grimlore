@@ -7,6 +7,7 @@ import { useCampaign } from '@/components/campaign/campaign-provider';
 import { CampaignSwitcher } from '@/components/campaign-switcher';
 import { ObsidianImportDialog } from '@/components/obsidian-import-dialog';
 import { CampaignOverview } from '@/components/forge/campaign-overview';
+import { ArtDirectionDialog } from '@/components/art/art-direction-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CommandBar } from '@/components/shell/command-bar';
 import { PaletteSwitcher, ThemeToggle } from '@/components/shell/appearance';
@@ -35,6 +36,7 @@ export function Header() {
   const { campaigns, activeCampaign, setActiveCampaignId, nextIssueNumber, codex } = useCampaign();
   const [importOpen, setImportOpen] = React.useState(false);
   const [overviewOpen, setOverviewOpen] = React.useState(false);
+  const [artOpen, setArtOpen] = React.useState(false);
 
   const tab = (href: string, active: boolean, activeClass: string, children: React.ReactNode) => (
     <Link
@@ -64,6 +66,7 @@ export function Header() {
             onSelect={setActiveCampaignId}
             onImportObsidian={() => setImportOpen(true)}
             onOverview={() => setOverviewOpen(true)}
+            onArtDirection={() => setArtOpen(true)}
           />
         </div>
 
@@ -112,6 +115,9 @@ export function Header() {
             <CampaignOverview campaign={activeCampaign} codex={codex} />
           </DialogContent>
         </Dialog>
+      )}
+      {activeCampaign && (
+        <ArtDirectionDialog open={artOpen} onOpenChange={setArtOpen} campaign={activeCampaign} />
       )}
     </header>
   );

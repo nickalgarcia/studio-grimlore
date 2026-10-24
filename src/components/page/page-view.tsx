@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { doc } from 'firebase/firestore';
 import { useCampaign } from '@/components/campaign/campaign-provider';
+import { GenerateArtDialog } from '@/components/art/generate-art-dialog';
 import { CodexEntryDialog } from '@/components/codex/codex-entry-dialog';
 import { RecapText } from '@/components/issue/recap-text';
 import { PageDraft, type DraftableKind } from '@/components/page/page-draft';
@@ -19,6 +20,7 @@ import {
   deleteDocumentNonBlocking, isWritableKind, useEntityWriter, useFirestore, useImageUpload, useThreadWriter, useUser,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { castIdsOf, type ArtKind } from '@/lib/art';
 import { EDITABLE_KINDS, KIND_COLLECTION } from '@/lib/codex';
 import { issueTitle } from '@/lib/issues';
 import { refKey } from '@/lib/mentions';
@@ -28,6 +30,9 @@ import { cn } from '@/lib/utils';
 import type { CodexEntry, CodexKind, Faction, MentionKind, MentionRef } from '@/lib/types';
 
 const TONE: Record<Tone, string> = { spot: 'text-spot', sand: 'text-sand', mute: 'text-mute' };
+
+/** Which kind of generated art fills a page's image slot. */
+const PAGE_ART: Partial<Record<PageKind, ArtKind>> = { party: 'portrait', npc: 'portrait', place: 'place', faction: 'faction' };
 const actionButton = 'h-[34px] inline-flex items-center px-3 border-[1.5px] border-line2 font-mono font-bold text-[12px] tracking-[0.14em] hover:border-ink';
 
 function SecretBox({ text }: { text: string }) {
@@ -150,6 +155,7 @@ export function PageView({
   const { activeCampaign, issues, mentions, lanes, matcher } = useCampaign();
   const write = useEntityWriter(activeCampaign?.id);
   const { upload, remove } = useImageUpload(activeCampaign?.id);
+  const [generating, setGenerating] = React.useState(false);
 
   const model: PageModel = React.useMemo(() => buildPageModel(kind, source), [kind, source]);
   const ref: MentionRef | null = kind === 'concept' ? null : { kind: kind as MentionKind, id };
@@ -166,6 +172,15 @@ export function PageView({
     // `ref` is rebuilt each render from kind and id, which are the real inputs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [kind, id, model.isStub, model.draftable, issues, seen, matcher],
+  );
+
+  // The recaps' last few mentions, for the co-pilot's art brief: a page's own
+  // text says who someone is, the recaps say what they looked like doing it.
+  // Only computed while the generate dialog is open.
+  const artExcerpts = React.useMemo(
+    () => (generating && ref ? excerptsFor(ref, issues, seen, matcher, { limit: 3, maxChars: 1_500 }) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [generating, kind, id, issues, seen, matcher],
   );
 
   // Stored history wins; otherwise the issues it appears in, told by their loglines.
@@ -253,6 +268,28 @@ export function PageView({
               clickToUpload
               emptyLabel={`${model.image.label} — ${model.name}`}
               className="aspect-[4/5] border-[3px] border-ink"
+              onGenerate={PAGE_ART[kind] ? () => setGenerating(true) : undefined}
+            />
+          )}
+          {onImage && PAGE_ART[kind] && (
+            <GenerateArtDialog
+              open={generating}
+              onOpenChange={setGenerating}
+              kind={PAGE_ART[kind]!}
+              title={model.name}
+              initialBrief={model.lede}
+              context={[
+                model.name,
+                model.lede,
+                ...model.sections.map(s => `${s.label}: ${s.text}`),
+                ...artExcerpts.map(e => `Issue #${e.session}: ${e.text}`),
+              ].filter(Boolean).join('\n\n')}
+              // A portrait starts with the character themself selected: their
+              // current portrait and Look become the reference, so a redraw
+              // keeps the face and moves it into the house style.
+              defaultCast={PAGE_ART[kind] === 'portrait' ? [id] : undefined}
+              suggestedCast={castIdsOf(ref ? [ref, ...related] : related)}
+              onUse={onImage}
             />
           )}
 

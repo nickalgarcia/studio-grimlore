@@ -29,6 +29,8 @@ No test runner yet.
 
 `.env.local` (gitignored — never commit it, never print its values):
 - `ANTHROPIC_API_KEY` — server-only. Never prefix with `NEXT_PUBLIC_`, never import `anthropic-client.ts` from a client component.
+- `GEMINI_API_KEY` — server-only, for generated art (Gemini image model). Same rules as the Anthropic key;
+  only `src/ai/gemini-client.ts` reads it. Must also be set in Vercel, and the Google AI Studio project needs billing.
 - `ALLOWED_UIDS` — server-only, comma-separated Firebase uids allowed to use the AI. Fails closed:
   unset or empty means every AI call is refused. Must also be set in Vercel.
 - `NEXT_PUBLIC_FIREBASE_*` — public by design (Firebase web config).
@@ -48,6 +50,10 @@ src/app/(app)/layout.tsx         auth gate → CampaignProvider → Header; rout
                                  (Director's Cut redesign: see docs/DIRECTORS-CUT-PLAN.md for decisions and stand-ins)
 src/app/actions.ts               server actions, one per AI feature, take idToken first, return { data, error }
 src/app/api/live-session/route.ts  streaming co-pilot (SSE passthrough); verifies Firebase ID token
+src/app/api/generate-art/route.ts  generated art: returns image bytes; verifies the token, then generate-art-flow
+src/ai/gemini-client.ts          Gemini image model via raw fetch, GEMINI_IMAGE_MODEL
+src/lib/art.ts                   art kinds, aspect ratios, default style (client-safe; shared with the server)
+src/components/art/              Generate dialog (any ImageSlot's GENERATE button) and Art direction dialog
 src/ai/anthropic-client.ts       callClaude / callClaudeJson, CLAUDE_MODEL
 src/ai/flows/*.ts                one file per AI feature: zod schema + prompt builder
 src/components/campaign/campaign-provider.tsx  shared data for every route: campaigns, codex, threads, mentions, live session
@@ -59,7 +65,6 @@ src/lib/mentions.ts, loom.ts     derived mentions index (never stored) and Loom 
 src/lib/page-model.ts            one Page shape for every entity kind; recap excerpts; related pages
 src/components/story|issue|page/ Longbox, Loom, panel strip; recap renderer + draft; Page template + draft
 src/firebase/storage.ts          image upload (re-encoded to WebP); storage.rules is deployed separately
-src/components/table/            co-pilot, live-notes, party-dock, scene-stage, use-live-session
 src/components/codex/            use-codex-entries (merges every collection into CodexEntry[]), detail/dialog
 src/components/combat-tracker.tsx  combat SET UP sheet contents; state is in table/use-combat.ts
 src/components/markdown.tsx      safe renderer for AI output (builds React nodes; no innerHTML)
@@ -123,7 +128,11 @@ Spec: `design_handoff_grimlore_directors_cut/README.md` (authoritative; match it
 ## AI conventions
 
 - All Anthropic calls are server-side, through `callClaude` / `callClaudeJson` (or the streaming route).
-- The model id lives in one place: `CLAUDE_MODEL` in `src/ai/anthropic-client.ts`.
+- The model id lives in one place: `CLAUDE_MODEL` in `src/ai/anthropic-client.ts`. The image model's is
+  `GEMINI_IMAGE_MODEL` in `src/ai/gemini-client.ts`.
+- Generated art is stateless on Gemini's side: every request resends the campaign's `artStyle`,
+  `styleRefUrls` and the chosen characters' portraits and `look`. The route fetches reference images
+  itself and only from the caller's own `users/{uid}/` Storage folder; keep that check.
 - Each flow owns a Zod input schema. Give every string/array a `.max()`; inputs are paid for per token.
 - Render model output with `<Markdown>`, never `dangerouslySetInnerHTML`.
 

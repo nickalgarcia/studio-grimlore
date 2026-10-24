@@ -79,6 +79,7 @@ function fieldsFor(kind: CodexKind, factions: Faction[]): FieldDef[] {
         },
         { name: 'wants', label: 'Wants (this scene)', type: 'textarea', placeholder: 'What are they trying to get right now?' },
         { name: 'knows', label: 'Knows (this scene)', type: 'textarea', placeholder: 'What do they currently know?' },
+        { name: 'look', label: 'Look (for generated art)', type: 'textarea', placeholder: 'Head to toe: build, face, hair, clothing or armour, signature gear. e.g. Blindfolded, dark worn lamellar armour, topknot, katana at the hip.' },
       ];
     case 'place':
       return [
@@ -113,6 +114,7 @@ function fieldsFor(kind: CodexKind, factions: Faction[]): FieldDef[] {
         { name: 'passiveInsight', label: 'Passive insight', type: 'number', compact: true, placeholder: '15' },
         { name: 'backstory', label: 'Backstory', type: 'textarea', required: true, placeholder: 'History, motivations, secrets…' },
         { name: 'developmentLog', label: 'Development log', type: 'textarea', placeholder: 'How they have changed across sessions…' },
+        { name: 'look', label: 'Look (for generated art)', type: 'textarea', placeholder: 'Head to toe: build, face, hair, clothing or armour, signature gear. e.g. Blindfolded, dark worn lamellar armour, topknot, katana at the hip.' },
       ];
     case 'session':
       return [
