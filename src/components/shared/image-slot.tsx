@@ -19,10 +19,13 @@ const revealOnHover = 'opacity-0 pointer-events-none group-hover:opacity-100 gro
  *
  * `onGenerate` adds a GENERATE button that opens the Gemini dialog. It is
  * always shown on an empty slot (that's when it's wanted) and on hover once
- * the slot has art, like REPLACE ART.
+ * the slot has art, like REPLACE ART. `generateOnHover` keeps it hover-only
+ * even when empty, for rows of small slots (the Longbox) where a button on
+ * every empty cover would crowd the shelf.
  */
 export function ImageSlot({
   url, alt, onFile, clickToUpload = false, className, imgClassName, children, emptyLabel, onGenerate,
+  generateOnHover = false,
 }: {
   url?: string;
   alt: string;
@@ -37,6 +40,7 @@ export function ImageSlot({
   emptyLabel?: string;
   /** Open the generate dialog for this slot. Absent means no GENERATE button. */
   onGenerate?: () => void;
+  generateOnHover?: boolean;
 }) {
   const { toast } = useToast();
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -99,7 +103,10 @@ export function ImageSlot({
       )}
       {(!clickToUpload || onGenerate) && (
         // Above the whole-slot button of clickToUpload slots (z-auto) and the overlays (z-[1]).
-        <div className="absolute bottom-1.5 left-1.5 z-[2] flex gap-1.5">
+        // Wraps rather than overflowing a narrow slot (a 150px cover fits one
+        // button per line). The row itself ignores the pointer so it can't
+        // block the slot's own click; each button opts back in.
+        <div className="absolute bottom-1.5 left-1.5 right-1.5 z-[2] flex flex-wrap gap-1.5 pointer-events-none">
           {!clickToUpload && (
             <button type="button" onClick={pick} className={cn(slotButton, 'bg-ink text-bg', revealOnHover)}>
               {url ? 'REPLACE ART' : '+ ART'}
@@ -110,7 +117,7 @@ export function ImageSlot({
               type="button"
               onClick={onGenerate}
               aria-label={`Generate ${alt}`}
-              className={cn(slotButton, 'bg-bg text-holo border-[1.5px] border-holo', url && revealOnHover)}
+              className={cn(slotButton, 'bg-bg text-holo border-[1.5px] border-holo', url || generateOnHover ? revealOnHover : 'pointer-events-auto')}
             >
               {GLYPH.copilot} GENERATE
             </button>
