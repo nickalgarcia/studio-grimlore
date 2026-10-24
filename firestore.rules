@@ -110,6 +110,17 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
+    // Rulebook. Per user, shared across campaigns, so there is no campaignId
+    // to check. House rules hold the full rule; a core rule's document holds
+    // only its pinned / tonight state.
+    match /users/{userId}/rules/{ruleId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.kind in ['house', 'core'];
+      allow update: if isExistingOwner(userId) && request.resource.data.kind == resource.data.kind;
+      allow delete: if isExistingOwner(userId);
+    }
+
     match /users/{userId}/campaigns/{campaignId}/plotHooks/{plotHookId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);

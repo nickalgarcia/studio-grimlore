@@ -19,7 +19,7 @@ function format(fromIso: string, now: number): string | null {
  * held higher up would re-render that tree every tick. Resolution is minutes,
  * so it wakes twice a minute rather than sixty times.
  */
-export function ElapsedClock({ startedAt }: { startedAt: string | null }) {
+export function ElapsedClock({ startedAt, className }: { startedAt: string | null; className?: string }) {
   const [now, setNow] = React.useState(() => Date.now());
 
   React.useEffect(() => {
@@ -33,8 +33,8 @@ export function ElapsedClock({ startedAt }: { startedAt: string | null }) {
   if (!label) return null;
 
   return (
-    <span className="font-mono text-[10.5px] tracking-[0.12em] text-bone-faint">
-      {label} ELAPSED
+    <span className={className ?? 'font-mono font-bold text-[14px] tracking-[0.12em]'} aria-label={`${label} elapsed`}>
+      {label}
     </span>
   );
 }

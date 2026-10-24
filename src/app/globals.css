@@ -2,183 +2,181 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Director's Cut: two palettes (Hyperspace, World's Finest) × dark / light.
+
+   `data-palette` and `data-theme` sit on <html>, set by the inline script in
+   app/layout.tsx before first paint, so the wrong theme never flashes.
+   Values are the README's hex, as HSL triplets (they round-trip exactly), so
+   shadcn's `hsl(var(--token))` primitives and Tailwind's /opacity modifiers
+   both keep working.
+
+   Rules from the spec worth keeping in mind:
+   - `--spot` is the only saturated UI colour: one thing per region.
+   - `--holo` is for the AI co-pilot only.
+   - Radius is 0 everywhere except circles.
+   ───────────────────────────────────────────────────────────────────────── */
+
 @layer base {
+  /* Hyperspace dark: the default, so it sits on :root with no attribute needed */
   :root {
-    /* ───────────────────────────────────────────────────────────────────
-       Ash / bone / oxblood, with violet reserved for the AI column.
-
-       shadcn primitives resolve every colour through `hsl(var(--token))`,
-       so the design's hex values live here as HSL triplets — that keeps
-       the primitives working untouched and lets Tailwind's `/opacity`
-       modifiers compose (see the `<alpha-value>` wiring in the config).
-       ─────────────────────────────────────────────────────────────────── */
-
-    --background: 264 19% 5%;          /* #0d0b10 warm ash-plum, not black */
-    --foreground: 39 35% 92%;          /* #f2ede4 */
-
-    --card: 265 16% 7%;                /* panel, opaque form of rgba(20,16,22,.78) */
-    --card-foreground: 39 35% 92%;
-    --popover: 264 19% 6%;
-    --popover-foreground: 39 35% 92%;
-
-    /* Oxblood — command, slabs, spines, active state */
-    --primary: 5 60% 35%;              /* #8f2d24 */
-    --primary-foreground: 40 40% 94%;  /* #f6f2ea */
-
-    --secondary: 265 14% 12%;
-    --secondary-foreground: 37 21% 84%;
-
-    --muted: 265 12% 11%;
-    --muted-foreground: 34 6% 51%;     /* #8b847b — floor for text under 11px */
-
-    /* Bone — display type and highlights */
-    --accent: 40 40% 94%;              /* #f6f2ea */
-    --accent-foreground: 264 19% 5%;
-
-    --destructive: 5 61% 56%;          /* #d4574c oxblood bright */
-    --destructive-foreground: 40 40% 94%;
-
-    --border: 40 33% 92%;              /* hairline — used at low alpha */
-    --input: 265 14% 12%;
-    --ring: 5 61% 56%;
-
-    /* The design is deliberately hard-edged. */
-    --radius: 0rem;
-
-    /* ── Design-specific tokens, consumed via the Tailwind theme ── */
-    --bone: 40 40% 94%;
-    --bone-body: 39 35% 92%;
-    --bone-soft: 37 21% 84%;
-    --bone-dim: 30 7% 63%;
-    --bone-faint: 34 6% 51%;
-    --bone-faintest: 34 7% 41%;        /* only at 19px+ — 3.48:1 */
-
-    --oxblood: 5 60% 35%;
-    --oxblood-bright: 5 61% 56%;
-    --oxblood-pale: 6 58% 80%;
-
-    /* Violet means arcane. It appears only in the co-pilot column. */
-    --violet: 256 57% 64%;
-    --violet-bright: 258 73% 78%;
-    --violet-text: 258 76% 84%;
-    --violet-dim: 257 18% 58%;
-
-    --brass: 40 50% 57%;
-
-    /* Kind accents for the Codex */
-    --kind-npc: 5 60% 35%;
-    --kind-place: 0 0% 35%;
-    --kind-faction: 256 57% 64%;
-    --kind-item: 40 50% 57%;
-    --kind-session: 0 0% 23%;
-
-    /* Shadows — quoted in the spec as literals */
-    --shadow-card: 0 20px 46px -22px rgba(0, 0, 0, 0.95);
-    --shadow-panel: 0 22px 50px -22px rgba(0, 0, 0, 0.95);
-    --shadow-modal: 0 40px 100px -26px rgba(0, 0, 0, 0.95);
-    --shadow-slab: 0 0 34px -6px rgba(143, 45, 36, 0.9);
-    --shadow-violet: 0 0 40px -16px rgba(139, 111, 216, 0.8);
+    color-scheme: dark;
+    /* Design tokens (README names). Triplets, so Tailwind's /opacity works. */
+    --bg: 221.5 39.4% 6.5%;           /* #0a0e17 */
+    --panel: 222.0 35.7% 11.0%;        /* #121826 */
+    --ink: 220.0 35.3% 93.3%;          /* #e8ecf4 */
+    --mute: 220.0 20.2% 65.1%;         /* #94a0b8 */
+    --spot: 45.9 100.0% 60.0%;         /* #ffcf33 */
+    --spot-on: 221.5 39.4% 6.5%;      /* #0a0e17 */
+    --sand: 11.0 100.0% 68.0%;         /* #ff7a5c */
+    --cap: 45.9 100.0% 60.0%;          /* #ffcf33 */
+    --cap-ink: 221.5 39.4% 6.5%;      /* #0a0e17 */
+    --holo: 194.0 100.0% 65.5%;         /* #4fd6ff */
+    /* Already carry their alpha, so these are whole colours, not triplets. */
+    --line: rgba(232,236,244,.12);
+    --line2: rgba(232,236,244,.28);
+    --scrim: rgba(8,7,6,.72);
   }
 
-  /* Single-theme design. `.dark` mirrors :root so the class on <html>
-     (and any shadcn primitive keyed to it) resolves to the same palette
-     rather than silently falling back to shadcn defaults. */
-  .dark {
-    --background: 264 19% 5%;
-    --foreground: 39 35% 92%;
-    --card: 265 16% 7%;
-    --card-foreground: 39 35% 92%;
-    --popover: 264 19% 6%;
-    --popover-foreground: 39 35% 92%;
-    --primary: 5 60% 35%;
-    --primary-foreground: 40 40% 94%;
-    --secondary: 265 14% 12%;
-    --secondary-foreground: 37 21% 84%;
-    --muted: 265 12% 11%;
-    --muted-foreground: 34 6% 51%;
-    --accent: 40 40% 94%;
-    --accent-foreground: 264 19% 5%;
-    --destructive: 5 61% 56%;
-    --destructive-foreground: 40 40% 94%;
-    --border: 40 33% 92%;
-    --input: 265 14% 12%;
-    --ring: 5 61% 56%;
+  /* Hyperspace light */
+  :root[data-theme="light"] {
+    color-scheme: light;
+    /* Design tokens (README names). Triplets, so Tailwind's /opacity works. */
+    --bg: 216.0 25.0% 92.2%;           /* #e6eaf0 */
+    --panel: 216.0 29.4% 96.7%;        /* #f4f6f9 */
+    --ink: 224.2 42.2% 8.8%;          /* #0d1220 */
+    --mute: 220.0 17.3% 37.5%;         /* #4f5a70 */
+    --spot: 224.3 76.3% 48.0%;         /* #1d4ed8 */
+    --spot-on: 0.0 0.0% 100.0%;      /* #ffffff */
+    --sand: 5.7 62.2% 43.5%;         /* #b4372a */
+    --cap: 45.6 100.0% 68.0%;          /* #ffd85c */
+    --cap-ink: 224.2 42.2% 8.8%;      /* #0d1220 */
+    --holo: 194.5 85.7% 30.2%;         /* #0b6f8f */
+    /* Already carry their alpha, so these are whole colours, not triplets. */
+    --line: rgba(13,18,32,.13);
+    --line2: rgba(13,18,32,.30);
+    --scrim: rgba(40,34,26,.45);
+  }
+
+  /* World's Finest dark */
+  :root[data-palette="heroic"] {
+    color-scheme: dark;
+    /* Design tokens (README names). Triplets, so Tailwind's /opacity works. */
+    --bg: 234.9 57.4% 12.0%;           /* #0d1030 */
+    --panel: 234.8 51.1% 17.6%;        /* #161a44 */
+    --ink: 41.5 35.1% 92.7%;          /* #f3efe6 */
+    --mute: 235.4 29.3% 73.9%;         /* #a9acd0 */
+    --spot: 3.2 100.0% 59.4%;         /* #ff3b30 */
+    --spot-on: 234.9 57.4% 12.0%;      /* #0d1030 */
+    --sand: 44.0 100.0% 58.0%;         /* #ffc629 */
+    --cap: 44.0 100.0% 58.0%;          /* #ffc629 */
+    --cap-ink: 234.9 57.4% 12.0%;      /* #0d1030 */
+    --holo: 189.9 100.0% 71.6%;         /* #6ee7ff */
+    /* Already carry their alpha, so these are whole colours, not triplets. */
+    --line: rgba(243,239,230,.13);
+    --line2: rgba(243,239,230,.30);
+    --scrim: rgba(8,7,6,.72);
+  }
+
+  /* World's Finest light */
+  :root[data-palette="heroic"][data-theme="light"] {
+    color-scheme: light;
+    /* Design tokens (README names). Triplets, so Tailwind's /opacity works. */
+    --bg: 42.4 39.5% 91.6%;           /* #f2ede1 */
+    --panel: 42.0 55.6% 96.5%;        /* #fbf8f1 */
+    --ink: 233.7 54.3% 13.7%;          /* #101436 */
+    --mute: 234.9 23.9% 38.6%;         /* #4b4f7a */
+    --spot: 350.2 85.2% 42.4%;         /* #c8102e */
+    --spot-on: 0.0 0.0% 100.0%;      /* #ffffff */
+    --sand: 43.5 100.0% 27.1%;         /* #8a6400 */
+    --cap: 46.0 100.0% 63.9%;          /* #ffd447 */
+    --cap-ink: 233.7 54.3% 13.7%;      /* #101436 */
+    --holo: 195.7 81.8% 30.2%;         /* #0e6b8c */
+    /* Already carry their alpha, so these are whole colours, not triplets. */
+    --line: rgba(16,20,54,.13);
+    --line2: rgba(16,20,54,.30);
+    --scrim: rgba(40,34,26,.45);
+  }
+
+  /* shadcn's names, resolved from the design tokens above. Declared on the
+     same element as the tokens, so they follow the palette and theme. */
+  :root {
+    --background: var(--bg);
+    --foreground: var(--ink);
+    --card: var(--panel);
+    --card-foreground: var(--ink);
+    --popover: var(--bg);
+    --popover-foreground: var(--ink);
+    --primary: var(--spot);
+    --primary-foreground: var(--spot-on);
+    --secondary: var(--panel);
+    --secondary-foreground: var(--ink);
+    --muted: var(--panel);
+    --muted-foreground: var(--mute);
+    /* shadcn uses accent for hover fills, so it is the panel, not a colour. */
+    --accent: var(--panel);
+    --accent-foreground: var(--ink);
+    --destructive: var(--spot);
+    --destructive-foreground: var(--spot-on);
+    /* Ink at low alpha is the hairline: `border-border/10` ≈ --line. */
+    --border: var(--ink);
+    --input: var(--ink);
+    --ring: var(--ink);
+    --radius: 0rem;
   }
 }
 
 @layer base {
   * {
-    /* Hairline: rgba(242,237,228,0.09) */
-    border-color: hsl(var(--border) / 0.09);
-  }
-
-  html {
-    @apply dark;
-    /* Base must be 16px. The previous 1.125rem scaled every Tailwind rem
-       by 12.5% and is why the old UI read oversized. */
+    border-color: var(--line);
   }
 
   body {
     @apply bg-background text-foreground antialiased font-body;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.45;
-    background-image:
-      radial-gradient(ellipse 90% 70% at 12% 8%, #171020 0%, transparent 62%),
-      radial-gradient(ellipse 80% 60% at 88% 96%, #14090a 0%, transparent 58%);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-cinzel), serif;
+    font-family: var(--font-display), 'Arial Narrow', sans-serif;
+    font-variation-settings: 'opsz' 72;
+    text-transform: uppercase;
+  }
+
+  ::selection {
+    background: hsl(var(--spot));
+    color: hsl(var(--spot-on));
   }
 
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: hsl(var(--oxblood) / 0.55); }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--oxblood)); }
+  ::-webkit-scrollbar-thumb { background: var(--line2); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--mute)); }
 
-  input, textarea { font-family: inherit; }
+  input, textarea, select, button { font-family: inherit; }
 }
 
 @layer components {
-  /* Micro-label: mono, 8.5–10px, 700–800, wide tracking, uppercase.
-     Never below --bone-faint. */
-  .label-forge {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: hsl(var(--bone-faint));
-  }
-
-  /* The reused card surface. */
-  .surface-card {
-    background: hsl(var(--card) / 0.78);
-    border: 1px solid hsl(var(--border) / 0.09);
-    box-shadow: var(--shadow-card);
-  }
-  .surface-card-hover:hover {
-    background: hsl(var(--card) / 0.88);
-    border-color: hsl(var(--oxblood-bright) / 0.45);
-  }
-
-  /* Inputs and tables sit on the solid panel. */
-  .surface-panel {
-    background: hsl(var(--background) / 0.72);
-    border: 1px solid hsl(var(--border) / 0.09);
+  /* Halftone dots, only inside "word" panels. Put on an overlay element. */
+  .halftone {
+    background-image: radial-gradient(hsl(var(--spot-on)) 1.1px, transparent 1.6px);
+    background-size: 9px 9px;
+    opacity: 0.22;
   }
 }
 
 @layer utilities {
-  /* Used from inline styles in the backdrop, where Tailwind's animation
-     utilities cannot reach. */
-  @keyframes circleSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  @keyframes circleSpinR { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+  /* Display type is always uppercase, and always the display cut: Google
+     merged "Big Shoulders Display" into "Big Shoulders" with an optical-size
+     axis, and 72 is its display end, which is what the prototype uses. */
+  .font-headline {
+    font-variation-settings: 'opsz' 72;
+    text-transform: uppercase;
+  }
 }
 
-/* The owner asked for motion that never slows the app down. Everything above
-   animates only transform / translate / opacity — but a reader who has asked
-   the OS to stop animation gets none of it. */
+/* The design's few transitions (cover lift, lane dimming, secret blur) are
+   dropped entirely for anyone who has asked the OS to reduce motion. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

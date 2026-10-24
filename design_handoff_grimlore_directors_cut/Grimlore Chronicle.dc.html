@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;--bg:#0f0e0d;--panel:#181614;--ink:#efe8db;--mute:#a39b8e;--line:rgba(239,232,219,.13);--line2:rgba(239,232,219,.3);--spot:#ff5a2a;--spot-on:#0f0e0d;--sand:#d8b27a;--cap:#d8b27a;--cap-ink:#0f0e0d;--holo:#5fd3c6;--scrim:rgba(8,7,6,.72);background:var(--bg);color:var(--ink)}
+body[data-theme="light"]{--bg:#ece5d6;--panel:#f5f0e5;--ink:#16130f;--mute:#5e564b;--line:rgba(22,19,15,.13);--line2:rgba(22,19,15,.32);--spot:#b02c08;--spot-on:#fff8ef;--sand:#7d5a22;--cap:#e6c98f;--cap-ink:#16130f;--holo:#0d6b61;--scrim:rgba(40,34,26,.45)}
+body[data-palette="arrakis"]{--bg:#15100b;--panel:#1f1811;--ink:#f1e4cc;--mute:#b3a184;--line:rgba(241,228,204,.13);--line2:rgba(241,228,204,.3);--spot:#f08a24;--spot-on:#15100b;--sand:#e3c07a;--cap:#e3c07a;--cap-ink:#15100b;--holo:#8fb8ff}
+body[data-palette="arrakis"][data-theme="light"]{--bg:#eadbbf;--panel:#f4e9d4;--ink:#1e150c;--mute:#6a5638;--line:rgba(30,21,12,.14);--line2:rgba(30,21,12,.32);--spot:#933f00;--spot-on:#fff6e8;--sand:#7a5418;--cap:#e3c07a;--cap-ink:#1e150c;--holo:#2c4f9e}
+body[data-palette="hyperspace"]{--bg:#0a0e17;--panel:#121826;--ink:#e8ecf4;--mute:#94a0b8;--line:rgba(232,236,244,.12);--line2:rgba(232,236,244,.28);--spot:#ffcf33;--spot-on:#0a0e17;--sand:#ff7a5c;--cap:#ffcf33;--cap-ink:#0a0e17;--holo:#4fd6ff}
+body[data-palette="hyperspace"][data-theme="light"]{--bg:#e6eaf0;--panel:#f4f6f9;--ink:#0d1220;--mute:#4f5a70;--line:rgba(13,18,32,.13);--line2:rgba(13,18,32,.3);--spot:#1d4ed8;--spot-on:#ffffff;--sand:#b4372a;--cap:#ffd85c;--cap-ink:#0d1220;--holo:#0b6f8f}
+body[data-palette="heroic"]{--bg:#0d1030;--panel:#161a44;--ink:#f3efe6;--mute:#a9acd0;--line:rgba(243,239,230,.13);--line2:rgba(243,239,230,.3);--spot:#ff3b30;--spot-on:#0d1030;--sand:#ffc629;--cap:#ffc629;--cap-ink:#0d1030;--holo:#6ee7ff}
+body[data-palette="heroic"][data-theme="light"]{--bg:#f2ede1;--panel:#fbf8f1;--ink:#101436;--mute:#4b4f7a;--line:rgba(16,20,54,.13);--line2:rgba(16,20,54,.3);--spot:#c8102e;--spot-on:#ffffff;--sand:#8a6400;--cap:#ffd447;--cap-ink:#101436;--holo:#0e6b8c}
+body[data-palette="rivendell"]{--bg:#0e1411;--panel:#151d19;--ink:#e6eadf;--mute:#9aa79c;--line:rgba(230,234,223,.12);--line2:rgba(230,234,223,.28);--spot:#d4a64a;--spot-on:#0e1411;--sand:#9fc3a8;--cap:#d4a64a;--cap-ink:#0e1411;--holo:#b9a6ff}
+body[data-palette="rivendell"][data-theme="light"]{--bg:#e7eae0;--panel:#f3f5ee;--ink:#121a15;--mute:#4f5d52;--line:rgba(18,26,21,.13);--line2:rgba(18,26,21,.3);--spot:#7f5600;--spot-on:#fffbef;--sand:#3f6b4c;--cap:#d9bd73;--cap-ink:#121a15;--holo:#5a45b0}
+*{box-sizing:border-box}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--spot)}
+button{font:inherit;color:inherit}
+::selection{background:var(--spot);color:var(--spot-on)}
+</style>
+</helmet>
+<div style="min-height:100vh; background:var(--bg); color:var(--ink); font-family:'Newsreader',Georgia,serif; display:flex; flex-direction:column; transition:background .25s, color .25s">
+
+  <header style="position:sticky; top:0; z-index:30; height:60px; display:flex; align-items:center; gap:22px; padding:0 24px; background:var(--bg); border-bottom:1px solid var(--line)">
+    <button onClick="{{ goHome }}" aria-label="Front page" style="display:flex; align-items:center; gap:10px; background:none; border:0; padding:0; cursor:pointer">
+      <span style="width:22px; height:22px; border:2px solid var(--ink); border-radius:50%; display:grid; place-items:center"><span style="width:8px; height:8px; border-radius:50%; background:var(--spot)"></span></span>
+      <span style="font-family:'Big Shoulders Display'; font-weight:900; font-size:25px; letter-spacing:.07em">GRIMLORE</span>
+    </button>
+    <div role="tablist" aria-label="Mode" style="display:flex; border:1.5px solid var(--ink)">
+      <button role="tab" aria-selected="{{ isChronicle }}" onClick="{{ goHome }}" style="padding:7px 16px; border:0; cursor:pointer; font-family:'Big Shoulders Display'; font-weight:800; font-size:16px; letter-spacing:.1em; background:{{ chronBg }}; color:{{ chronFg }}">CHRONICLE</button>
+      <button role="tab" aria-selected="{{ isTable }}" onClick="{{ goTable }}" style="display:flex; align-items:center; gap:8px; padding:7px 16px; border:0; cursor:pointer; font-family:'Big Shoulders Display'; font-weight:800; font-size:16px; letter-spacing:.1em; background:{{ tableBg }}; color:{{ tableFg }}"><span style="width:7px; height:7px; border-radius:50%; background:currentColor"></span>TABLE</button>
+    </div>
+    <button onClick="{{ openSearch }}" style="flex:1; max-width:560px; margin-left:auto; display:flex; align-items:center; gap:12px; height:38px; padding:0 12px; background:var(--panel); border:1px solid var(--line2); cursor:text; text-align:left">
+      <span style="font-size:15px; color:var(--mute)">⌕</span>
+      <span style="flex:1; font-size:17px; font-style:italic; color:var(--mute)">Search people, rules, recaps…</span>
+      <span style="font:500 12px 'JetBrains Mono',monospace; color:var(--mute); border:1px solid var(--line2); padding:2px 6px">{{ kbd }}</span>
+    </button>
+    <div role="radiogroup" aria-label="Palette" style="display:flex; align-items:center; gap:6px">
+      <sc-for list="{{ swatches }}" as="w" hint-placeholder-count="5">
+        <button role="radio" aria-checked="{{ w.on }}" aria-label="{{ w.label }}" title="{{ w.label }}" onClick="{{ w.go }}" style="width:24px; height:24px; padding:0; cursor:pointer; background:linear-gradient(135deg, {{ w.a }} 52%, {{ w.b }} 52%); border:1.5px solid var(--line2); outline:2px solid {{ w.ol }}; outline-offset:2px"></button>
+      </sc-for>
+    </div>
+    <button onClick="{{ toggleTheme }}" aria-label="Toggle light and dark" style="display:flex; align-items:center; gap:8px; height:38px; padding:0 12px; background:none; border:1px solid var(--line2); cursor:pointer; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.14em">
+      <span style="width:12px; height:12px; border-radius:50%; border:1.5px solid var(--ink); background:linear-gradient(90deg, var(--ink) 50%, transparent 50%)"></span>{{ themeLabel }}
+    </button>
+  </header>
+
+  <sc-if value="{{ isChronicle }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1; display:grid; grid-template-columns:minmax(190px,248px) minmax(0,1fr)">
+
+      <nav aria-label="Chronicle" style="position:sticky; top:60px; height:calc(100vh - 60px); overflow:auto; border-right:1px solid var(--line); padding:28px 16px 28px 20px; display:flex; flex-direction:column; gap:30px">
+        <div style="padding:0 10px">
+          <div style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--mute)">CAMPAIGN</div>
+          <div style="margin-top:6px; font-family:'Big Shoulders Display'; font-weight:800; font-size:27px; line-height:.95; text-transform:uppercase">The Ondermere Succession</div>
+          <div style="margin-top:8px; font:500 12px 'JetBrains Mono',monospace; color:var(--mute)">14 sessions · 7 players</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:2px">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="7">
+            <button onClick="{{ n.go }}" style="display:flex; align-items:center; gap:12px; padding:8px 10px; border:0; cursor:pointer; text-align:left; font-family:'Big Shoulders Display'; font-weight:700; font-size:19px; letter-spacing:.05em; text-transform:uppercase; background:{{ n.bg }}; color:{{ n.fg }}" style-hover="background:var(--panel)">
+              <span style="width:16px; text-align:center; font-size:13px">{{ n.g }}</span>
+              <span style="flex:1">{{ n.label }}</span>
+              <span style="font:500 12px 'JetBrains Mono',monospace; opacity:.7">{{ n.count }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <div style="padding:0 10px 6px; font:700 11px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--mute)">PINNED</div>
+          <sc-for list="{{ pinned }}" as="p" hint-placeholder-count="3">
+            <button onClick="{{ p.go }}" style="display:flex; align-items:baseline; gap:12px; padding:6px 10px; background:none; border:0; cursor:pointer; text-align:left; font-size:17px" style-hover="color:var(--spot)">
+              <span style="width:16px; text-align:center; font-size:12px; color:var(--mute)">{{ p.g }}</span><span>{{ p.title }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <button onClick="{{ openSearch }}" style="margin-top:auto; display:flex; align-items:center; justify-content:center; gap:8px; height:42px; background:none; border:1.5px dashed var(--line2); cursor:pointer; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--mute)" style-hover="color:var(--ink); border-color:var(--ink)">+ NEW PAGE</button>
+      </nav>
+
+      <main style="min-width:0; padding:44px clamp(24px,4vw,64px) 96px">
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <div style="max-width:1240px; display:flex; flex-direction:column; gap:64px">
+
+            <section data-screen-label="Front page" style="position:relative; padding:8px 0 52px; border-bottom:3px solid var(--ink)">
+              <sc-if value="{{ halftone }}" hint-placeholder-val="{{ true }}">
+                <div aria-hidden="true" style="position:absolute; right:calc(-1 * clamp(24px,4vw,64px)); top:-44px; width:58%; height:calc(100% + 44px); pointer-events:none; background-image:radial-gradient(var(--spot) 1.2px, transparent 1.7px); background-size:8px 8px; opacity:.55; -webkit-mask-image:radial-gradient(ellipse 80% 90% at 100% 0%, #000 0%, transparent 72%); mask-image:radial-gradient(ellipse 80% 90% at 100% 0%, #000 0%, transparent 72%)"></div>
+              </sc-if>
+              <div style="position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em">
+                <span style="background:var(--ink); color:var(--bg); padding:4px 8px">ISSUE № 15</span>
+                <span style="color:var(--mute)">NEXT SESSION · SAT 25 OCT · 19:00</span>
+                <span style="color:var(--mute)">7 PLAYERS</span>
+              </div>
+              <h1 style="position:relative; margin:28px 0 0; font-family:'Big Shoulders Display'; font-weight:900; font-size:clamp(64px,9.4vw,156px); line-height:.84; letter-spacing:-.005em; text-transform:uppercase; max-width:9.5ch">The Oath at the <span style="color:var(--spot)">Gilded Hall</span></h1>
+              <p style="position:relative; margin:28px 0 0; max-width:34ch; font-size:clamp(20px,1.9vw,26px); line-height:1.35; font-style:italic; text-wrap:pretty">Lady Verrin wants a public oath. The Iron Chapter wants an answer. The party wants to leave with their weapons.</p>
+              <div style="position:relative; margin-top:34px; display:flex; flex-wrap:wrap; gap:12px">
+                <button onClick="{{ goTable }}" style="display:flex; align-items:center; gap:14px; height:54px; padding:0 24px; background:var(--spot); color:var(--spot-on); border:0; cursor:pointer; font-family:'Big Shoulders Display'; font-weight:900; font-size:22px; letter-spacing:.08em" style-hover="filter:brightness(1.08)">RUN SESSION 15 <span>→</span></button>
+                <button style="height:54px; padding:0 22px; background:none; border:1.5px solid var(--ink); cursor:pointer; font-family:'Big Shoulders Display'; font-weight:800; font-size:20px; letter-spacing:.08em" style-hover="background:var(--panel)">OPEN PREP</button>
+              </div>
+            </section>
+
+            <section style="display:flex; flex-wrap:wrap; gap:56px">
+              <article style="flex:1.45 1 460px; min-width:0">
+                <div style="display:flex; align-items:center; gap:14px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em">
+                  <span>▬ PREVIOUSLY</span><span style="flex:1; height:1px; background:var(--line2)"></span><span style="color:var(--mute)">SESSION 14 · 3 DAYS AGO</span>
+                </div>
+                <h2 style="margin:18px 0 0; font-family:'Big Shoulders Display'; font-weight:800; font-size:44px; line-height:.95; text-transform:uppercase">The Reliquary</h2>
+                <div style="margin-top:20px; font-size:20px; line-height:1.62; text-wrap:pretty; max-width:64ch">
+                  <p style="margin:0"><span style="float:left; margin:6px 12px 0 0; font-family:'Big Shoulders Display'; font-weight:900; font-size:88px; line-height:.72; color:var(--spot)">T</span>he party went down into <a onClick="{{ searchLink }}" data-q="Reliquary" style="cursor:pointer; border-bottom:2px solid var(--spot)">the Reliquary</a> beneath the old capital carrying <a onClick="{{ searchLink }}" data-q="Stane" style="cursor:pointer; border-bottom:1px dotted var(--mute)">Halvard Stane</a>'s map, and found that someone had walked it first. <a onClick="{{ searchLink }}" data-q="Brix" style="cursor:pointer; border-bottom:1px dotted var(--mute)">Brix</a> spotted fresh tallow on the stairs; <a onClick="{{ searchLink }}" data-q="Marrow" style="cursor:pointer; border-bottom:1px dotted var(--mute)">Marrow</a>'s patron fell silent for the first time since Session 3.</p>
+                  <p style="margin:16px 0 0">In the lowest vault they recovered <a onClick="{{ searchLink }}" data-q="Ashen Writ" style="cursor:pointer; border-bottom:2px solid var(--spot)">the Ashen Writ</a> — intact but for its second seal, cut away cleanly within the week. Thessaly carries it now.</p>
+                  <p style="margin:16px 0 0">They surfaced to a summons. <a onClick="{{ goPage }}" style="cursor:pointer; border-bottom:2px solid var(--spot)">Lady Verrin</a> requests the party at the Gilded Hall, unarmed, tomorrow night. <a onClick="{{ searchLink }}" data-q="Aldwyn" style="cursor:pointer; border-bottom:1px dotted var(--mute)">Preceptor Aldwyn</a>'s riders were seen on the north road that same hour.</p>
+                </div>
+                <div style="margin-top:22px; display:flex; flex-wrap:wrap; gap:18px; font:500 12px 'JetBrains Mono',monospace; color:var(--mute)">
+                  <span style="display:flex; align-items:center; gap:8px"><span style="width:18px; height:2px; background:var(--spot)"></span>LINKED PAGE</span>
+                  <span style="display:flex; align-items:center; gap:8px"><span style="width:18px; border-bottom:1px dotted var(--mute)"></span>NAME DETECTED</span>
+                  <a onClick="{{ searchLink }}" data-q="recap" style="margin-left:auto; cursor:pointer; font-weight:700; letter-spacing:.14em; color:var(--ink)">ALL RECAPS →</a>
+                </div>
+              </article>
+
+              <aside style="flex:1 1 340px; min-width:0">
+                <div style="display:flex; align-items:center; gap:14px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em">
+                  <span>○ OPEN THREADS</span><span style="flex:1; height:1px; background:var(--line2)"></span><span style="color:var(--mute)">6 OF 9</span>
+                </div>
+                <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:0; font:500 11px 'JetBrains Mono',monospace; color:var(--mute)">
+                  <span style="width:170px; display:flex; justify-content:space-between"><span>S1</span><span>S7</span><span>S14</span></span>
+                </div>
+                <sc-for list="{{ threads }}" as="t" hint-placeholder-count="6">
+                  <button onClick="{{ t.go }}" style="width:100%; display:grid; grid-template-columns:minmax(0,1fr) 170px; gap:8px 16px; align-items:center; padding:14px 0; background:none; border:0; border-bottom:1px solid var(--line); cursor:pointer; text-align:left" style-hover="background:var(--panel)">
+                    <span style="font-size:18px; line-height:1.25; font-weight:600; text-wrap:pretty">{{ t.title }}</span>
+                    <span style="display:flex; gap:2px; justify-content:space-between">
+                      <sc-for list="{{ t.ticks }}" as="k" hint-placeholder-count="14">
+                        <span style="width:10px; height:14px; background:{{ k.bg }}; border:1px solid {{ k.bd }}"></span>
+                      </sc-for>
+                    </span>
+                    <span style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.16em; color:{{ t.color }}">{{ t.status }} · LAST S{{ t.last }}</span>
+                  </button>
+                </sc-for>
+              </aside>
+            </section>
+
+            <section>
+              <div style="display:flex; align-items:center; gap:14px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em">
+                <span>● CAST · LAST SEEN</span><span style="flex:1; height:1px; background:var(--line2)"></span><a onClick="{{ searchLink }}" data-q="person" style="cursor:pointer; color:var(--mute)">ALL 31 PEOPLE →</a>
+              </div>
+              <div style="margin-top:20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px">
+                <sc-for list="{{ cast }}" as="c" hint-placeholder-count="4">
+                  <div style="position:relative; display:flex; flex-direction:column; border:3px solid var(--ink); background:var(--panel)">
+                    <div style="position:relative; aspect-ratio:4/5; border-bottom:3px solid var(--ink)">
+                      <image-slot id="cast-{{ c.id }}" shape="rect" placeholder="Portrait — {{ c.name }}"></image-slot>
+                      <span style="position:absolute; top:10px; left:10px; pointer-events:none; background:var(--cap); color:var(--cap-ink); padding:4px 8px; font:700 11px 'JetBrains Mono',monospace; letter-spacing:.14em; border:2px solid var(--ink)">LAST SEEN {{ c.last }}</span>
+                    </div>
+                    <button onClick="{{ c.go }}" style="padding:12px 14px 14px; background:none; border:0; cursor:pointer; text-align:left; display:flex; flex-direction:column; gap:6px">
+                      <span style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+                        <span style="font-family:'Big Shoulders Display'; font-weight:900; font-size:25px; line-height:1; text-transform:uppercase">{{ c.name }}</span>
+                      </span>
+                      <span style="align-self:flex-start; font:700 11px 'JetBrains Mono',monospace; letter-spacing:.14em; padding:3px 7px; background:{{ c.chipBg }}; color:{{ c.chipFg }}; border:1.5px solid {{ c.chipBd }}">{{ c.dispo }}</span>
+                      <span style="font-size:17px; font-style:italic; line-height:1.3">“{{ c.want }}”</span>
+                    </button>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+
+            <section>
+              <div style="display:flex; align-items:center; gap:14px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em">
+                <span>■ AT HAND · RULES</span><span style="flex:1; height:1px; background:var(--line2)"></span><a onClick="{{ searchLink }}" data-q="rule" style="cursor:pointer; color:var(--mute)">ALL 12 RULES →</a>
+              </div>
+              <div style="margin-top:20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px">
+                <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+                  <div style="border:1.5px solid var(--ink); display:flex; flex-direction:column">
+                    <div style="display:flex; justify-content:space-between; padding:6px 12px; background:var(--ink); color:var(--bg); font:700 11px 'JetBrains Mono',monospace; letter-spacing:.16em"><span>■ {{ r.kind }}</span><span>{{ r.ref }}</span></div>
+                    <div style="padding:14px 14px 16px">
+                      <div style="font-family:'Big Shoulders Display'; font-weight:800; font-size:24px; line-height:1; text-transform:uppercase">{{ r.title }}</div>
+                      <div style="margin-top:8px; font-size:17px; line-height:1.45; text-wrap:pretty">{{ r.text }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isPage }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Page — Lady Verrin" style="max-width:1240px">
+            <div style="display:flex; flex-wrap:wrap; gap:10px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.16em; color:var(--mute)">
+              <a onClick="{{ goHome }}" style="cursor:pointer; color:var(--mute)">CHRONICLE</a><span>/</span><a onClick="{{ searchLink }}" data-q="person" style="cursor:pointer; color:var(--mute)">PEOPLE</a><span>/</span><span style="color:var(--ink)">LADY VERRIN</span>
+            </div>
+            <div style="margin-top:28px; padding-bottom:36px; border-bottom:3px solid var(--ink)">
+              <div style="display:flex; flex-wrap:wrap; gap:10px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.18em">
+                <span>● PERSON</span><span style="color:var(--mute)">KEY NPC</span><span style="color:var(--mute)">HOUSE VERRIN</span><span style="color:var(--spot)">HOSTILE</span>
+              </div>
+              <h1 style="margin:16px 0 0; font-family:'Big Shoulders Display'; font-weight:900; font-size:clamp(64px,8vw,128px); line-height:.84; text-transform:uppercase">Lady Verrin</h1>
+              <p style="margin:20px 0 0; max-width:40ch; font-size:24px; line-height:1.38; font-style:italic; text-wrap:pretty">Claimant to the Ondermere seat. Gracious in public, patient in private — and no one has ever heard her raise her voice.</p>
+            </div>
+            <div style="margin-top:40px; display:flex; flex-wrap:wrap; gap:56px; align-items:flex-start">
+              <article style="flex:1.5 1 480px; min-width:0; max-width:68ch; display:flex; flex-direction:column; gap:34px; font-size:20px; line-height:1.6">
+                <div>
+                  <div style="font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--spot)">WANTS · NOW</div>
+                  <p style="margin:8px 0 0; text-wrap:pretty">A public oath from the party, sworn tonight where <a onClick="{{ searchLink }}" data-q="Iron Chapter" style="cursor:pointer; border-bottom:2px solid var(--spot)">the Iron Chapter</a> can witness it. Private promises are worth nothing to her.</p>
+                </div>
+                <div>
+                  <div style="font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--mute)">KNOWS</div>
+                  <p style="margin:8px 0 0; text-wrap:pretty">That the second seal of <a onClick="{{ searchLink }}" data-q="Ashen Writ" style="cursor:pointer; border-bottom:2px solid var(--spot)">the Ashen Writ</a> is missing, and that <a onClick="{{ searchLink }}" data-q="Thessaly" style="cursor:pointer; border-bottom:1px dotted var(--mute)">Thessaly</a> carries what's left of it.</p>
+                </div>
+                <div style="position:relative; padding:26px 24px 22px; border:2px dashed var(--spot); margin-top:8px">
+                  <span style="position:absolute; top:-15px; left:18px; transform:rotate(-2deg); background:var(--spot); color:var(--spot-on); padding:4px 10px; font-family:'Big Shoulders Display'; font-weight:900; font-size:17px; letter-spacing:.12em">DM EYES ONLY</span>
+                  <p style="margin:0; text-wrap:pretty">She cut the seal herself. Tonight she needs the party to “discover” it among <a onClick="{{ searchLink }}" data-q="Aldwyn" style="cursor:pointer; border-bottom:1px dotted var(--mute)">Preceptor Aldwyn</a>'s things.</p>
+                </div>
+                <div>
+                  <div style="font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--mute)">WITH THE PARTY</div>
+                  <div style="margin-top:12px; display:flex; flex-direction:column">
+                    <sc-for list="{{ history }}" as="h" hint-placeholder-count="5">
+                      <div style="display:grid; grid-template-columns:56px minmax(0,1fr); gap:16px; padding:12px 0; border-top:1px solid var(--line)">
+                        <span style="font:700 13px/1.9 'JetBrains Mono',monospace; color:var(--spot)">{{ h.s }}</span>
+                        <span style="font-size:18px; line-height:1.5; text-wrap:pretty">{{ h.text }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </article>
+
+              <aside style="flex:1 1 300px; max-width:400px; min-width:0; display:flex; flex-direction:column; gap:28px">
+                <div style="position:relative; aspect-ratio:4/5; border:3px solid var(--ink)">
+                  <image-slot id="page-verrin" shape="rect" placeholder="Portrait — Lady Verrin"></image-slot>
+                </div>
+                <div style="border:1.5px solid var(--ink)">
+                  <div style="padding:6px 12px; background:var(--ink); color:var(--bg); font:700 11px 'JetBrains Mono',monospace; letter-spacing:.16em">AT A GLANCE</div>
+                  <sc-for list="{{ facts }}" as="f" hint-placeholder-count="5">
+                    <div style="display:flex; justify-content:space-between; gap:12px; padding:10px 12px; border-top:1px solid var(--line)">
+                      <span style="font:700 11px/1.9 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--mute)">{{ f.k }}</span>
+                      <span style="font-size:17px; text-align:right">{{ f.v }}</span>
+                    </div>
+                  </sc-for>
+                  <div style="padding:12px; border-top:1px solid var(--line)">
+                    <div style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--mute)">DISPOSITION</div>
+                    <div style="margin-top:8px; display:grid; grid-template-columns:repeat(5,1fr); gap:3px">
+                      <sc-for list="{{ dispoScale }}" as="d" hint-placeholder-count="5">
+                        <span style="height:10px; background:{{ d.bg }}; border:1px solid {{ d.bd }}"></span>
+                      </sc-for>
+                    </div>
+                    <div style="margin-top:6px; display:flex; justify-content:space-between; font:500 11px 'JetBrains Mono',monospace; color:var(--mute)"><span style="color:var(--spot); font-weight:700">HOSTILE</span><span>NEUTRAL</span><span>ALLIED</span></div>
+                  </div>
+                  <div style="padding:12px; border-top:1px solid var(--line)">
+                    <div style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--mute)">APPEARANCES · 6 OF 14</div>
+                    <div style="margin-top:8px; display:flex; justify-content:space-between">
+                      <sc-for list="{{ appearances }}" as="a" hint-placeholder-count="14">
+                        <span style="width:14px; height:18px; background:{{ a.bg }}; border:1px solid {{ a.bd }}"></span>
+                      </sc-for>
+                    </div>
+                    <div style="margin-top:6px; display:flex; justify-content:space-between; font:500 11px 'JetBrains Mono',monospace; color:var(--mute)"><span>S1</span><span>S14</span></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:12px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em"><span>MENTIONED IN</span><span style="flex:1; height:1px; background:var(--line2)"></span><span style="color:var(--mute)">5</span></div>
+                  <sc-for list="{{ backlinks }}" as="b" hint-placeholder-count="5">
+                    <button onClick="{{ b.go }}" style="width:100%; display:grid; grid-template-columns:20px minmax(0,1fr); gap:10px; padding:12px 0; background:none; border:0; border-bottom:1px solid var(--line); cursor:pointer; text-align:left" style-hover="color:var(--spot)">
+                      <span style="font-size:13px; line-height:1.8; color:var(--mute)">{{ b.g }}</span>
+                      <span style="display:flex; flex-direction:column; gap:2px"><span style="font-size:17px; font-weight:600">{{ b.title }}</span><span style="font-size:15px; font-style:italic; color:var(--mute)">{{ b.snip }}</span></span>
+                    </button>
+                  </sc-for>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isTable }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Table — live session" style="flex:1; display:flex; flex-direction:column; min-height:calc(100vh - 60px)">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 28px; padding:10px 24px; background:var(--spot); color:var(--spot-on); font-family:'Big Shoulders Display'; font-weight:800; font-size:19px; letter-spacing:.08em; text-transform:uppercase">
+        <span style="display:flex; align-items:center; gap:10px"><span style="width:10px; height:10px; border-radius:50%; background:var(--spot-on)"></span>LIVE · SESSION 15</span>
+        <span>Scene 3 — The Gilded Hall · Night</span>
+        <span style="margin-left:auto; font:700 14px 'JetBrains Mono',monospace; letter-spacing:.12em">01:47 ELAPSED</span>
+        <button onClick="{{ goHome }}" style="height:34px; padding:0 14px; background:none; border:2px solid var(--spot-on); color:var(--spot-on); cursor:pointer; font-family:'Big Shoulders Display'; font-weight:900; font-size:16px; letter-spacing:.1em">END SESSION</button>
+      </div>
+
+      <div style="flex:1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); min-height:0">
+        <section style="padding:26px 24px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:22px; min-width:0">
+          <div>
+            <div style="font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--mute)">▲ SCENE · UPPER WARD</div>
+            <div style="margin-top:8px; font-family:'Big Shoulders Display'; font-weight:900; font-size:48px; line-height:.88; text-transform:uppercase">The Gilded Hall</div>
+          </div>
+          <div style="display:flex; flex-direction:column">
+            <sc-for list="{{ sceneFacts }}" as="s" hint-placeholder-count="3">
+              <div style="padding:10px 0; border-top:1px solid var(--line)">
+                <div style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.16em; color:var(--mute)">{{ s.k }}</div>
+                <div style="margin-top:4px; font-size:18px; line-height:1.4; text-wrap:pretty">{{ s.v }}</div>
+              </div>
+            </sc-for>
+            <button onClick="{{ toggleSecret }}" style="padding:10px 0; background:none; border:0; border-top:1px solid var(--line); text-align:left; cursor:pointer">
+              <div style="display:flex; justify-content:space-between; font:700 11px 'JetBrains Mono',monospace; letter-spacing:.16em; color:var(--spot)"><span>SECRET</span><span>{{ secretHint }}</span></div>
+              <div style="margin-top:4px; font-size:18px; line-height:1.4; filter:{{ secretBlur }}; transition:filter .2s">Stane already sold a copy of the Reliquary map to the Salt Brokers.</div>
+            </button>
+          </div>
+          <div>
+            <div style="font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em">● ON STAGE</div>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px">
+              <sc-for list="{{ onStage }}" as="o" hint-placeholder-count="2">
+                <button onClick="{{ o.go }}" style="padding:12px 14px; background:var(--panel); border:1.5px solid var(--line2); text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:6px" style-hover="border-color:var(--ink)">
+                  <span style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:'Big Shoulders Display'; font-weight:900; font-size:23px; text-transform:uppercase">{{ o.name }}</span><span style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.14em; padding:3px 7px; background:{{ o.chipBg }}; color:{{ o.chipFg }}; border:1.5px solid {{ o.chipBd }}">{{ o.dispo }}</span></span>
+                  <span style="font-size:16px; line-height:1.4"><span style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--mute)">WANTS </span>{{ o.wants }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+
+        <section style="padding:26px 24px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:18px; min-width:0">
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px">
+            <div role="tablist" style="display:flex; gap:20px; font-family:'Big Shoulders Display'; font-weight:800; font-size:20px; letter-spacing:.08em">
+              <button role="tab" onClick="{{ tabInit }}" style="padding:0 0 6px; background:none; border:0; border-bottom:3px solid {{ initTabBd }}; cursor:pointer; color:{{ initTabFg }}">INITIATIVE</button>
+              <button role="tab" onClick="{{ tabNotes }}" style="padding:0 0 6px; background:none; border:0; border-bottom:3px solid {{ notesTabBd }}; cursor:pointer; color:{{ notesTabFg }}">SESSION NOTES</button>
+            </div>
+            <sc-if value="{{ isInit }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:baseline; gap:8px"><span style="font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--mute)">ROUND</span><span style="font-family:'Big Shoulders Display'; font-weight:900; font-size:54px; line-height:.8">{{ round }}</span></div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ isInit }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; flex-direction:column; border-top:2px solid var(--ink)">
+              <sc-for list="{{ order }}" as="c" hint-placeholder-count="10">
+                <div style="display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:12px; align-items:center; min-height:46px; padding:6px 12px; border-bottom:1px solid var(--line); background:{{ c.bg }}; color:{{ c.fg }}">
+                  <span style="font-family:'Big Shoulders Display'; font-weight:900; font-size:26px; text-align:center">{{ c.init }}</span>
+                  <span style="display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0">
+                    <span style="min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'Big Shoulders Display'; font-weight:800; font-size:21px; letter-spacing:.03em; text-transform:uppercase">{{ c.name }}</span>
+                    <span style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.12em; opacity:.75">{{ c.tag }}</span>
+                    <sc-for list="{{ c.conds }}" as="cd" hint-placeholder-count="0">
+                      <span style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.1em; padding:2px 6px; border:1.5px solid currentColor">{{ cd }}</span>
+                    </sc-for>
+                  </span>
+                  <span style="display:flex; align-items:center; gap:10px">
+                    <span style="width:clamp(44px,5vw,90px); height:8px; border:1.5px solid currentColor; position:relative"><span style="position:absolute; left:0; top:0; bottom:0; width:{{ c.pct }}; background:currentColor"></span></span>
+                    <span style="width:52px; text-align:right; font:700 13px 'JetBrains Mono',monospace">{{ c.hp }}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; gap:10px">
+              <button onClick="{{ prevTurn }}" style="height:52px; padding:0 20px; background:none; border:1.5px solid var(--ink); cursor:pointer; font-family:'Big Shoulders Display'; font-weight:800; font-size:19px; letter-spacing:.08em">← BACK</button>
+              <button onClick="{{ nextTurn }}" style="flex:1; height:52px; background:var(--ink); color:var(--bg); border:0; cursor:pointer; font-family:'Big Shoulders Display'; font-weight:900; font-size:22px; letter-spacing:.1em" style-hover="background:var(--spot); color:var(--spot-on)">NEXT TURN →</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isNotes }}" hint-placeholder-val="{{ false }}">
+            <textarea value="{{ notes }}" onChange="{{ onNotes }}" aria-label="Session notes" style="flex:1; min-height:440px; resize:none; padding:16px; background:var(--panel); color:var(--ink); border:1.5px solid var(--line2); outline:none; font:400 19px/1.6 'Newsreader',serif"></textarea>
+            <div style="font:500 12px 'JetBrains Mono',monospace; color:var(--mute)">Type [[ to link a page. Names are detected when the session closes.</div>
+          </sc-if>
+        </section>
+
+        <section style="padding:26px 24px; display:flex; flex-direction:column; gap:16px; min-width:0">
+          <div style="display:flex; align-items:center; gap:12px; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--holo)"><span style="white-space:nowrap">◇ CO-PILOT</span><span style="flex:1; height:1px; background:var(--holo); opacity:.4"></span><span style="white-space:nowrap">SCENE-AWARE</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:18px; overflow:auto">
+            <sc-for list="{{ chat }}" as="m" hint-placeholder-count="2">
+              <div style="display:flex; flex-direction:column; gap:4px; align-items:{{ m.align }}">
+                <span style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.16em; color:{{ m.who_c }}">{{ m.who }}</span>
+                <span style="max-width:92%; font-size:17px; line-height:1.5; text-wrap:pretty; padding:{{ m.pad }}; background:{{ m.bg }}; border:{{ m.bd }}">{{ m.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px">
+            <sc-for list="{{ prompts }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.go }}" style="padding:6px 10px; background:none; border:1px solid var(--holo); color:var(--holo); cursor:pointer; font:500 12px 'JetBrains Mono',monospace" style-hover="background:var(--panel)">{{ p.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex; gap:8px; align-items:stretch">
+            <textarea value="{{ draft }}" onChange="{{ onDraft }}" placeholder="Ask about this scene…" rows="2" style="flex:1; resize:none; padding:10px 12px; background:var(--panel); color:var(--ink); border:1.5px solid var(--line2); outline:none; font:400 17px/1.4 'Newsreader',serif"></textarea>
+            <button onClick="{{ send }}" style="width:70px; background:var(--holo); color:var(--bg); border:0; cursor:pointer; font:700 12px 'JetBrains Mono',monospace; letter-spacing:.14em">SEND</button>
+          </div>
+        </section>
+      </div>
+
+      <div role="list" aria-label="Party" style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border-top:3px solid var(--ink); background:var(--panel)">
+        <sc-for list="{{ party }}" as="p" hint-placeholder-count="7">
+          <div role="listitem" style="padding:12px 14px 14px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:7px; min-width:0">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:6px">
+              <span style="font-family:'Big Shoulders Display'; font-weight:900; font-size:20px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ p.short }}</span>
+              <span style="font:700 11px 'JetBrains Mono',monospace; color:var(--mute)">{{ p.cls }}</span>
+            </div>
+            <div style="height:8px; border:1.5px solid {{ p.hpColor }}; position:relative"><span style="position:absolute; left:0; top:0; bottom:0; width:{{ p.pct }}; background:{{ p.hpColor }}"></span></div>
+            <div style="display:flex; justify-content:space-between; font:700 13px 'JetBrains Mono',monospace"><span style="color:{{ p.hpColor }}">{{ p.hp }}</span><span style="color:var(--mute)">{{ p.flag }}</span></div>
+            <div style="display:flex; gap:12px; font:500 12px 'JetBrains Mono',monospace; color:var(--mute)"><span>AC <b style="color:var(--ink)">{{ p.ac }}</b></span><span>PP <b style="color:var(--ink)">{{ p.pp }}</b></span></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ search }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSearch }}" style="position:fixed; inset:0; z-index:50; background:var(--scrim); display:flex; justify-content:center; align-items:flex-start; padding:11vh 20px 20px">
+      <div role="dialog" aria-label="Search" onClick="{{ stop }}" style="width:100%; max-width:660px; background:var(--bg); border:2px solid var(--ink); box-shadow:10px 10px 0 var(--spot)">
+        <div style="display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1.5px solid var(--line2)">
+          <span style="font-size:20px; color:var(--spot)">⌕</span>
+          <input autoFocus="{{ true }}" value="{{ q }}" onChange="{{ onQ }}" placeholder="A name, a place, a rule, a session…" style="flex:1; background:transparent; border:0; outline:none; color:var(--ink); font:400 24px 'Newsreader',serif">
+          <span style="font:500 12px 'JetBrains Mono',monospace; color:var(--mute); border:1px solid var(--line2); padding:2px 6px">ESC</span>
+        </div>
+        <div style="max-height:56vh; overflow:auto; padding:6px 0">
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="6">
+            <button onClick="{{ r.go }}" style="width:100%; display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:12px; align-items:center; padding:11px 18px; background:none; border:0; cursor:pointer; text-align:left" style-hover="background:var(--panel)">
+              <span style="font-size:14px; text-align:center; color:var(--mute)">{{ r.g }}</span>
+              <span style="display:flex; flex-direction:column; gap:1px; min-width:0"><span style="font-size:19px; font-weight:600">{{ r.title }}</span><span style="font-size:15px; font-style:italic; color:var(--mute)">{{ r.sub }}</span></span>
+              <span style="font:700 11px 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--mute)">{{ r.type }}</span>
+            </button>
+          </sc-for>
+          <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:22px 18px; font-size:18px; font-style:italic; color:var(--mute)">Nothing yet. Press Enter to create “{{ q }}”.</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;halftone&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'home', theme: null, search: false, q: '', round: 2, active: 0, tab: 'init', secret: false, draft: '',
+    notes: 'Verrin opened warm. Kaelen refused the seat at her right hand.\nOdo palmed a servant\'s key — brass, stamped with a heron.\nGuards moved on Brix when he went for the tapestry.',
+    chat: [
+      { me: true, text: 'Stane pulls them aside before the oath. What does he actually offer?' },
+      { me: false, text: 'The Reliquary timeline: who entered before them, and when. In return he wants the party to delay the oath until Aldwyn arrives — so neither claimant wins tonight.' },
+    ],
+  };
+
+  componentDidMount() {
+    this.applyTheme();
+    this.onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.setState({ search: true, q: '' }); }
+      else if (e.key === 'Escape') this.setState({ search: false });
+    };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentDidUpdate() { this.applyTheme(); }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+  read(k) { try { return localStorage.getItem('grimlore.' + k); } catch (e) { return null; } }
+  store(k, v) { try { localStorage.setItem('grimlore.' + k, v); } catch (e) {} this.setState({ [k]: v }); }
+  theme() { return this.state.theme || this.read('theme') || 'dark'; }
+  palette() { return this.state.palette || this.read('palette') || 'ink'; }
+  applyTheme() { document.body.dataset.theme = this.theme(); document.body.dataset.palette = this.palette(); }
+
+  go(screen) { this.setState({ screen, search: false }); window.scrollTo(0, 0); }
+  find(q) { this.setState({ search: true, q }); }
+
+  chip(d) {
+    if (d === 'HOSTILE') return { chipBg: 'var(--spot)', chipFg: 'var(--spot-on)', chipBd: 'var(--spot)' };
+    if (d === 'UNFRIENDLY') return { chipBg: 'transparent', chipFg: 'var(--spot)', chipBd: 'var(--spot)' };
+    return { chipBg: 'transparent', chipFg: 'var(--mute)', chipBd: 'var(--line2)' };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isTable = s.screen === 'table';
+    const isChronicle = !isTable;
+    const toPage = () => this.go('page');
+    const findFn = (q) => () => this.find(q);
+
+    const navDefs = [
+      ['home', '◎', 'Front page', ''], ['recap', '▬', 'Recaps', 14], ['thread', '○', 'Threads', 9],
+      ['person', '●', 'People', 31], ['lore', '▲', 'Lore', 18], ['rule', '■', 'Rules', 12], ['note', '◆', 'Notes', 22],
+    ];
+    const activeKey = s.screen === 'home' ? 'home' : s.screen === 'page' ? 'person' : '';
+    const nav = navDefs.map(([key, g, label, count]) => ({
+      g, label, count,
+      bg: key === activeKey ? 'var(--ink)' : 'transparent',
+      fg: key === activeKey ? 'var(--bg)' : 'var(--ink)',
+      go: key === 'home' ? () => this.go('home') : key === 'person' ? toPage : findFn(key),
+    }));
+
+    const tick = (on, live) => ({ bg: on ? (live ? 'var(--spot)' : 'var(--ink)') : 'transparent', bd: on ? (live ? 'var(--spot)' : 'var(--ink)') : 'var(--line2)' });
+    const threadDefs = [
+      ['Who cut the second seal of the Ashen Writ?', 'LIVE', [14]],
+      ["The Iron Chapter's oath demand", 'LIVE', [11, 13, 14]],
+      ['Stane is selling to both sides', 'SEEDED', [12, 13]],
+      ['What sleeps beneath the Reliquary', 'SEEDED', [10, 14]],
+      ["Brix's debt to the Salt Brokers", 'COLD', [4, 6, 9]],
+      ["Iolanthe's missing abbess", 'COLD', [2, 7]],
+    ];
+    const threads = threadDefs.map(([title, status, on]) => ({
+      title, status, last: on[on.length - 1],
+      color: status === 'LIVE' ? 'var(--spot)' : status === 'SEEDED' ? 'var(--sand)' : 'var(--mute)',
+      ticks: Array.from({ length: 14 }, (_, i) => tick(on.includes(i + 1), status === 'LIVE')),
+      go: findFn('thread'),
+    }));
+
+    const cast = [
+      { id: 'verrin', name: 'Lady Verrin', last: 'S14', dispo: 'HOSTILE', want: 'A public oath, tonight.', go: toPage },
+      { id: 'stane', name: 'Halvard Stane', last: 'S14', dispo: 'UNKNOWN', want: 'No war. Not yet.', go: findFn('Stane') },
+      { id: 'aldwyn', name: 'Preceptor Aldwyn', last: 'S13', dispo: 'UNFRIENDLY', want: 'His answer.', go: findFn('Aldwyn') },
+      { id: 'sabeth', name: 'Mother Sabeth', last: 'S12', dispo: 'NEUTRAL', want: 'Brix, paid in full.', go: findFn('Sabeth') },
+    ].map(c => ({ ...c, ...this.chip(c.dispo) }));
+
+    const rules = [
+      { kind: 'HOUSE RULE', ref: 'TABLE', title: 'Flanking', text: '+2 to hit when an ally is opposite. Not advantage.' },
+      { kind: 'HOUSE RULE', ref: 'TABLE', title: 'Potions', text: 'Drinking is a bonus action. Feeding one to an ally takes your action.' },
+      { kind: '5E', ref: 'PHB 290', title: 'Grappled', text: 'Speed 0. Ends if the grappler is incapacitated or you’re moved out of reach.' },
+      { kind: '5E', ref: 'PHB 147', title: 'Improvised weapons', text: '1d4 damage, no proficiency. Tonight the whole party is unarmed.' },
+    ];
+
+    const index = [
+      ['●', 'PERSON', 'Lady Verrin', 'Claimant · The Gilded Hall · Hostile', true],
+      ['●', 'PERSON', 'Halvard Stane', 'Quartermaster, Iron Chapter · Unknown'],
+      ['●', 'PERSON', 'Preceptor Aldwyn', 'Iron Chapter · Unfriendly'],
+      ['●', 'PERSON', 'Mother Sabeth', 'Salt Brokers · Neutral'],
+      ['●', 'PERSON', 'Brix Underhollow', 'Player character · Rogue 7'],
+      ['●', 'PERSON', 'Marrow', 'Player character · Warlock 7'],
+      ['●', 'PERSON', 'Thessaly Dunn', 'Player character · Ranger 7'],
+      ['▲', 'LORE', 'The Gilded Hall', 'Place · Ondermere, Upper Ward'],
+      ['▲', 'LORE', 'The Reliquary', 'Place · beneath the old capital'],
+      ['▲', 'LORE', 'The Ashen Writ', 'Item · carried by Thessaly'],
+      ['▲', 'LORE', 'The Iron Chapter', 'Faction · 400 sworn, militant'],
+      ['▲', 'LORE', 'House Verrin', 'Faction · Ondermere nobility'],
+      ['▬', 'RECAP', 'Session 14 — The Reliquary', '3 days ago'],
+      ['▬', 'RECAP', 'Session 13 — Riders on the North Road', '10 days ago'],
+      ['○', 'THREAD', 'Who cut the second seal?', 'Live · last touched S14'],
+      ['○', 'THREAD', "The Iron Chapter's oath demand", 'Live · last touched S14'],
+      ['■', 'RULE', 'Flanking', 'House rule · +2 to hit'],
+      ['■', 'RULE', 'Grappled', '5e condition · speed 0'],
+      ['■', 'RULE', 'Improvised weapons', '5e · 1d4, no proficiency'],
+      ['◆', 'NOTE', "Verrin's voice", 'Low, never hurried'],
+    ];
+    const q = s.q.trim().toLowerCase();
+    const results = index
+      .filter(([, type, title, sub]) => !q || (type + ' ' + title + ' ' + sub).toLowerCase().includes(q))
+      .slice(0, 9)
+      .map(([g, type, title, sub, page]) => ({ g, type, title, sub, go: page ? toPage : () => this.setState({ search: false }) }));
+
+    const party = [
+      ['Kaelen Vray', 'Kaelen', 'PAL 7', 58, 64, 19, 13],
+      ['Sister Iolanthe', 'Iolanthe', 'CLR 7', 41, 52, 17, 16],
+      ['Brix Underhollow', 'Brix', 'ROG 7', 22, 45, 15, 18],
+      ['Marrow', 'Marrow', 'WLK 7', 30, 44, 13, 11, 'CONC'],
+      ['Thessaly Dunn', 'Thessaly', 'RNG 7', 47, 50, 16, 17],
+      ['Odo Fennick', 'Odo', 'BRD 7', 33, 38, 14, 12],
+      ['Vashti Corr', 'Vashti', 'DRU 7', 12, 41, 14, 15],
+    ];
+    const pmap = {};
+    const partyVals = party.map(([name, short, cls, hp, max, ac, pp, flag]) => {
+      const bloodied = hp / max < 0.5;
+      pmap[name] = { hp, max };
+      return { short, cls, ac, pp, hp: hp + '/' + max, pct: Math.round(hp / max * 100) + '%', hpColor: bloodied ? 'var(--spot)' : 'var(--ink)', flag: bloodied ? 'BLOODIED' : (flag || '') };
+    });
+
+    const combat = [
+      [21, 'Brix Underhollow'], [18, "Verrin's Duelist", 27, 40], [16, 'Kaelen Vray'], [14, 'Gilded Guard A', 11, 22, ['PRONE']],
+      [12, 'Marrow', 0, 0, ['CONCENTRATING']], [11, 'Vashti Corr'], [9, 'Sister Iolanthe'], [8, 'Gilded Guard B', 22, 22],
+      [7, 'Thessaly Dunn'], [5, 'Odo Fennick'],
+    ];
+    const order = combat.map(([init, name, hp, max, conds], i) => {
+      const pc = pmap[name];
+      const cur = pc ? pc.hp : hp, mx = pc ? pc.max : max;
+      const on = i === s.active;
+      return { init, name, tag: pc ? 'PC' : 'FOE', conds: conds || [], hp: cur + '/' + mx, pct: Math.round(cur / mx * 100) + '%', bg: on ? 'var(--spot)' : 'transparent', fg: on ? 'var(--spot-on)' : 'var(--ink)' };
+    });
+    const n = combat.length;
+
+    const chat = s.chat.map(m => m.me
+      ? { who: 'YOU', who_c: 'var(--mute)', align: 'flex-end', text: m.text, pad: '10px 12px', bg: 'var(--panel)', bd: '1px solid var(--line2)' }
+      : { who: 'CO-PILOT', who_c: 'var(--holo)', align: 'flex-start', text: m.text, pad: '0', bg: 'transparent', bd: '0' });
+    const ask = (text) => this.setState(st => ({ chat: [...st.chat, { me: true, text }, { me: false, text: 'Drafting… (prototype — the live co-pilot streams here and keeps the input open while it answers).' }], draft: '' }));
+
+    const dark = this.theme() === 'dark';
+    return {
+      isTable, isChronicle, isHome: s.screen === 'home', isPage: s.screen === 'page',
+      halftone: this.props.halftone ?? true,
+      kbd: /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl K',
+      chronBg: isChronicle ? 'var(--ink)' : 'transparent', chronFg: isChronicle ? 'var(--bg)' : 'var(--ink)',
+      tableBg: isTable ? 'var(--spot)' : 'transparent', tableFg: isTable ? 'var(--spot-on)' : 'var(--ink)',
+      themeLabel: dark ? 'DARK' : 'LIGHT',
+      toggleTheme: () => this.store('theme', dark ? 'light' : 'dark'),
+      swatches: [['ink', 'Ink & Vermilion', '#0f0e0d', '#ff5a2a'], ['arrakis', 'Arrakis', '#15100b', '#f08a24'], ['hyperspace', 'Hyperspace', '#0a0e17', '#ffcf33'], ['heroic', "World's Finest", '#0d1030', '#ff3b30'], ['rivendell', 'Rivendell', '#0e1411', '#d4a64a']]
+        .map(([key, label, a, b]) => ({ label, a, b, on: key === this.palette(), ol: key === this.palette() ? 'var(--ink)' : 'transparent', go: () => this.store('palette', key) })),
+      goHome: () => this.go('home'), goTable: () => this.go('table'), goPage: toPage,
+      openSearch: () => this.find(''), closeSearch: () => this.setState({ search: false }), stop: (e) => e.stopPropagation(),
+      searchLink: (e) => this.find(e.currentTarget.dataset.q || ''),
+      search: s.search, q: s.q, onQ: (e) => this.setState({ q: e.target.value }), results, noResults: results.length === 0,
+      nav, threads, cast, rules,
+      pinned: [
+        { g: '●', title: 'Lady Verrin', go: toPage },
+        { g: '■', title: 'Flanking', go: findFn('Flanking') },
+        { g: '▲', title: 'The Ashen Writ', go: findFn('Ashen Writ') },
+      ],
+      history: [
+        { s: 'S03', text: 'Hired the party to escort a courier out of the Upper Ward. Paid double when they asked no questions.' },
+        { s: 'S05', text: 'Hosted them at a dinner meant to be seen. Aldwyn was not invited.' },
+        { s: 'S08', text: 'Offered Kaelen a blade from her house armory. He refused it, politely.' },
+        { s: 'S11', text: 'Sent Odo a letter with no signature, sealed in her house wax anyway.' },
+        { s: 'S14', text: 'Summoned the party to the Gilded Hall, unarmed, for tomorrow night.' },
+      ],
+      facts: [
+        { k: 'FACTION', v: 'House Verrin' }, { k: 'LOCATION', v: 'The Gilded Hall' }, { k: 'STATUS', v: 'Active' },
+        { k: 'FIRST SEEN', v: 'Session 3' }, { k: 'LAST SEEN', v: 'Session 14' },
+      ],
+      dispoScale: [0, 1, 2, 3, 4].map(i => ({ bg: i === 0 ? 'var(--spot)' : 'transparent', bd: i === 0 ? 'var(--spot)' : 'var(--line2)' })),
+      appearances: Array.from({ length: 14 }, (_, i) => tick([3, 5, 8, 11, 13, 14].includes(i + 1), false)),
+      backlinks: [
+        { g: '▬', title: 'Session 14 — The Reliquary', snip: '…requests the party at the Gilded Hall, unarmed…', go: findFn('Session 14') },
+        { g: '○', title: "The Iron Chapter's oath demand", snip: 'Thread · Verrin wants the oath witnessed', go: findFn('oath') },
+        { g: '▲', title: 'House Verrin', snip: 'Lore · head of house since the old duke died', go: findFn('House Verrin') },
+        { g: '▲', title: 'The Ashen Writ', snip: 'Lore · she knows the second seal is gone', go: findFn('Ashen Writ') },
+        { g: '◆', title: "Verrin's voice", snip: 'Note · low, never hurried', go: findFn('voice') },
+      ],
+      sceneFacts: [
+        { k: 'CONSTRAINT', v: 'Party unarmed by decree. Weapons held at the door.' },
+        { k: 'PRESSURE', v: 'Verrin wants the oath sworn before the Chapter arrives at midnight.' },
+        { k: 'WAY OUT', v: 'The servants’ stair behind the heron tapestry.' },
+      ],
+      secretHint: s.secret ? 'TAP TO HIDE' : 'TAP TO REVEAL',
+      secretBlur: s.secret ? 'none' : 'blur(7px)',
+      toggleSecret: () => this.setState(st => ({ secret: !st.secret })),
+      onStage: [
+        { name: 'Lady Verrin', dispo: 'HOSTILE', wants: 'The oath, publicly, before midnight.', go: toPage },
+        { name: 'Halvard Stane', dispo: 'UNKNOWN', wants: 'A private word. Delay, not victory.', go: findFn('Stane') },
+      ].map(o => ({ ...o, ...this.chip(o.dispo) })),
+      isInit: s.tab === 'init', isNotes: s.tab === 'notes',
+      tabInit: () => this.setState({ tab: 'init' }), tabNotes: () => this.setState({ tab: 'notes' }),
+      initTabBd: s.tab === 'init' ? 'var(--spot)' : 'transparent', initTabFg: s.tab === 'init' ? 'var(--ink)' : 'var(--mute)',
+      notesTabBd: s.tab === 'notes' ? 'var(--spot)' : 'transparent', notesTabFg: s.tab === 'notes' ? 'var(--ink)' : 'var(--mute)',
+      round: s.round, order,
+      nextTurn: () => this.setState(st => st.active + 1 >= n ? { active: 0, round: st.round + 1 } : { active: st.active + 1 }),
+      prevTurn: () => this.setState(st => st.active === 0 ? (st.round > 1 ? { active: n - 1, round: st.round - 1 } : null) : { active: st.active - 1 }),
+      notes: s.notes, onNotes: (e) => this.setState({ notes: e.target.value }),
+      chat, draft: s.draft, onDraft: (e) => this.setState({ draft: e.target.value }),
+      send: () => s.draft.trim() && ask(s.draft.trim()),
+      prompts: [
+        { label: 'Guard tactics', go: () => ask('How do the Gilded Guards fight unarmed PCs?') },
+        { label: 'Name a servant', go: () => ask('Name the servant whose key Odo stole.') },
+        { label: 'Verrin’s next move', go: () => ask('What does Verrin do if they refuse the oath?') },
+      ],
+      party: partyVals,
+    };
+  }
+}
+</script>
+</body>
+</html>

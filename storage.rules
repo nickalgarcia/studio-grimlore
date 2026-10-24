@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Images for covers, comic panels, portraits and scene art. Everything lives
+// under the owner's uid, mirroring firestore.rules. Uploads are re-encoded to
+// WebP in the browser before they get here, so the size cap is generous.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(webp|jpeg|png|gif)');
+    }
+  }
+}

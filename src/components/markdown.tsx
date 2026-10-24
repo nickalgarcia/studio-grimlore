@@ -12,7 +12,15 @@ import { cn } from '@/lib/utils';
  * It builds React elements rather than an HTML string, so there is no
  * dangerouslySetInnerHTML and nothing to sanitize: any HTML the model emits is
  * rendered as literal text by React.
+ *
+ * `renderText` lets a caller take over plain text runs (inside bold and
+ * italics too), which is how recaps render `[[links]]` and detected names
+ * without a second parser.
  */
+
+export type RenderText = (text: string, key: string) => React.ReactNode;
+
+const plain: RenderText = (text, key) => <React.Fragment key={key}>{text}</React.Fragment>;
 
 type Block =
   | { kind: 'heading'; text: string }
@@ -28,7 +36,7 @@ const NUMBERED = /^\s*\d+[.)]\s+/;
 const HEADING = /^\s*#{1,6}\s+/;
 const RULE = /^\s*([-*_])\1{2,}\s*$/;
 
-function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
+function renderInline(text: string, keyPrefix: string, renderText: RenderText = plain): React.ReactNode[] {
   return text
     .split(INLINE_PATTERN)
     .filter(part => part !== '')
@@ -37,22 +45,22 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
 
       if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) {
         return (
-          <strong key={key} className="font-semibold text-accent">
-            {part.slice(2, -2)}
+          <strong key={key} className="font-semibold text-ink">
+            {renderText(part.slice(2, -2), `${key}-t`)}
           </strong>
         );
       }
       if (part.length > 2 && part.startsWith('*') && part.endsWith('*')) {
-        return <em key={key}>{part.slice(1, -1)}</em>;
+        return <em key={key}>{renderText(part.slice(1, -1), `${key}-t`)}</em>;
       }
       if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) {
         return (
-          <code key={key} className="rounded bg-white/8 px-1 py-0.5 text-[0.9em] font-mono">
+          <code key={key} className="bg-panel px-1 py-0.5 text-[0.9em] font-mono">
             {part.slice(1, -1)}
           </code>
         );
       }
-      return <React.Fragment key={key}>{part}</React.Fragment>;
+      return renderText(part, key);
     });
 }
 
@@ -108,7 +116,13 @@ function parseBlocks(source: string): Block[] {
   return blocks;
 }
 
-export function Markdown({ content, className }: { content: string; className?: string }) {
+export function Markdown({
+  content, className, renderText,
+}: {
+  content: string;
+  className?: string;
+  renderText?: RenderText;
+}) {
   const blocks = React.useMemo(() => parseBlocks(content), [content]);
 
   return (
@@ -117,8 +131,8 @@ export function Markdown({ content, className }: { content: string; className?: 
         switch (block.kind) {
           case 'heading':
             return (
-              <p key={i} className="font-headline text-sm tracking-wide text-accent pt-1">
-                {renderInline(block.text, `h-${i}`)}
+              <p key={i} className="font-headline font-extrabold text-[1.05em] tracking-[0.06em] text-ink pt-1">
+                {renderInline(block.text, `h-${i}`, renderText)}
               </p>
             );
           case 'ul':
@@ -126,10 +140,10 @@ export function Markdown({ content, className }: { content: string; className?: 
               <ul key={i} className="space-y-1.5">
                 {block.items.map((item, j) => (
                   <li key={j} className="flex gap-2.5">
-                    <span aria-hidden="true" className="text-accent/50 flex-shrink-0 select-none">
+                    <span aria-hidden="true" className="text-mute flex-shrink-0 select-none">
                       •
                     </span>
-                    <span>{renderInline(item, `ul-${i}-${j}`)}</span>
+                    <span>{renderInline(item, `ul-${i}-${j}`, renderText)}</span>
                   </li>
                 ))}
               </ul>
@@ -139,17 +153,17 @@ export function Markdown({ content, className }: { content: string; className?: 
               <ol key={i} className="space-y-1.5">
                 {block.items.map((item, j) => (
                   <li key={j} className="flex gap-2.5">
-                    <span aria-hidden="true" className="text-accent/50 flex-shrink-0 select-none tabular-nums">
+                    <span aria-hidden="true" className="text-mute flex-shrink-0 select-none tabular-nums">
                       {j + 1}.
                     </span>
-                    <span>{renderInline(item, `ol-${i}-${j}`)}</span>
+                    <span>{renderInline(item, `ol-${i}-${j}`, renderText)}</span>
                   </li>
                 ))}
               </ol>
             );
           case 'p':
           default:
-            return <p key={i}>{renderInline(block.text, `p-${i}`)}</p>;
+            return <p key={i}>{renderInline(block.text, `p-${i}`, renderText)}</p>;
         }
       })}
     </div>

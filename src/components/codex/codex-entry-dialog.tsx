@@ -208,6 +208,11 @@ export function CodexEntryDialog({
       if (str) payload[f.name] = str;
       else if (isEdit) payload[f.name] = deleteField();
     }
+    // This dialog edits a session's `summary`; `recap` has to follow it or the
+    // Director's Cut screens would keep showing the old text. See recapFields().
+    if (kind === 'session' && typeof payload.summary === 'string') {
+      payload.recap = payload.summary;
+    }
 
     try {
       if (isEdit) {

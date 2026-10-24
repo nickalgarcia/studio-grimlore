@@ -8,13 +8,15 @@ import type { CodexKind, Disposition } from '@/lib/types';
  * two unused values from the same palette rather than inventing new hues.
  */
 export const KIND_ACCENT: Record<CodexKind, string> = {
-  npc: '#8f2d24',
-  place: '#5a5a5a',
-  faction: '#8b6fd8',
-  party: '#d4574c',
-  item: '#c9a45c',
-  session: '#3a3a3a',
-  concept: '#8b847b',
+  // Token references, so they follow the palette. Factions use their own
+  // stored colour where they have one (see use-codex-entries).
+  npc: 'hsl(var(--ink))',
+  place: 'hsl(var(--mute))',
+  faction: 'hsl(var(--ink))',
+  party: 'hsl(var(--sand))',
+  item: 'hsl(var(--sand))',
+  session: 'hsl(var(--mute))',
+  concept: 'hsl(var(--mute))',
 };
 
 /** Filter-chip order, which is also the index's default sort order. */
