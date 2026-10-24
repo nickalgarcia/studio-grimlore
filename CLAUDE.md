@@ -36,7 +36,7 @@ No test runner yet.
 ## Deployment
 
 The owner ships via GitHub Desktop → Vercel. Don't push, deploy, or run `firebase deploy` unless asked.
-`firestore.rules` is deployed separately with the Firebase CLI (project in `.firebaserc`).
+`firestore.rules` and `storage.rules` are deployed separately with the Firebase CLI (project in `.firebaserc`).
 `apphosting.yaml`, `.idx/`, `docs/backend.json`, and the README are leftovers from the Firebase Studio
 scaffold. `docs/blueprint.md` describes an OLD design (purple/green/parchment) — ignore it.
 **Never run `cleanup.sh`** — it deletes `.git` and force-pushes.
@@ -54,6 +54,9 @@ src/components/campaign/campaign-provider.tsx  shared data for every route: camp
 src/components/shell/            header, command-bar (search + `+` capture; replaced the ⌘K Spotlight)
 src/components/modes/            table-mode, forge-mode: v3 screens mounted by /table and /prep until Stage 6
 src/lib/mentions.ts, loom.ts     derived mentions index (never stored) and Loom geometry
+src/lib/page-model.ts            one Page shape for every entity kind; recap excerpts; related pages
+src/components/story|issue|page/ Longbox, Loom, panel strip; recap renderer + draft; Page template + draft
+src/firebase/storage.ts          image upload (re-encoded to WebP); storage.rules is deployed separately
 src/components/table/            co-pilot, live-notes, party-dock, scene-stage, use-live-session
 src/components/codex/            use-codex-entries (merges every collection into CodexEntry[]), detail/dialog
 src/components/combat-tracker.tsx  largest file; persists to combatState

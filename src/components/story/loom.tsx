@@ -15,13 +15,15 @@ function segmentBackground(style: 'solid' | 'dashed' | 'pull', color: string): s
 }
 
 function Cell({
-  cell, lane, selected, onSelect, onNext,
+  cell, lane, selected, onSelect, onNext, dim, onHover,
 }: {
   cell: LoomCell;
   lane: LoomLane;
   selected: boolean;
   onSelect: (n: number) => void;
   onNext: () => void;
+  dim: boolean;
+  onHover: () => void;
 }) {
   const isNext = cell.column === 'next';
   const label = isNext
@@ -32,8 +34,11 @@ function Cell({
       type="button"
       aria-label={label}
       onClick={() => (isNext ? onNext() : onSelect(cell.column as number))}
+      onMouseEnter={onHover}
+      onFocus={onHover}
       className={cn('relative h-10 border-b border-line', selected && 'bg-panel')}
     >
+      <span className={cn('absolute inset-0 transition-opacity duration-150', dim && 'opacity-[0.28]')}>
       {cell.segment && (
         <span
           aria-hidden="true"
@@ -58,6 +63,7 @@ function Cell({
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[15px] h-[15px] rounded-full border-[2.5px] border-spot bg-bg"
         />
       )}
+      </span>
     </button>
   );
 }
@@ -77,6 +83,7 @@ export function Loom({
   onNext: () => void;
 }) {
   const grid = { gridTemplateColumns: `230px repeat(${columns.length + 1}, minmax(0,1fr))` };
+  const [hover, setHover] = React.useState<string | null>(null);
 
   if (lanes.length === 0) {
     return (
@@ -89,7 +96,7 @@ export function Loom({
   let lastGroup: LoomLane['group'] | null = null;
   return (
     <div className="overflow-x-auto">
-      <div className="grid min-w-[860px]" style={grid}>
+      <div className="grid min-w-[860px]" style={grid} onMouseLeave={() => setHover(null)}>
         <span />
         {columns.map(n => (
           <button
@@ -117,8 +124,10 @@ export function Loom({
           const head = lane.group !== lastGroup;
           lastGroup = lane.group;
           const cells = loomCells(lane.appearances, columns, lane.pullNext);
+          const key = `${lane.ref.kind}:${lane.ref.id}`;
+          const dim = hover !== null && hover !== key;
           return (
-            <React.Fragment key={`${lane.ref.kind}:${lane.ref.id}`}>
+            <React.Fragment key={key}>
               {head && (
                 <div className="col-span-full pt-3.5 pb-1.5 font-mono font-bold text-[11px] tracking-[0.16em] text-mute">
                   {lane.group === 'threads' ? 'THREADS' : 'PEOPLE'}
@@ -126,7 +135,12 @@ export function Loom({
               )}
               <Link
                 href={pageHref(lane.ref)}
-                className="h-10 flex items-center gap-2 pr-3 border-b border-line min-w-0"
+                onMouseEnter={() => setHover(key)}
+                onFocus={() => setHover(key)}
+                className={cn(
+                  'h-10 flex items-center gap-2 pr-3 border-b border-line min-w-0 transition-opacity duration-150',
+                  dim && 'opacity-[0.28]',
+                )}
               >
                 <span aria-hidden="true" className="flex-none w-4 h-1" style={{ background: lane.color }} />
                 <span className="flex-1 min-w-0 truncate font-semibold text-[16px]">{lane.name}</span>
@@ -144,6 +158,8 @@ export function Loom({
                   selected={cell.column === selected}
                   onSelect={onSelect}
                   onNext={onNext}
+                  dim={dim}
+                  onHover={() => setHover(key)}
                 />
               ))}
             </React.Fragment>
@@ -151,5 +167,21 @@ export function Loom({
         })}
       </div>
     </div>
+  );
+}
+
+/** The Loom's key, drawn with the same marks the lanes use. */
+export function LoomLegend() {
+  const item = 'inline-flex items-center gap-1.5';
+  return (
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono font-bold text-[11px] tracking-[0.14em] text-mute">
+      <span className={item}><span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-ink" />APPEARS</span>
+      <span className={item}><span aria-hidden="true" className="w-5 h-[3px] bg-ink" />ACTIVE</span>
+      <span className={item}>
+        <span aria-hidden="true" className="w-5 h-[3px]" style={{ background: 'repeating-linear-gradient(90deg, hsl(var(--ink)) 0 4px, transparent 4px 8px)' }} />
+        DORMANT
+      </span>
+      <span className={item}><span aria-hidden="true" className="w-2.5 h-2.5 rounded-full border-2 border-spot" />PULL NEXT</span>
+    </span>
   );
 }

@@ -47,6 +47,8 @@ export type CampaignContextValue = {
   prep: SessionPrepState | null;
 
   matcher: Matcher;
+  /** Canonical names a drafted recap may [[link]]: every entity and thread title. */
+  linkNames: string[];
   mentions: CampaignMentions;
   lanes: LoomLane[];
 
@@ -136,10 +138,12 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
   // The matcher is rebuilt only when an entity list changes, not per render;
   // building the detector regex is the only non-trivial cost in the index.
   const { npcs, characters, locations, factions } = codex.raw;
-  const matcher = React.useMemo(
-    () => createMatcher(mentionTargets({ npcs, characters, locations, factions, threads })),
+  const targets = React.useMemo(
+    () => mentionTargets({ npcs, characters, locations, factions, threads }),
     [npcs, characters, locations, factions, threads],
   );
+  const matcher = React.useMemo(() => createMatcher(targets), [targets]);
+  const linkNames = React.useMemo(() => [...new Set(targets.map(t => t.name.trim()))], [targets]);
   const mentions = React.useMemo(() => indexCampaign(issues, matcher), [issues, matcher]);
   const lanes = React.useMemo(
     () => buildLanes({ threads, npcs, appearances: mentions.appearances }),
@@ -187,11 +191,11 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo<CampaignContextValue>(() => ({
     campaigns, campaignsLoading, activeCampaign, setActiveCampaignId,
     codex, threads, issues, latestIssue, nextIssueNumber, prep: prep ?? null,
-    matcher, mentions, lanes, live, hrefForEntryId, saveConcept,
+    matcher, linkNames, mentions, lanes, live, hrefForEntryId, saveConcept,
   }), [
     campaigns, campaignsLoading, activeCampaign, setActiveCampaignId,
     codex, threads, issues, latestIssue, nextIssueNumber, prep,
-    matcher, mentions, lanes, live, hrefForEntryId, saveConcept,
+    matcher, linkNames, mentions, lanes, live, hrefForEntryId, saveConcept,
   ]);
 
   return <CampaignContext.Provider value={value}>{children}</CampaignContext.Provider>;

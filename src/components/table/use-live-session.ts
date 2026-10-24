@@ -290,7 +290,9 @@ export function useLiveSession(
       ].filter(Boolean).join('\n\n') || 'No notes taken.',
       conversationHighlights: highlights || undefined,
       characters: characters?.slice(0, 8).map(c => ({ name: c.name, class: c.class })),
-      previousSummary: campaign?.aiSummary,
+      // The flow only reads the first 600 characters; trimmed here so a long summary
+      // cannot fail its 4,000-character input cap.
+      previousSummary: campaign?.aiSummary?.slice(0, 4000),
     });
 
     setIsClosing(false);

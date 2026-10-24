@@ -42,10 +42,14 @@ import {
   type ParseObsidianSessionOutput,
 } from '@/ai/flows/parse-obsidian-session-flow';
 
+import { draftBeats, type DraftBeatsInput, type DraftBeatsOutput } from '@/ai/flows/draft-beats-flow';
+import { draftPage, type DraftPageInput, type DraftPageOutput } from '@/ai/flows/draft-page-flow';
+
 import { requireUser, authErrorMessage } from '@/firebase/require-user';
+import { FlowInputError } from '@/ai/errors';
 
 // Re-export types so components can import from one place
-export type { GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
+export type { DraftBeatsOutput, DraftPageOutput, GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Gate
@@ -80,7 +84,7 @@ async function gated<T>(
   try {
     return { data: await run(), error: null };
   } catch (e) {
-    if (e instanceof InputError) return { data: null, error: e.message };
+    if (e instanceof InputError || e instanceof FlowInputError) return { data: null, error: e.message };
     console.error(`[${label}]`, e);
     return { data: null, error: failure };
   }
@@ -223,5 +227,28 @@ export async function parseObsidianSessionAction(
 ): Promise<Result<ParseObsidianSessionOutput>> {
   return gated(idToken, 'parseObsidianSessionAction', 'Failed to parse session file. Please try again.', () =>
     parseObsidianSession(input)
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Co-pilot drafts (Director's Cut). Drafts only: the client shows them in an
+// editor and nothing is saved until the DM does.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getBeatsDraft(
+  idToken: string,
+  input: DraftBeatsInput
+): Promise<Result<DraftBeatsOutput>> {
+  return gated(idToken, 'getBeatsDraft', 'Could not draft the panels. Please try again.', () =>
+    draftBeats(input)
+  );
+}
+
+export async function getPageDraft(
+  idToken: string,
+  input: DraftPageInput
+): Promise<Result<DraftPageOutput>> {
+  return gated(idToken, 'getPageDraft', 'Could not draft the page. Please try again.', () =>
+    draftPage(input)
   );
 }

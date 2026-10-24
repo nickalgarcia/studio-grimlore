@@ -279,7 +279,16 @@ axis), and `firebase/storage` is already in the `firebase` package.
   shadcn open/close animations removed. Original scope: Tokens, fonts, palette and theme switchers with pre-paint, delete
   backdrop and motion, restyle the shadcn primitives in use. Afterwards, `grep` for the old tokens
   must return nothing.
-- [ ] **Stage 5 — Story, Issue, Page.** Longbox (Storage covers, scroll to newest), Loom (geometry,
+- [x] **Stage 5 — Story, Issue, Page.** *Done 2026-10-23, pending review.* Storage: `src/firebase/storage.ts`
+  (WebP re-encode, max edge 1600px), `storage.rules`, `ImageSlot` (drop anywhere; click where a click doesn't
+  already select). New co-pilot drafts, all gated and all opening in an editor first: beats
+  (`draft-beats-flow`), page (`draft-page-flow`), recap (the recap flow now returns title, logline and
+  `[[links]]`). `/issue/N?draft=recap` auto-starts the recap draft, which is what the Stage 6 END SESSION toast
+  will link to. "Found by name" mentions get ✓ KEEP / ✕ NOT THIS on the Issue aside. Page history falls back
+  to the issues it appears in when none is stored, and related pages come from shared issues.
+  `codex-detail` and `faction-ai-panel` deleted. Still waiting on designs: inline editing (lane colour,
+  aliases, secret, thread fields).
+  Original scope: Longbox (Storage covers, scroll to newest), Loom (geometry,
   solid/dashed rule, NEXT rings, hover dimming), issue panel and strip, Issue reader with solid and
   dotted links, the Page template (secret box, history, tick strip, mentioned-in), page editor (D1).
 - [ ] **Stage 6 — Rules, Prep, Table.** Rulebook, Prep (The Pull writes `Thread.pullNext`), Table
