@@ -7,6 +7,8 @@ import { CodexEntryDialog } from '@/components/codex/codex-entry-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { captureLinks } from '@/lib/mentions';
 import { issueTitle, recapOf } from '@/lib/issues';
+import { CONDITION_EFFECTS, CONDITIONS, conditionAnchor } from '@/lib/conditions';
+import { ruleAnchor } from '@/lib/core-rules';
 import {
   DISPLAY_KIND, GLYPH, glyphFor, issueHref, pageHref, pageKindOf, rulesHref, type PageKind,
 } from '@/lib/pages';
@@ -75,7 +77,7 @@ const NEW_PAGE_KINDS: { kind: CodexKind; label: string }[] = [
 export function CommandBar() {
   const router = useRouter();
   const { toast } = useToast();
-  const { activeCampaign, codex, threads, issues, matcher, live, nextIssueNumber } = useCampaign();
+  const { activeCampaign, codex, threads, issues, rules, matcher, live, nextIssueNumber } = useCampaign();
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [value, setValue] = React.useState('');
@@ -161,8 +163,29 @@ export function CommandBar() {
         body: recapOf(s),
       });
     }
+    for (const r of rules) {
+      out.push({
+        key: `rule:${r.id}`,
+        glyph: GLYPH.rule,
+        title: r.title,
+        subtitle: r.kind === 'house' ? 'House rule' : `5e core · ${r.ref ?? ''}`,
+        type: 'RULE',
+        href: rulesHref({ anchor: ruleAnchor(r.id) }),
+        body: r.text,
+      });
+    }
+    for (const c of CONDITIONS) {
+      out.push({
+        key: `cond:${c}`,
+        glyph: GLYPH.rule,
+        title: c,
+        subtitle: CONDITION_EFFECTS[c],
+        type: 'CONDITION',
+        href: rulesHref({ anchor: conditionAnchor(c) }),
+      });
+    }
     return out;
-  }, [codex.entries, threads, issues]);
+  }, [codex.entries, threads, issues, rules]);
 
   const rows = React.useMemo<Row[]>(() => {
     if (capturing || !q) return [];
@@ -192,15 +215,15 @@ export function CommandBar() {
       run: () => { reset(); setNewPage({ kind, name }); },
     }));
 
-    // The AI rule lookup that used to live in Spotlight, until the Rulebook
-    // (Stage 6) gives rules their own results.
+    // Anything the Rulebook doesn't cover goes to the co-pilot, the one place
+    // AI lives. It opens with the question typed in, not sent: sending costs.
     out.push({
-      key: 'rule-lookup',
-      glyph: GLYPH.rule,
-      title: `Look up “${name}” in the 5e rules`,
-      subtitle: 'Rule, condition or term',
-      type: 'RULE',
-      run: () => go(rulesHref({ q: name })),
+      key: 'ask-copilot',
+      glyph: GLYPH.copilot,
+      title: `Ask the co-pilot: “${name}”`,
+      subtitle: 'Opens the Table with the question ready to send',
+      type: 'CO-PILOT',
+      run: () => go(`/table?ask=${encodeURIComponent(name)}`),
     });
     return out;
   }, [capturing, q, value, candidates, go, reset]);
@@ -335,7 +358,7 @@ export function CommandBar() {
                       <span className="block italic text-[15px] text-mute truncate">{r.subtitle}</span>
                     )}
                   </span>
-                  <span className="font-mono text-[11px] tracking-[0.14em] text-mute">{r.type}</span>
+                  <span className={cn('font-mono text-[11px] tracking-[0.14em]', r.type === 'CO-PILOT' ? 'text-holo' : 'text-mute')}>{r.type}</span>
                 </button>
               ))}
             </>

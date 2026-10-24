@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { useCampaign } from '@/components/campaign/campaign-provider';
 import { CampaignSwitcher } from '@/components/campaign-switcher';
 import { ObsidianImportDialog } from '@/components/obsidian-import-dialog';
+import { CampaignOverview } from '@/components/forge/campaign-overview';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CommandBar } from '@/components/shell/command-bar';
 import { PaletteSwitcher, ThemeToggle } from '@/components/shell/appearance';
 import { GLYPH } from '@/lib/pages';
@@ -30,8 +32,9 @@ function sectionOf(pathname: string): Section {
 export function Header() {
   const pathname = usePathname();
   const section = sectionOf(pathname);
-  const { campaigns, activeCampaign, setActiveCampaignId, nextIssueNumber } = useCampaign();
+  const { campaigns, activeCampaign, setActiveCampaignId, nextIssueNumber, codex } = useCampaign();
   const [importOpen, setImportOpen] = React.useState(false);
+  const [overviewOpen, setOverviewOpen] = React.useState(false);
 
   const tab = (href: string, active: boolean, activeClass: string, children: React.ReactNode) => (
     <Link
@@ -60,6 +63,7 @@ export function Header() {
             activeCampaignId={activeCampaign?.id ?? null}
             onSelect={setActiveCampaignId}
             onImportObsidian={() => setImportOpen(true)}
+            onOverview={() => setOverviewOpen(true)}
           />
         </div>
 
@@ -97,6 +101,17 @@ export function Header() {
           nextSessionNumber={nextIssueNumber}
           onImported={() => setImportOpen(false)}
         />
+      )}
+      {activeCampaign && (
+        <Dialog open={overviewOpen} onOpenChange={setOverviewOpen}>
+          <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>The story so far</DialogTitle>
+              <DialogDescription>Campaign summary, quick session log and export.</DialogDescription>
+            </DialogHeader>
+            <CampaignOverview campaign={activeCampaign} codex={codex} />
+          </DialogContent>
+        </Dialog>
       )}
     </header>
   );

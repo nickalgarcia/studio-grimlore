@@ -51,7 +51,7 @@ function NextIssueCard() {
         </Link>
       </div>
       <Link
-        href="/table"
+        href="/table?run=1"
         className="flex-none w-24 flex flex-col items-center justify-center bg-spot text-spot-on border-l-[3px] border-ink font-headline font-black text-[22px] leading-none hover:bg-ink hover:text-bg"
       >
         RUN<span aria-hidden="true">→</span>

@@ -1,26 +1,7 @@
 'use server';
 
-import {
-  generateContextSensitiveIdeas,
-  type GenerateContextSensitiveIdeasInput,
-  type GenerateContextSensitiveIdeasOutput,
-} from '@/ai/flows/generate-context-sensitive-ideas';
-
-import {
-  generateInspirationPrompt,
-  lookupRule,
-  type InspirationPromptOutput,
-  type LookupRuleOutput,
-} from '@/ai/flows/lookup-and-inspiration-flows';
-
-import { generateNpc, type GenerateNpcInput, type GenerateNpcOutput } from '@/ai/flows/generate-npc-flow';
-
-import {
-  runLiveSession,
-  type LiveSessionInput,
-  type LiveSessionOutput,
-  type LiveSessionMessage,
-} from '@/ai/flows/live-session-flow';
+// The co-pilot streams through app/api/live-session; only its message type is shared here.
+import type { LiveSessionMessage } from '@/ai/flows/live-session-flow';
 
 import { summarizeCampaign, type SummarizeCampaignInput, type SummarizeCampaignOutput } from '@/ai/flows/summarize-campaign-flow';
 
@@ -49,7 +30,7 @@ import { requireUser, authErrorMessage } from '@/firebase/require-user';
 import { FlowInputError } from '@/ai/errors';
 
 // Re-export types so components can import from one place
-export type { DraftBeatsOutput, DraftPageOutput, GenerateContextSensitiveIdeasOutput, InspirationPromptOutput, LookupRuleOutput, GenerateNpcOutput, LiveSessionOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
+export type { DraftBeatsOutput, DraftPageOutput, LiveSessionMessage, GenerateSessionRecapOutput, SessionPrepOutput, ParseObsidianSessionOutput };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Gate
@@ -88,94 +69,6 @@ async function gated<T>(
     console.error(`[${label}]`, e);
     return { data: null, error: failure };
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cache (inspiration only — rules and live session should not cache)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const CACHE_TTL_MS = 5 * 60 * 1000;
-type CacheEntry<T> = { value: T; expires: number };
-const inspirationCache = new Map<string, CacheEntry<InspirationPromptOutput>>();
-
-function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, value: T) {
-  cache.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
-  return value;
-}
-
-function getCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() > entry.expires) { cache.delete(key); return null; }
-  return entry.value;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Idea Generator (one-shot, campaign-aware)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function getContextualIdeas(
-  idToken: string,
-  input: GenerateContextSensitiveIdeasInput
-): Promise<Result<GenerateContextSensitiveIdeasOutput>> {
-  return gated(idToken, 'getContextualIdeas', 'Failed to generate ideas. Please try again.', async () => {
-    if (!input.partyActions.trim()) {
-      throw new InputError('Please describe what is happening at the table.');
-    }
-    return generateContextSensitiveIdeas(input);
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Live Session (conversational, maintains message history)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function getLiveSessionResponse(
-  idToken: string,
-  input: LiveSessionInput
-): Promise<Result<LiveSessionOutput>> {
-  return gated(idToken, 'getLiveSessionResponse', 'Failed to get a response. Please try again.', () =>
-    runLiveSession(input)
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inspiration (cached)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function getInspiration(idToken: string): Promise<Result<InspirationPromptOutput>> {
-  return gated(idToken, 'getInspiration', 'Failed to generate inspiration. Please try again.', async () => {
-    const cached = getCache(inspirationCache, 'inspiration');
-    if (cached) return cached;
-    return setCache(inspirationCache, 'inspiration', await generateInspirationPrompt());
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Rule Lookup
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function getRuleInfo(
-  idToken: string,
-  term: string
-): Promise<Result<LookupRuleOutput>> {
-  return gated(idToken, 'getRuleInfo', 'Failed to look up rule. Please try again.', async () => {
-    if (!term.trim()) throw new InputError('Please enter a term to look up.');
-    return lookupRule({ term });
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NPC Generator
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function getNpc(
-  idToken: string,
-  input: GenerateNpcInput
-): Promise<Result<GenerateNpcOutput>> {
-  return gated(idToken, 'getNpc', 'Failed to generate NPC. Please try again.', () =>
-    generateNpc(input)
-  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

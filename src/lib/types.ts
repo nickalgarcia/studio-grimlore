@@ -262,6 +262,11 @@ export type LiveSessionState = {
   updatedAt?: FieldValue | string;
   /** Notes from the command bar's `+` capture. Persisted with the rest of this doc. */
   captures?: Capture[];
+  /**
+   * Character ids the DM marked SPOTLIT tonight. Stamped onto each character's
+   * `lastSpotlightSession` at END SESSION, which is what Prep's OVERDUE reads.
+   */
+  spotlit?: string[];
 };
 
 export type PrepSceneRole = 'open' | 'pressure' | 'turn' | 'cliffhanger';
@@ -274,6 +279,7 @@ export type PrepScene = {
   beat: string;
   /** NPC or PC ids. The flow emits names; the client maps them to ids. */
   castIds: string[];
+  imageUrl?: string;
 };
 
 /**
@@ -306,6 +312,8 @@ export type SessionPrepState = {
   } | null;
   /** When the next issue is due to be played. Client ISO string. */
   scheduledAt?: string;
+  /** Art dropped on Prep's dashed cover slot; becomes the issue's cover at END SESSION. */
+  coverUrl?: string;
   updatedAt?: FieldValue | string;
 };
 

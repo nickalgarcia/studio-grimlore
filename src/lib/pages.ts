@@ -65,8 +65,6 @@ export function issueHref(n: number): string {
   return `/issue/${n}`;
 }
 
-export function rulesHref(opts?: { anchor?: string; q?: string }): string {
-  const q = opts?.q ? `?q=${encodeURIComponent(opts.q)}` : '';
-  const hash = opts?.anchor ? `#${opts.anchor}` : '';
-  return `/rules${q}${hash}`;
+export function rulesHref(opts?: { anchor?: string }): string {
+  return `/rules${opts?.anchor ? `#${opts.anchor}` : ''}`;
 }

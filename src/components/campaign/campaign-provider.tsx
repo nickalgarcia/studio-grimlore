@@ -1,20 +1,19 @@
 'use client';
 
 import * as React from 'react';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import {
-  useCollection, useDoc, useFirestore, useMemoFirebase, useThreads, useUser, type WithId,
+  useCollection, useCurrentScene, useDoc, useFirestore, useMemoFirebase, useRules, useThreads, useUser, type WithId,
 } from '@/firebase';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { useToast } from '@/hooks/use-toast';
 import { useCodexEntries, type UseCodexEntriesResult } from '@/components/codex/use-codex-entries';
+import { useCombat, type CombatApi } from '@/components/table/use-combat';
 import { useLiveSession } from '@/components/table/use-live-session';
 import {
   createMatcher, indexCampaign, mentionTargets, type CampaignMentions, type Matcher,
 } from '@/lib/mentions';
 import { buildLanes, type LoomLane } from '@/lib/loom';
 import { pageHref, pageKindOf } from '@/lib/pages';
-import type { Campaign, SavedConcept, Session, SessionPrepState, Thread } from '@/lib/types';
+import type { Campaign, Npc, Rule, Scene, Session, SessionPrepState, Thread } from '@/lib/types';
 
 const CAMPAIGN_KEY = 'grimlore.campaign';
 
@@ -35,7 +34,7 @@ export type CampaignContextValue = {
   activeCampaign: WithId<Campaign> | null;
   setActiveCampaignId: (id: string | null) => void;
 
-  /** Every entity collection, normalized. Still the v3 shape; Stage 5 replaces it. */
+  /** Every entity collection, normalized. */
   codex: UseCodexEntriesResult;
   threads: WithId<Thread>[] | null;
 
@@ -46,6 +45,13 @@ export type CampaignContextValue = {
   nextIssueNumber: number;
   prep: SessionPrepState | null;
 
+  /** The newest scene is the current one. */
+  scene: WithId<Scene> | null;
+  onStage: WithId<Npc>[];
+
+  /** House rules plus the 5e core, with pinned / tonight state. Per user. */
+  rules: Rule[];
+
   matcher: Matcher;
   /** Canonical names a drafted recap may [[link]]: every entity and thread title. */
   linkNames: string[];
@@ -54,10 +60,11 @@ export type CampaignContextValue = {
 
   /** Owned here, not by Table, so `+` capture works from every screen. */
   live: ReturnType<typeof useLiveSession>;
+  /** Owned here so the turn strip and the setup sheet share one encounter across routes. */
+  combat: CombatApi;
 
-  /** Where an entity id lives, for callers that only have the id (v3 components). */
+  /** Where an entity id lives, for callers that only have the id. */
   hrefForEntryId: (id: string) => string | null;
-  saveConcept: (concept: Omit<SavedConcept, 'id' | 'createdAt' | 'userId'>) => void;
 };
 
 const CampaignContext = React.createContext<CampaignContextValue | null>(null);
@@ -68,17 +75,18 @@ export function useCampaign(): CampaignContextValue {
   return ctx;
 }
 
+type ListState = Pick<CampaignContextValue, 'campaigns' | 'campaignsLoading' | 'activeCampaign' | 'setActiveCampaignId'>;
+
 /**
  * Everything the screens share, subscribed once.
  *
  * It sits in the `(app)` layout, which the App Router keeps mounted across
- * navigation, so moving between Story, Issue and Table never re-opens a
- * listener or drops the live session mid-stream.
+ * navigation, so moving between screens never re-opens a listener or drops
+ * the live session mid-stream.
  */
 export function CampaignProvider({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const campaignsRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -99,8 +107,7 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     writeStoredCampaign(id);
   }, []);
 
-  // Fall back to the first campaign when nothing is stored or the stored one
-  // was deleted.
+  // Fall back to the first campaign when nothing is stored or the stored one was deleted.
   React.useEffect(() => {
     if (!restored || campaignsLoading || !campaigns) return;
     if (activeCampaignId && campaigns.some(c => c.id === activeCampaignId)) return;
@@ -111,10 +118,29 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     () => campaigns?.find(c => c.id === activeCampaignId) ?? null,
     [campaigns, activeCampaignId],
   );
+
+  const list: ListState = { campaigns, campaignsLoading, activeCampaign, setActiveCampaignId };
+
+  // Keyed by campaign: every per-campaign hook below remounts on a switch.
+  // The live session and combat hydrate once per mount; without the remount,
+  // one campaign's notes and encounter would be saved into the next one's.
+  return (
+    <CampaignScope key={activeCampaign?.id ?? 'none'} list={list}>
+      {children}
+    </CampaignScope>
+  );
+}
+
+function CampaignScope({ list, children }: { list: ListState; children: React.ReactNode }) {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { activeCampaign } = list;
   const campaignId = activeCampaign?.id ?? null;
 
   const codex = useCodexEntries(activeCampaign);
   const { data: threads } = useThreads(campaignId);
+  const { rules } = useRules();
+  const { data: scene } = useCurrentScene(campaignId);
 
   const prepRef = useMemoFirebase(() => {
     if (!user || !campaignId) return null;
@@ -122,11 +148,19 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
   }, [user, firestore, campaignId]);
   const { data: prep } = useDoc<SessionPrepState>(prepRef);
 
+  const onStage = React.useMemo(() => {
+    const ids = new Set(scene?.onStageNpcIds ?? []);
+    return (codex.raw.npcs ?? []).filter(n => ids.has(n.id));
+  }, [scene?.onStageNpcIds, codex.raw.npcs]);
+
   const live = useLiveSession(campaignId, {
     campaign: activeCampaign,
     sessions: codex.raw.sessions,
     characters: codex.raw.characters,
+    scene,
+    onStage,
   });
+  const combat = useCombat(campaignId);
 
   const issues = React.useMemo(
     () => [...(codex.raw.sessions ?? [])].sort((a, b) => a.sessionNumber - b.sessionNumber),
@@ -155,48 +189,22 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     if (entry) {
       const kind = pageKindOf(entry.kind);
       if (kind) return pageHref({ kind, id });
-      const s = entry.source as Session;
-      return `/issue/${s.sessionNumber}`;
+      return `/issue/${(entry.source as Session).sessionNumber}`;
     }
     if (threads?.some(t => t.id === id)) return pageHref({ kind: 'thread', id });
     return null;
   }, [codex.entries, threads]);
 
-  const conceptsRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return collection(firestore, 'users', user.uid, 'concepts');
-  }, [user, firestore]);
-
-  // Moved from the v3 shell for the Forge generators, which /prep mounts until
-  // Stage 6. Written conditionally because Firestore rejects `undefined`.
-  const saveConcept = React.useCallback(
-    (concept: Omit<SavedConcept, 'id' | 'createdAt' | 'userId'>) => {
-      if (!conceptsRef || !user) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Not signed in.' });
-        return;
-      }
-      const context = concept.context ?? activeCampaign?.name;
-      addDocumentNonBlocking(conceptsRef, {
-        ...concept,
-        ...(context ? { context } : {}),
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-      })
-        .then(() => toast({ title: 'Saved as a note' }))
-        .catch(() => toast({ variant: 'destructive', title: 'Could not save concept' }));
-    },
-    [conceptsRef, user, toast, activeCampaign?.name],
-  );
-
-  const value = React.useMemo<CampaignContextValue>(() => ({
-    campaigns, campaignsLoading, activeCampaign, setActiveCampaignId,
+  // `live`, `combat` and `codex` are fresh objects every render, so this value
+  // changes on every render too (a streamed token re-renders consumers). That
+  // was already true of the v3 shell; split the context if it ever shows up
+  // in a profile.
+  const value: CampaignContextValue = {
+    ...list,
     codex, threads, issues, latestIssue, nextIssueNumber, prep: prep ?? null,
-    matcher, linkNames, mentions, lanes, live, hrefForEntryId, saveConcept,
-  }), [
-    campaigns, campaignsLoading, activeCampaign, setActiveCampaignId,
-    codex, threads, issues, latestIssue, nextIssueNumber, prep,
-    matcher, linkNames, mentions, lanes, live, hrefForEntryId, saveConcept,
-  ]);
+    scene, onStage, rules,
+    matcher, linkNames, mentions, lanes, live, combat, hrefForEntryId,
+  };
 
   return <CampaignContext.Provider value={value}>{children}</CampaignContext.Provider>;
 }

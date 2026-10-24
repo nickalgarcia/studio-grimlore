@@ -1,18 +1,11 @@
 /**
- * @fileOverview The Live Session Assistant — a conversational, campaign-aware AI co-DM.
+ * @fileOverview The co-pilot's request shape and system prompt.
  *
- * This is the core new feature. Unlike the idea generator (one-shot prompts),
- * this flow maintains a conversation history so the DM can ask follow-up questions,
- * iterate on ideas, and get increasingly specific help — all grounded in campaign context.
- *
- * The campaign context is injected once as the system prompt, then the DM types
- * natural language requests like:
- *   "The rogue just pickpocketed a Sundering agent — what happens?"
- *   "Give me a tense NPC for the market district of Mirathen"
- *   "How would Kazar Velthorn react if he found out the party is here?"
+ * The conversation itself streams through app/api/live-session/route.ts,
+ * which validates against LiveSessionInputSchema and builds the system prompt
+ * from the campaign context with buildCampaignSystemPrompt.
  */
 
-import { callClaude } from '@/ai/anthropic-client';
 import { z } from 'zod';
 
 export const LiveSessionMessageSchema = z.object({
@@ -44,10 +37,6 @@ export const LiveSessionInputSchema = z.object({
   }),
 });
 export type LiveSessionInput = z.infer<typeof LiveSessionInputSchema>;
-
-export type LiveSessionOutput = {
-  response: string;
-};
 
 export function buildCampaignSystemPrompt(ctx: LiveSessionInput['campaignContext']): string {
   const sections: string[] = [
@@ -99,24 +88,4 @@ export function buildCampaignSystemPrompt(ctx: LiveSessionInput['campaignContext
   }
 
   return sections.join('\n');
-}
-
-export async function runLiveSession(
-  input: LiveSessionInput
-): Promise<LiveSessionOutput> {
-  const parsed = LiveSessionInputSchema.safeParse(input);
-  if (!parsed.success) {
-    throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
-  }
-
-  const systemPrompt = buildCampaignSystemPrompt(parsed.data.campaignContext);
-
-  const response = await callClaude({
-    system: systemPrompt,
-    messages: parsed.data.messages,
-    temperature: 0.75,
-    max_tokens: 1024,
-  });
-
-  return { response };
 }

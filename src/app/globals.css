@@ -123,30 +123,6 @@
     --input: var(--ink);
     --ring: var(--ink);
     --radius: 0rem;
-
-    /* ── Temporary: v3 token names, aliased onto the new palette ──
-       Only the v3 screens still mounted as stand-ins (Table, Forge, the
-       Codex detail and dialogs) use these. They go when the last of those
-       screens is replaced in Stage 6; don't use them in new code. */
-    --bone: var(--ink);
-    --bone-body: var(--ink);
-    --bone-soft: var(--ink);
-    --bone-dim: var(--mute);
-    --bone-faint: var(--mute);
-    --bone-faintest: var(--mute);
-    --oxblood: var(--spot);
-    --oxblood-bright: var(--spot);
-    --oxblood-pale: var(--spot);
-    --violet: var(--holo);
-    --violet-bright: var(--holo);
-    --violet-text: var(--holo);
-    --violet-dim: var(--mute);
-    --brass: var(--sand);
-    --kind-npc: var(--ink);
-    --kind-place: var(--mute);
-    --kind-faction: var(--ink);
-    --kind-item: var(--sand);
-    --kind-session: var(--mute);
   }
 }
 
@@ -181,29 +157,6 @@
 }
 
 @layer components {
-  /* Micro label: JetBrains Mono 700, 11px (the floor), tracked, uppercase. */
-  .label-forge {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: hsl(var(--mute));
-  }
-
-  /* v3 surfaces, flattened: no blur shadows in this design. */
-  .surface-card {
-    background: hsl(var(--panel));
-    border: 1px solid var(--line);
-  }
-  .surface-card-hover:hover {
-    border-color: var(--line2);
-  }
-  .surface-panel {
-    background: hsl(var(--bg));
-    border: 1px solid var(--line);
-  }
-
   /* Halftone dots, only inside "word" panels. Put on an overlay element. */
   .halftone {
     background-image: radial-gradient(hsl(var(--spot-on)) 1.1px, transparent 1.6px);

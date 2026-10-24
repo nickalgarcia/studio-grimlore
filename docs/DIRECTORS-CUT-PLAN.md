@@ -291,7 +291,19 @@ axis), and `firebase/storage` is already in the `firebase` package.
   Original scope: Longbox (Storage covers, scroll to newest), Loom (geometry,
   solid/dashed rule, NEXT rings, hover dimming), issue panel and strip, Issue reader with solid and
   dotted links, the Page template (secret box, history, tick strip, mentioned-in), page editor (D1).
-- [ ] **Stage 6 — Rules, Prep, Table.** Rulebook, Prep (The Pull writes `Thread.pullNext`), Table
+- [x] **Stage 6 — Rules, Prep, Table.** *Done 2026-10-23, pending review.* Rulebook with house rules
+  (`users/{uid}/rules`), 14 SRD-summarised core rules and all 16 conditions as constants, filters, sticky
+  index, pin and TONIGHT flags. Prep renders the drafted script (the prep flow now emits four scenes and picks
+  threads by id); THE PULL writes `Thread.pullNext`; scenes can be staged onto the Table. Table: fixed-height
+  cockpit, live bar (READY → START, or RUN's `?run=1`), turn strip on `useCombat` (moved into the provider,
+  plus ← BACK), comic scene panels with the blurred secret, on stage, At hand, Captured tonight, free notes,
+  holo co-pilot (U5), 7-across dock with SPOTLIT and click-to-edit HP (U4), END SESSION (U1) with the
+  "Draft recap now?" toast. The provider now remounts all per-campaign state on a campaign switch (fixes
+  a latent v3 bug where one campaign's live session could be saved into another). Deleted: v3 Table and
+  Forge modes, scene stage, session prep, idea and inspiration generators, and the unused server actions
+  getContextualIdeas, getInspiration, getRuleInfo, getNpc, getLiveSessionResponse. The v3 token aliases are
+  gone. Still stand-ins pending designs: the editing dialogs, the combat SET UP sheet and the campaign menu.
+  Original scope: Rulebook, Prep (The Pull writes `Thread.pullNext`), Table
   (turn strip via `use-combat`, scene panels and blurred secret, on-stage, At hand, Captured tonight,
   co-pilot with U5, 7-across dock with U4, END SESSION with U1, 11px floor with U6, the 1100px
   notes with U7). Tick U1, U3, U4, U5, U6, U7 and U2 in `REVIEW-2026-10.md`. Update `CLAUDE.md`.

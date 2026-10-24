@@ -8,30 +8,37 @@
 
 import { callClaudeJson } from '@/ai/anthropic-client';
 import { z } from 'zod';
+import { FlowInputError } from '@/ai/errors';
 
 export const SessionPrepInputSchema = z.object({
   // Campaign identity
-  campaignName: z.string(),
-  campaignDescription: z.string().optional(),
+  campaignName: z.string().max(200),
+  campaignDescription: z.string().max(2_000).optional(),
 
   // What the DM wants from this session
-  sessionGoals: z.string().describe('What do you want to accomplish this session? Can be vague — "explore Mirathen" or specific — "reveal the Circle agent".'),
-  location: z.string().optional().describe('Where does the session take place?'),
-  tone: z.string().optional().describe('What feeling should this session have? e.g. "tense investigation", "action-heavy", "emotional character moment"'),
-  extraNotes: z.string().optional().describe('Anything else to factor in — player absences, pacing notes, things to avoid.'),
+  sessionGoals: z.string().min(1, 'Tell the co-pilot what this issue is for.').max(2_000).describe('What do you want to accomplish this session? Can be vague — "explore Mirathen" or specific — "reveal the Circle agent".'),
+  location: z.string().max(300).optional().describe('Where does the session take place?'),
+  tone: z.string().max(300).optional().describe('What feeling should this session have? e.g. "tense investigation", "action-heavy", "emotional character moment"'),
+  extraNotes: z.string().max(2_000).optional().describe('Anything else to factor in — player absences, pacing notes, things to avoid.'),
 
   // Campaign context
-  sessionLog: z.string().optional().describe('Recent session history, newest first.'),
+  sessionLog: z.string().max(24_000).optional().describe('Recent session history, newest first.'),
   characters: z.array(z.object({
-    name: z.string(),
-    class: z.string().optional(),
-    backstory: z.string().optional(),
-  })).optional(),
+    name: z.string().max(120),
+    class: z.string().max(120).optional(),
+    backstory: z.string().max(4_000).optional(),
+  })).max(12).optional(),
   activeNpcs: z.array(z.object({
-    name: z.string(),
-    description: z.string().optional(),
-  })).optional(),
-  campaignSummary: z.string().optional(),
+    name: z.string().max(160),
+    description: z.string().max(1_000).optional(),
+  })).max(40).optional(),
+  campaignSummary: z.string().max(4_000).optional(),
+  /** Unresolved threads, so the prep can pick which to pull by id. */
+  openThreads: z.array(z.object({
+    id: z.string().max(64),
+    title: z.string().max(300),
+    status: z.string().max(20).optional(),
+  })).max(40).optional(),
 });
 export type SessionPrepInput = z.infer<typeof SessionPrepInputSchema>;
 
@@ -53,7 +60,16 @@ export const SessionPrepOutputSchema = z.object({
     opportunity: z.string(),
   })).describe('One moment per character that could spotlight their arc or pressure point.'),
   prepReminders: z.array(z.string()).describe('4-6 short DM reminders — tone cues, pacing notes, things not to forget.'),
+  /** Ids from `openThreads` worth pulling, then the titles of any new threads it suggests. */
   openThreadsToPull: z.array(z.string()).describe('2-3 unresolved threads from previous sessions that could naturally surface this session.'),
+  /** The comic script: four scenes. `cast` is names; the client maps them to page ids. */
+  scenes: z.array(z.object({
+    role: z.enum(['open', 'pressure', 'turn', 'cliffhanger']),
+    title: z.string(),
+    where: z.string(),
+    beat: z.string(),
+    cast: z.array(z.string()),
+  })),
 });
 export type SessionPrepOutput = z.infer<typeof SessionPrepOutputSchema>;
 
@@ -61,11 +77,11 @@ export async function generateSessionPrep(
   input: SessionPrepInput
 ): Promise<SessionPrepOutput> {
   const parsed = SessionPrepInputSchema.safeParse(input);
-  if (!parsed.success) throw new Error(parsed.error.errors[0]?.message ?? 'Invalid input');
+  if (!parsed.success) throw new FlowInputError(parsed.error.errors[0]?.message ?? 'Invalid input');
 
   const {
     campaignName, campaignDescription, sessionGoals, location,
-    tone, extraNotes, sessionLog, characters, activeNpcs, campaignSummary,
+    tone, extraNotes, sessionLog, characters, activeNpcs, campaignSummary, openThreads,
   } = parsed.data;
 
   const sections: string[] = [`CAMPAIGN: ${campaignName}`];
@@ -84,6 +100,10 @@ export async function generateSessionPrep(
     sections.push(`ACTIVE NPCs:\n${activeNpcs
       .map(n => `• ${n.name}${n.description ? `: ${n.description.slice(0, 150)}` : ''}`)
       .join('\n')}`);
+  }
+
+  if (openThreads?.length) {
+    sections.push(`OPEN THREADS (id: title):\n${openThreads.map(t => `${t.id}: ${t.title}${t.status ? ` [${t.status}]` : ''}`).join('\n')}`);
   }
 
   sections.push(`\nDM'S SESSION GOALS:\n${sessionGoals}`);
@@ -117,8 +137,17 @@ Return ONLY this JSON object, nothing else — no preamble, no markdown fences:
     { "character": "<pc name>", "opportunity": "<one sentence specific moment>" }
   ],
   "prepReminders": ["<short note>", "<short note>", "<short note>", "<short note>"],
-  "openThreadsToPull": ["<one sentence thread>", "<one sentence thread>"]
-}`;
+  "openThreadsToPull": ["<id from OPEN THREADS>", "<id from OPEN THREADS>"],
+  "newThreads": ["<only if no listed thread fits: a one-sentence new thread>"],
+  "scenes": [
+    { "role": "open", "title": "<2-5 words>", "where": "<place · time of day>", "beat": "<1-2 sentences>", "cast": ["<names of NPCs or PCs in the scene>"] },
+    { "role": "pressure", "title": "...", "where": "...", "beat": "...", "cast": [] },
+    { "role": "turn", "title": "...", "where": "...", "beat": "...", "cast": [] },
+    { "role": "cliffhanger", "title": "...", "where": "...", "beat": "...", "cast": [] }
+  ]
+}
+The four scenes are the issue's script, in order. Scene 1 is the opening scene above, as a card.
+For openThreadsToPull use the ids from OPEN THREADS exactly; put genuinely new threads in newThreads.`;
 
   const result = await callClaudeJson<{
     sessionTitle?: string;
@@ -129,6 +158,8 @@ Return ONLY this JSON object, nothing else — no preamble, no markdown fences:
     characterSpotlights?: Array<{ character: string; opportunity: string }>;
     prepReminders?: string[];
     openThreadsToPull?: string[];
+    newThreads?: string[];
+    scenes?: Array<{ role?: string; title?: string; where?: string; beat?: string; cast?: string[] }>;
   }>({
     system: `You are an expert Dungeon Master helping another DM prepare for their next session.
 Your prep documents are specific, immediately usable, and grounded in the campaign's actual history.
@@ -136,7 +167,7 @@ Be CONCISE — every field should be 1-3 sentences maximum. Brevity is a feature
 Return ONLY valid JSON. No explanation, no markdown fences, no text before or after the JSON object.`,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.75,
-    max_tokens: 2500,
+    max_tokens: 3200,
   });
 
   return {
@@ -147,6 +178,19 @@ Return ONLY valid JSON. No explanation, no markdown fences, no text before or af
     npcMotivations: Array.isArray(result.npcMotivations) ? result.npcMotivations : [],
     characterSpotlights: Array.isArray(result.characterSpotlights) ? result.characterSpotlights : [],
     prepReminders: Array.isArray(result.prepReminders) ? result.prepReminders : [],
-    openThreadsToPull: Array.isArray(result.openThreadsToPull) ? result.openThreadsToPull : [],
+    // Listed ids first, then new-thread titles. Readers treat a value that
+    // matches no thread id as a title (see SessionPrepState).
+    openThreadsToPull: [
+      ...(Array.isArray(result.openThreadsToPull) ? result.openThreadsToPull : [])
+        .filter(id => !openThreads || openThreads.some(t => t.id === id)),
+      ...(Array.isArray(result.newThreads) ? result.newThreads : []).filter(t => typeof t === 'string' && t.trim()),
+    ].slice(0, 6),
+    scenes: (Array.isArray(result.scenes) ? result.scenes : []).slice(0, 4).map((sc, i) => ({
+      role: (['open', 'pressure', 'turn', 'cliffhanger'] as const).find(r => r === sc.role) ?? (['open', 'pressure', 'turn', 'cliffhanger'] as const)[i],
+      title: String(sc.title ?? '').slice(0, 120),
+      where: String(sc.where ?? '').slice(0, 160),
+      beat: String(sc.beat ?? '').slice(0, 600),
+      cast: Array.isArray(sc.cast) ? sc.cast.filter(c => typeof c === 'string').slice(0, 10) : [],
+    })),
   };
 }

@@ -103,7 +103,7 @@ function Issue() {
           {next
             ? <Link href={issueHref(next.sessionNumber)} className={navButton}>#{next.sessionNumber} →</Link>
             : issue.id === latestIssue?.id && (
-              <Link href="/table" className={cn(navButton, 'bg-spot text-spot-on border-spot hover:border-spot')}>
+              <Link href="/table?run=1" className={cn(navButton, 'bg-spot text-spot-on border-spot hover:border-spot')}>
                 RUN #{nextIssueNumber} →
               </Link>
             )}

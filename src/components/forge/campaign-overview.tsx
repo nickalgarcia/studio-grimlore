@@ -180,12 +180,12 @@ export function CampaignOverview({
   return (
     <div className="grid lg:grid-cols-3 gap-6 items-start">
       <div className="lg:col-span-2 space-y-6">
-        <Card className="surface-card">
+        <Card className="bg-panel border border-line">
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-bone-body flex items-center gap-2.5">
-                  <BrainCircuit className="h-4 w-4 text-oxblood-bright" /> The Story So Far
+                <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-ink flex items-center gap-2.5">
+                  <BrainCircuit className="h-4 w-4 text-spot" /> The Story So Far
                 </CardTitle>
                 <CardDescription>An AI-generated summary of your campaign&apos;s progress.</CardDescription>
               </div>
@@ -211,18 +211,18 @@ export function CampaignOverview({
           </CardHeader>
           <CardContent className="text-[14px]">
             {currentCampaign.aiSummary ? (
-              <p className="whitespace-pre-wrap pt-1 text-[14px] leading-[1.62] text-bone-soft">{currentCampaign.aiSummary}</p>
+              <p className="whitespace-pre-wrap pt-1 text-[14px] leading-[1.62] text-ink">{currentCampaign.aiSummary}</p>
             ) : (
-              <p className="text-[13px] text-bone-faint">
+              <p className="text-[13px] text-mute">
                 No summary yet. Log a session, then choose &ldquo;Update summary&rdquo;.
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="surface-card">
+        <Card className="bg-panel border border-line">
           <CardHeader>
-            <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-bone-body">Log New Session</CardTitle>
+            <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-ink">Log New Session</CardTitle>
             <CardDescription className="font-body tracking-wider">
               Add notes from your latest adventure.
             </CardDescription>
@@ -247,9 +247,9 @@ export function CampaignOverview({
         </Card>
       </div>
 
-      <Card className="surface-card sticky top-4">
+      <Card className="bg-panel border border-line sticky top-4">
         <CardHeader>
-          <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-bone-body">Campaign Ideas</CardTitle>
+          <CardTitle className="font-headline text-[16px] font-bold uppercase tracking-wide text-ink">Campaign Ideas</CardTitle>
           <CardDescription className="font-body tracking-wider">Generated for this campaign.</CardDescription>
         </CardHeader>
         <CardContent className="font-body">
@@ -257,19 +257,19 @@ export function CampaignOverview({
             <div className="space-y-6">
               {Object.entries(groupedConcepts).map(([type, concepts]) => (
                 <div key={type}>
-                  <h4 className="font-headline flex items-center gap-2 mb-2 text-[14px] font-bold uppercase tracking-wide text-bone-body">
+                  <h4 className="font-headline flex items-center gap-2 mb-2 text-[14px] font-bold uppercase tracking-wide text-ink">
                     {iconMap[type]} {type}s
                   </h4>
                   <div className="space-y-3 text-sm border-l-2 border-accent/20 pl-4 ml-2">
                     {concepts.map(c => (
-                      <p key={c.id} className="text-[13px] text-bone-faint">{c.content}</p>
+                      <p key={c.id} className="text-[13px] text-mute">{c.content}</p>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[13px] text-bone-faint">
+            <p className="text-[13px] text-mute">
               No ideas saved yet. Use Generate.
             </p>
           )}

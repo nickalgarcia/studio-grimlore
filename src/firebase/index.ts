@@ -50,6 +50,8 @@ export * from './firestore/use-scenes';
 export * from './firestore/use-threads';
 export * from './firestore/use-sessions';
 export * from './firestore/use-entity-writer';
+export * from './firestore/use-rules';
+export * from './firestore/use-session-prep';
 export * from './storage';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';

@@ -12,26 +12,28 @@ import { CampaignManager } from '@/components/campaign-manager';
 import { MigrateDialog } from '@/components/migrate-dialog';
 import { needsMigration } from '@/lib/migrate';
 import { signOutUser, useAuth, useUser } from '@/firebase';
-import { ArrowUpCircle, Check, ChevronDown, LayoutGrid, LogOut, Upload } from 'lucide-react';
+import { ArrowUpCircle, BookOpen, Check, ChevronDown, LayoutGrid, LogOut, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Campaign } from '@/lib/types';
 
 /**
- * The oxblood slab at the head of the status bar.
+ * The campaign menu beside the wordmark: a stand-in until the wordmark menu
+ * design arrives.
  *
- * It carries three jobs the redesign left homeless: naming the active
- * campaign, switching or creating one (the design shows the name but no way to
- * change it), and sign-out — which lost its home when the app header was
- * replaced by the status bar.
+ * It holds the jobs the Director's Cut header has no place for yet: naming
+ * and switching campaigns, the campaign overview, Obsidian import, the data
+ * upgrade, and sign-out.
  */
 export function CampaignSwitcher({
-  campaigns, activeCampaignId, onSelect, onImportObsidian,
+  campaigns, activeCampaignId, onSelect, onImportObsidian, onOverview,
 }: {
   campaigns: Campaign[];
   activeCampaignId: string | null;
   onSelect: (id: string | null) => void;
   /** The Codex screen that held the import is gone; it waits here for the wordmark menu design. */
   onImportObsidian?: () => void;
+  /** Story so far, session log and export: the v3 Forge Overview, waiting for the menu design. */
+  onOverview?: () => void;
 }) {
   const auth = useAuth();
   const { user } = useUser();
@@ -54,7 +56,7 @@ export function CampaignSwitcher({
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" className="w-64">
-          <DropdownMenuLabel className="label-forge">Campaigns</DropdownMenuLabel>
+          <DropdownMenuLabel className="font-mono font-bold text-[11px] tracking-[0.16em] uppercase text-mute">Campaigns</DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-border/[0.09]" />
           {campaigns.length === 0 ? (
             <DropdownMenuItem disabled>No campaigns yet</DropdownMenuItem>
@@ -64,7 +66,7 @@ export function CampaignSwitcher({
                 <Check
                   className={cn(
                     'h-3.5 w-3.5 flex-shrink-0',
-                    c.id === activeCampaignId ? 'opacity-100 text-oxblood-bright' : 'opacity-0',
+                    c.id === activeCampaignId ? 'opacity-100 text-spot' : 'opacity-0',
                   )}
                 />
                 <span className="truncate">{c.name}</span>
@@ -76,6 +78,12 @@ export function CampaignSwitcher({
             <LayoutGrid className="h-3.5 w-3.5" />
             All campaigns…
           </DropdownMenuItem>
+          {active && onOverview && (
+            <DropdownMenuItem onSelect={onOverview} className="gap-2">
+              <BookOpen className="h-3.5 w-3.5" />
+              Campaign overview…
+            </DropdownMenuItem>
+          )}
           {active && onImportObsidian && (
             <DropdownMenuItem onSelect={onImportObsidian} className="gap-2">
               <Upload className="h-3.5 w-3.5" />
@@ -89,10 +97,10 @@ export function CampaignSwitcher({
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator className="bg-border/[0.09]" />
-          <DropdownMenuItem disabled className="font-mono text-[10px] tracking-wider opacity-60">
+          <DropdownMenuItem disabled className="font-mono text-[11px] tracking-wider opacity-60">
             {user?.email ?? ''}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => signOutUser(auth)} className="gap-2 text-oxblood-bright">
+          <DropdownMenuItem onSelect={() => signOutUser(auth)} className="gap-2 text-spot">
             <LogOut className="h-3.5 w-3.5" />
             Sign out
           </DropdownMenuItem>
@@ -100,12 +108,12 @@ export function CampaignSwitcher({
       </DropdownMenu>
 
       <Dialog open={managerOpen} onOpenChange={setManagerOpen}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto shadow-modal border-t-4 border-t-oxblood">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto border-t-4 border-t-spot">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl uppercase tracking-wide">
               Campaign Chronicles
             </DialogTitle>
-            <DialogDescription className="text-bone-dim">
+            <DialogDescription className="text-mute">
               Open, create, or delete a campaign.
             </DialogDescription>
           </DialogHeader>

@@ -1,139 +1,112 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
+import { useCampaign } from '@/components/campaign/campaign-provider';
+import { useEntityWriter, type WithId } from '@/firebase';
+import { pageHref } from '@/lib/pages';
 import { cn } from '@/lib/utils';
 import type { Character } from '@/lib/types';
 
-/** Plate accents. No violet — that belongs to the co-pilot alone. */
-const PLATE_ACCENTS = ['hsl(var(--ink))', 'hsl(var(--mute))', 'hsl(var(--sand))', 'hsl(var(--mute))', 'hsl(var(--ink))'];
+/** Click the HP number to type a new value: PCs' HP lives on their sheet. */
+function HpEdit({ c }: { c: WithId<Character> }) {
+  const { activeCampaign } = useCampaign();
+  const write = useEntityWriter(activeCampaign?.id);
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
 
-/** Five across is the designed layout; beyond that the dock scrolls. */
-const FITS_WITHOUT_SCROLL = 5;
+  const commit = () => {
+    const n = parseInt(draft, 10);
+    if (Number.isFinite(n)) void write('party', c.id, { currentHp: Math.max(0, Math.min(c.maxHp ?? n, n)) });
+    setEditing(false);
+  };
 
-function Stat({ label, value, strong }: { label: string; value?: number; strong?: boolean }) {
+  if (editing) {
+    return (
+      <input
+        type="number"
+        autoFocus
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
+        aria-label={`${c.name} current hit points`}
+        className="w-14 bg-bg border-[1.5px] border-ink px-1 font-mono font-bold text-[13px]"
+      />
+    );
+  }
   return (
-    <span
-      className={cn(
-        'font-mono text-[10.5px] whitespace-nowrap',
-        strong ? 'font-bold text-oxblood-bright' : 'text-bone-dim',
-      )}
+    <button
+      type="button"
+      onClick={() => { setDraft(String(c.currentHp ?? '')); setEditing(true); }}
+      aria-label={`${c.name}: ${c.currentHp} of ${c.maxHp} hit points. Edit`}
+      className="font-mono font-bold text-[13px] hover:underline"
     >
-      {label} {value ?? '—'}
-    </span>
+      {c.currentHp}/{c.maxHp}
+    </button>
   );
 }
 
 /**
- * The single most useful element during a session, pinned to the bottom of the
- * stage column so it never scrolls away.
- *
- * Every party member is shown. The design draws five plates across, so up to
- * five share the width equally; past that the row keeps a legible plate width
- * and scrolls horizontally rather than silently dropping members — a sixth
- * character you cannot see is worse than a dock you have to scroll.
- *
- * HP gets its own row above the four stats. A character with no HP recorded
- * omits the row rather than inventing 0/0.
+ * The whole party across the bottom, every plate in view: one column per PC,
+ * so seven fit without scrolling (review item U4). Eight and up wrap.
  */
-export function PartyDock({
-  characters, onSelect,
-}: {
-  characters: Character[];
-  /** Opens the character in the Codex. */
-  onSelect?: (character: Character) => void;
-}) {
-  if (characters.length === 0) return null;
+export function PartyDock() {
+  const { codex, combat, live } = useCampaign();
+  const party = codex.raw.characters ?? [];
+  if (party.length === 0) return null;
 
-  const overflows = characters.length > FITS_WITHOUT_SCROLL;
+  const activeName = combat.active?.type === 'player' ? combat.active.name : null;
+  const cols = Math.min(Math.max(party.length, 1), 8);
 
   return (
-    <div className="flex-shrink-0 px-[26px] pb-[18px]">
-      <div
-        // No ambient drift here on purpose. Every other panel may breathe, but
-        // this one is a click target — the plates are the most-used control on
-        // the screen, and a button that oscillates under the cursor is a worse
-        // trade than a slightly stiller dock.
-        className="bg-[hsl(264_17%_6%/0.95)] border border-border/[0.09] border-t-4 border-t-oxblood
-"
-      >
-        <div className="flex items-center gap-3 px-4 pt-[7px] pb-[5px]">
-          <span className="font-mono text-[9px] font-extrabold tracking-[0.26em] text-bone-faint">
-            THE PARTY
-          </span>
-          <span className="font-mono text-[9.5px] tracking-[0.12em] text-bone-faint">
-            {characters.length} {characters.length === 1 ? 'MEMBER' : 'MEMBERS'}
-          </span>
-          {overflows && (
-            <span className="font-mono text-[9.5px] tracking-[0.12em] text-bone-faint ml-auto">
-              SCROLL FOR MORE →
+    <div
+      className="flex-none grid border-t-[3px] border-ink bg-panel"
+      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}
+      aria-label="Party"
+    >
+      {party.map(c => {
+        const hasHp = typeof c.currentHp === 'number' && typeof c.maxHp === 'number' && c.maxHp > 0;
+        const pct = hasHp ? Math.max(0, Math.min(1, c.currentHp! / c.maxHp!)) : 0;
+        const bloodied = hasHp && pct < 0.5;
+        const spot = live.spotlit.includes(c.id);
+        return (
+          <div
+            key={c.id}
+            className={cn('min-w-0 px-3.5 py-3 flex flex-col gap-1.5 border-r border-line last:border-r-0', c.name === activeName && 'bg-bg')}
+          >
+            <Link href={pageHref({ kind: 'party', id: c.id })} className="font-headline font-black text-[20px] leading-none truncate hover:text-spot">
+              {c.name}
+            </Link>
+            <span className="font-mono text-[11px] tracking-[0.1em] text-mute truncate uppercase">{c.class || c.species || '—'}</span>
+            {hasHp && (
+              <>
+                <span className={cn('h-2 border-[1.5px]', bloodied ? 'border-spot' : 'border-ink')}>
+                  <span className={cn('block h-full', bloodied ? 'bg-spot' : 'bg-ink')} style={{ width: `${pct * 100}%` }} />
+                </span>
+                <span className={cn('flex items-baseline gap-2', bloodied && 'text-spot')}>
+                  <HpEdit c={c} />
+                  {bloodied && <span className="font-mono font-bold text-[11px] tracking-[0.14em]">BLOODIED</span>}
+                </span>
+              </>
+            )}
+            <span className="font-mono font-bold text-[12px] tracking-[0.08em]">
+              {c.armorClass !== undefined && <>AC {c.armorClass}</>}
+              {c.armorClass !== undefined && c.passivePerception !== undefined && ' · '}
+              {c.passivePerception !== undefined && <>PP {c.passivePerception}</>}
             </span>
-          )}
-        </div>
-
-        <div
-          className={cn('grid gap-px bg-[hsl(var(--border)/0.07)]', overflows && 'overflow-x-auto')}
-          style={
-            overflows
-              ? { gridAutoFlow: 'column', gridAutoColumns: 'minmax(190px, 1fr)' }
-              : { gridTemplateColumns: `repeat(${characters.length}, minmax(0,1fr))` }
-          }
-        >
-          {characters.map((c, i) => {
-            const hasHp =
-              typeof c.currentHp === 'number' && typeof c.maxHp === 'number' && c.maxHp > 0;
-            const pct = hasHp ? Math.max(0, Math.min(1, c.currentHp! / c.maxHp!)) : 0;
-            // Healthy reads as neutral bone: only injury earns a hue, and
-            // violet is spoken for.
-            const hpColor =
-              pct > 0.6 ? 'hsl(var(--bone-dim))' : pct > 0.3 ? 'hsl(var(--brass))' : 'hsl(var(--oxblood))';
-
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={onSelect ? () => onSelect(c) : undefined}
-                aria-label={onSelect ? `Open ${c.name} in the Codex` : undefined}
-                // A real button, not a div with a pointer cursor: the plate is
-                // keyboard-reachable, and the cursor only claims to be
-                // clickable when something is actually wired to it.
-                className={cn(
-                  'bg-[hsl(265_16%_7%/0.9)] px-[13px] pt-2.5 pb-[11px] text-left transition-colors',
-                  onSelect
-                    ? 'cursor-pointer hover:bg-[hsl(265_16%_11%/0.95)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-oxblood-bright'
-                    : 'cursor-default',
-                )}
-                style={{ borderTop: `3px solid ${PLATE_ACCENTS[i % PLATE_ACCENTS.length]}` }}
-              >
-                {/* Name on its own line so it never truncates to two characters. */}
-                <div className="font-headline text-[13px] font-bold uppercase text-bone-body truncate mb-0.5">
-                  {c.name}
-                </div>
-                <div className="font-mono text-[9.5px] font-bold tracking-[0.1em] text-bone-faint mb-1.5 truncate">
-                  {[c.class, c.species].filter(Boolean).join(' · ') || '—'}
-                </div>
-
-                {hasHp && (
-                  <div className="mb-1.5">
-                    <div className="h-[4px] bg-[hsl(var(--border)/0.1)] overflow-hidden">
-                      <div className="h-full" style={{ width: `${pct * 100}%`, background: hpColor }} />
-                    </div>
-                    <div className="font-mono text-[10px] text-bone-dim mt-1">
-                      HP {c.currentHp}/{c.maxHp}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-4 gap-[3px]">
-                  <Stat label="AC" value={c.armorClass} strong />
-                  <Stat label="PP" value={c.passivePerception} />
-                  <Stat label="IN" value={c.passiveInvestigation} />
-                  <Stat label="SP" value={c.speed} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+            <button
+              type="button"
+              aria-pressed={spot}
+              onClick={() => live.toggleSpotlit(c.id)}
+              title="Mark that this character had the spotlight tonight"
+              className={cn('self-start font-mono font-bold text-[11px] tracking-[0.12em]', spot ? 'text-spot' : 'text-mute hover:text-ink')}
+            >
+              {spot ? '★ SPOTLIT' : '☆ SPOTLIT'}
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -220,7 +220,7 @@ export function ObsidianImportDialog({
           <div className="space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="label-forge mb-1">Session {parsed.sessionNumber}</p>
+                <p className="font-mono font-bold text-[11px] tracking-[0.16em] uppercase text-mute mb-1">Session {parsed.sessionNumber}</p>
                 <h3 className="font-headline text-lg text-accent">{parsed.title}</h3>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setStep('input')} className="text-muted-foreground flex-shrink-0">
@@ -230,7 +230,7 @@ export function ObsidianImportDialog({
 
             {/* Summary */}
             <div>
-              <p className="label-forge mb-2">Session Summary</p>
+              <p className="font-mono font-bold text-[11px] tracking-[0.16em] uppercase text-mute mb-2">Session Summary</p>
               <p className="text-base font-body leading-relaxed text-foreground/90 whitespace-pre-wrap bg-card border border-border rounded-lg p-4">
                 {parsed.summary}
               </p>
@@ -239,7 +239,7 @@ export function ObsidianImportDialog({
             {/* Key moments */}
             {parsed.keyMoments.length > 0 && (
               <div>
-                <p className="label-forge mb-2">Key Moments</p>
+                <p className="font-mono font-bold text-[11px] tracking-[0.16em] uppercase text-mute mb-2">Key Moments</p>
                 <ul className="space-y-1.5">
                   {parsed.keyMoments.map((m, i) => (
                     <li key={i} className="flex gap-2 text-sm text-foreground/80">
@@ -255,7 +255,7 @@ export function ObsidianImportDialog({
             <div className="grid grid-cols-2 gap-4">
               {parsed.npcsIntroduced.length > 0 && (
                 <div>
-                  <p className="label-forge mb-2">NPCs Introduced</p>
+                  <p className="font-mono font-bold text-[11px] tracking-[0.16em] uppercase text-mute mb-2">NPCs Introduced</p>
                   <ul className="space-y-1">
                     {parsed.npcsIntroduced.map((n, i) => (
                       <li key={i} className="text-sm text-muted-foreground font-body">{n}</li>
@@ -265,7 +265,7 @@ export function ObsidianImportDialog({
               )}
               {parsed.openThreads.length > 0 && (
                 <div>
-                  <p className="label-forge mb-2">New Threads</p>
+                  <p className="font-mono font-bold text-[11px] tracking-[0.16em] uppercase text-mute mb-2">New Threads</p>
                   <ul className="space-y-1">
                     {parsed.openThreads.map((t, i) => (
                       <li key={i} className="text-sm text-muted-foreground font-body">{t}</li>

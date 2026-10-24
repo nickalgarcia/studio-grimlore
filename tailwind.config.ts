@@ -61,35 +61,6 @@ export default {
         line: 'var(--line)',
         line2: 'var(--line2)',
         scrim: 'var(--scrim)',
-
-        // Temporary v3 names, aliased in globals.css. Removed in Stage 6.
-        bone: {
-          DEFAULT: hsl('bone'),
-          body: hsl('bone-body'),
-          soft: hsl('bone-soft'),
-          dim: hsl('bone-dim'),
-          faint: hsl('bone-faint'),
-          faintest: hsl('bone-faintest'),
-        },
-        oxblood: {
-          DEFAULT: hsl('oxblood'),
-          bright: hsl('oxblood-bright'),
-          pale: hsl('oxblood-pale'),
-        },
-        violet: {
-          DEFAULT: hsl('violet'),
-          bright: hsl('violet-bright'),
-          text: hsl('violet-text'),
-          dim: hsl('violet-dim'),
-        },
-        brass: hsl('brass'),
-        kind: {
-          npc: hsl('kind-npc'),
-          place: hsl('kind-place'),
-          faction: hsl('kind-faction'),
-          item: hsl('kind-item'),
-          session: hsl('kind-session'),
-        },
       },
       // Radius is 0 by design; the scale is kept so primitives referencing
       // rounded-lg/md/sm resolve to a hard edge rather than a stale default.
@@ -99,16 +70,10 @@ export default {
         sm: 'var(--radius)',
       },
       // The only shadow in the design is a hard offset "print" shadow in spot.
-      // The v3 names resolve to none so stand-in screens drop their blur.
       boxShadow: {
         'print-sm': '6px 6px 0 hsl(var(--spot))',
         print: '8px 8px 0 hsl(var(--spot))',
         'print-lg': '10px 10px 0 hsl(var(--spot))',
-        card: 'none',
-        panel: 'none',
-        modal: 'none',
-        slab: 'none',
-        violet: 'none',
       },
       keyframes: {
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },

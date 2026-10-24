@@ -3,10 +3,10 @@
 Personal DM command center for Nick's homebrew D&D 5e campaign (a seven-player party).
 One owner, used live at the table on a laptop. Treat it as a single-user app, not a SaaS.
 
-- **Table** mode — run a session: scene stage, live notes, party dock, combat tracker, AI co-pilot.
-- **Forge** mode — prep between sessions: session prep, campaign overview/summary, idea + inspiration generators.
-- **Codex** mode — browse/edit world entries (NPCs, places, factions, party, items, sessions, concepts).
-- **Spotlight** (⌘K / Ctrl+K) — search everything, plus rules lookup.
+- **Story** (`/`) — the campaign as a comic series: Longbox of issue covers, the Loom (threads × issues), selected issue.
+- **Issue** (`/issue/[n]`), **Page** (`/page/[kind]/[id]`) — recaps and one page template for every entity.
+- **Prep** (`/prep`), **Rulebook** (`/rules`), **Table** (`/table`, the live console with the AI co-pilot).
+- **Command bar** (`/`, ⌘K / Ctrl+K) — search everything, or start with `+` to capture a note from any screen.
 
 ## Stack
 
@@ -45,21 +45,23 @@ scaffold. `docs/blueprint.md` describes an OLD design (purple/green/parchment) �
 
 ```
 src/app/(app)/layout.tsx         auth gate → CampaignProvider → Header; routes / issue/[n] page/[kind]/[id] rules prep table
-                                 (Director's Cut redesign in progress on redesign/directors-cut: see docs/DIRECTORS-CUT-PLAN.md)
+                                 (Director's Cut redesign: see docs/DIRECTORS-CUT-PLAN.md for decisions and stand-ins)
 src/app/actions.ts               server actions, one per AI feature, take idToken first, return { data, error }
 src/app/api/live-session/route.ts  streaming co-pilot (SSE passthrough); verifies Firebase ID token
 src/ai/anthropic-client.ts       callClaude / callClaudeJson, CLAUDE_MODEL
 src/ai/flows/*.ts                one file per AI feature: zod schema + prompt builder
 src/components/campaign/campaign-provider.tsx  shared data for every route: campaigns, codex, threads, mentions, live session
 src/components/shell/            header, command-bar (search + `+` capture; replaced the ⌘K Spotlight)
-src/components/modes/            table-mode, forge-mode: v3 screens mounted by /table and /prep until Stage 6
+src/components/table/            live console: use-live-session, use-combat, turn strip, scene column, co-pilot, dock
+src/components/prep|rules/       Prep screen + co-pilot draft dialog; house-rule editor
+src/lib/core-rules.ts, conditions.ts  5e core rules (SRD 5.1 summaries) and the 16 conditions, as constants
 src/lib/mentions.ts, loom.ts     derived mentions index (never stored) and Loom geometry
 src/lib/page-model.ts            one Page shape for every entity kind; recap excerpts; related pages
 src/components/story|issue|page/ Longbox, Loom, panel strip; recap renderer + draft; Page template + draft
 src/firebase/storage.ts          image upload (re-encoded to WebP); storage.rules is deployed separately
 src/components/table/            co-pilot, live-notes, party-dock, scene-stage, use-live-session
 src/components/codex/            use-codex-entries (merges every collection into CodexEntry[]), detail/dialog
-src/components/combat-tracker.tsx  largest file; persists to combatState
+src/components/combat-tracker.tsx  combat SET UP sheet contents; state is in table/use-combat.ts
 src/components/markdown.tsx      safe renderer for AI output (builds React nodes; no innerHTML)
 src/firebase/                    provider, useCollection/useDoc/useMemoFirebase, non-blocking writes, error emitter
 src/firebase/require-user.ts     server-only auth gate for AI entry points (admin.ts verifies the token)
@@ -87,10 +89,14 @@ anything without a rule, which surfaces as a "permission" error.
 - Firestore throws on `undefined` field values: use `stripUndefined()` or conditional spreads.
 - Use `clientCreatedAt()` (ISO string) where a field is ordered on; `serverTimestamp()` only for `updatedAt`.
   Newest scene by `createdAt` *is* the current scene.
-- `use-live-session.ts`: hydrate once per mount, 800 ms debounced persist, messages read via ref,
-  SSE partial-line buffering. Each exists to fix a real bug.
-- Combat tracker stays mounted (hidden) when switching to Scene so in-flight edits survive.
-- `grid-rows-[minmax(0,1fr)]` on the cockpit containers keeps the party dock on screen.
+- `use-live-session.ts`: hydrate once per mount, 800 ms debounced persist, state read via refs,
+  SSE partial-line buffering. Each exists to fix a real bug. `use-combat.ts`: hydrate once per mount, active
+  turn by id, monotonic `seq` tiebreak.
+- Both hooks live in `CampaignScope` (campaign-provider.tsx), which is keyed by campaign id: switching
+  campaigns remounts them, so hydrate-once never mixes two campaigns' state. Don't remove the key.
+- END SESSION order matters: create the session doc first (abort on failure), then archive, then reset
+  `liveSession/current` with `startedAt: deleteField()`.
+- `grid-rows-[minmax(0,1fr)]` on the Table's body keeps the party dock on screen.
 - Comments in this codebase explain *why*. Keep that style; don't strip them.
 
 ## Design system (Director's Cut)
@@ -105,8 +111,6 @@ Spec: `design_handoff_grimlore_directors_cut/README.md` (authoritative; match it
   names in new code (`bg-spot text-spot-on`, `border-line2`); shadcn's names map onto them.
 - **`--spot` is the only saturated UI colour**, one thing per region. Text on a spot fill is `text-spot-on`.
 - **`--holo` is reserved for the AI co-pilot** and "draft with co-pilot" buttons.
-- The v3 names (`bone*`, `oxblood*`, `violet*`, `brass`, `.label-forge`, `.surface-*`) are temporary
-  aliases for the v3 stand-in screens. Don't use them in new code; they're removed in Stage 6.
 - **Fonts:** `font-headline` = Big Shoulders (always uppercase, pinned to its display cut, opsz 72),
   `font-body` = Newsreader (prose, inputs), `font-mono` = JetBrains Mono (labels, numbers).
 - **Edges:** radius 0 (circles excepted). Borders carry meaning: 3px ink for panels and covers, 1.5px for
