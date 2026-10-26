@@ -140,7 +140,7 @@ export function AuthGate() {
                   Welcome Back
                 </CardTitle>
                 <CardDescription>
-                  Sign in to access your Grimlore.
+                  Sign in to pick up where you left off.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">

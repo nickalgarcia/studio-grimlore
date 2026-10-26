@@ -1,4 +1,7 @@
-# Grimlore Forge — context for Claude Code
+# Previously — context for Claude Code
+
+The app was called Grimlore Forge until October 2026. The repo, Firebase project, Vercel project and
+localStorage keys (`grimlore.*`) keep the old name on purpose; renaming the keys would reset saved prefs.
 
 Personal DM command center for Nick's homebrew D&D 5e campaign (a seven-player party).
 One owner, used live at the table on a laptop. Treat it as a single-user app, not a SaaS.
@@ -116,6 +119,8 @@ Spec: `design_handoff_grimlore_directors_cut/README.md` (authoritative; match it
   names in new code (`bg-spot text-spot-on`, `border-line2`); shadcn's names map onto them.
 - **`--spot` is the only saturated UI colour**, one thing per region. Text on a spot fill is `text-spot-on`.
 - **`--holo` is reserved for the AI co-pilot** and "draft with co-pilot" buttons.
+  One deliberate exception: the logo (`components/shell/logo-mark.tsx`, `app/icon.svg`) uses holo's
+  Hyperspace cyan as a fixed colour. It's branding, not UI, so it doesn't follow the palette; don't "fix" it.
 - **Fonts:** `font-headline` = Big Shoulders (always uppercase, pinned to its display cut, opsz 72),
   `font-body` = Newsreader (prose, inputs), `font-mono` = JetBrains Mono (labels, numbers).
 - **Edges:** radius 0 (circles excepted). Borders carry meaning: 3px ink for panels and covers, 1.5px for

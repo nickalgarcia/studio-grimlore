@@ -5,6 +5,7 @@ import { useUser } from '@/firebase';
 import { AuthGate } from '@/components/auth-gate';
 import { CampaignProvider, useCampaign } from '@/components/campaign/campaign-provider';
 import { Header } from '@/components/shell/header';
+import { LogoMark } from '@/components/shell/logo-mark';
 
 /**
  * Every screen lives under this layout. The App Router keeps it mounted across
@@ -26,8 +27,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <div className="min-h-screen bg-bg">
-        <div className="h-16 flex items-center px-5 border-b border-line">
-          <span className="font-headline font-black text-[26px] tracking-[0.07em] uppercase">Grimlore</span>
+        <div className="h-16 flex items-center gap-2.5 px-5 border-b border-line">
+          <LogoMark className="w-[30px] h-[30px]" />
+          <span className="font-headline font-black text-[26px] tracking-[0.07em] uppercase">Previously</span>
         </div>
         <AuthGate />
       </div>
