@@ -10,6 +10,7 @@ import { CampaignOverview } from '@/components/forge/campaign-overview';
 import { ArtDirectionDialog } from '@/components/art/art-direction-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CommandBar } from '@/components/shell/command-bar';
+import { LogoMark } from '@/components/shell/logo-mark';
 import { PaletteSwitcher, ThemeToggle } from '@/components/shell/appearance';
 import { GLYPH } from '@/lib/pages';
 import { cn } from '@/lib/utils';
@@ -54,8 +55,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 h-16 flex-none bg-bg border-b border-line">
       <div className="h-full flex items-center gap-3.5 px-5">
-        <Link href="/" className="flex-none font-headline font-black text-[26px] tracking-[0.07em] uppercase">
-          Grimlore
+        <Link href="/" className="flex-none flex items-center gap-2.5 font-headline font-black text-[26px] tracking-[0.07em] uppercase">
+          <LogoMark className="w-[30px] h-[30px]" />
+          Previously
         </Link>
 
         {/* Stand-in for the wordmark menu until its design arrives. */}

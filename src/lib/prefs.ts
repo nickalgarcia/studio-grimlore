@@ -10,6 +10,8 @@ export type Palette = (typeof PALETTES)[number];
 export const THEMES = ['dark', 'light'] as const;
 export type Theme = (typeof THEMES)[number];
 
+// Storage keys keep the app's old name (Grimlore). Renaming them would
+// silently reset every saved palette, theme, campaign and co-pilot choice.
 export const PALETTE_KEY = 'grimlore.palette';
 export const THEME_KEY = 'grimlore.theme';
 

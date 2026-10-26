@@ -7,7 +7,7 @@ import { PREFS_SCRIPT } from '@/lib/prefs';
 import { Big_Shoulders, JetBrains_Mono, Newsreader } from 'next/font/google';
 
 export const metadata: Metadata = {
-  title: 'Grimlore',
+  title: 'Previously',
   description: 'A campaign repository and table console for one Dungeon Master.',
 };
 

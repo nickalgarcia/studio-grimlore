@@ -124,7 +124,7 @@ export function generateCampaignExport(data: CampaignExportData): string {
 
   lines.push(
     `---`,
-    `*Exported from Grimlore Forge · ${new Date().toLocaleDateString()}*`,
+    `*Exported from Previously · ${new Date().toLocaleDateString()}*`,
   );
 
   return lines.join('\n');
