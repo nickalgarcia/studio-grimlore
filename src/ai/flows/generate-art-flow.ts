@@ -97,6 +97,10 @@ const LAYOUT: Record<ArtKind, string> = {
   faction: 'An emblematic image of a faction: its people, banners or seat of power.',
 };
 
+// The diversity rule exists because, given no skin tone, the image model drew
+// every character white. A character's Look and reference portrait still win
+// (they keep a face consistent across images); the rule only sets the default.
+// It says "this world", not a setting name: the prompt is shared by every campaign.
 function buildParts(input: GenerateArtInput, styleRefs: InlineImage[], portraits: (InlineImage | null)[]): GeminiPart[] {
   const parts: GeminiPart[] = [];
   const style = input.style?.trim() || DEFAULT_ART_STYLE;
@@ -113,7 +117,8 @@ Aspect ratio ${ART_ASPECT[input.kind]}.
 
 RULES
 - No text, lettering, logos, speech bubbles, sound effects or signatures. The app adds titles and captions itself.
-- No borders, frames, panel gutters or labels of any kind, and never write the aspect ratio. The art runs edge to edge.`,
+- No borders, frames, panel gutters or labels of any kind, and never write the aspect ratio. The art runs edge to edge.
+- This world's people are diverse. Give every named character exactly the skin tone and features their description or reference portrait shows. Where neither sets it (crowds, background figures, a named character with no description and no portrait), show a natural range of skin tones, from deep brown to pale, across humans and every other species. Never default everyone to pale or white skin.`,
   });
 
   if (styleRefs.length) {
