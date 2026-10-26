@@ -16,6 +16,10 @@ export default {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    // lib/ holds class-name maps too (ART_ASPECT_CLASS in lib/art.ts). Without
+    // it, classes used only there are never generated: the scene and panel
+    // art previews rendered at zero height.
+    './src/lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     container: {
