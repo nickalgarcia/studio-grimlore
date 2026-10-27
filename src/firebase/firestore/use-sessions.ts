@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { arrayRemove, arrayUnion, doc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { stripUndefined, useCampaignCollectionRef } from './campaign-collection';
 import type { MentionRef, Session } from '@/lib/types';
 
@@ -85,5 +85,21 @@ export function useSessionWriter(campaignId: string | null | undefined) {
     [sessionDoc, campaignId],
   );
 
-  return { createSession, updateSession, setMentionOverride };
+  /**
+   * Remove an issue. Nothing else stores a link to the document: the Loom,
+   * mentions and numbering are all derived from the sessions that remain, so
+   * a deleted middle issue leaves a gap and the next issue is still latest + 1.
+   * Its images are the caller's job (see the issue screen), done only after
+   * this succeeds so a failed delete never leaves an issue with missing art.
+   */
+  const deleteSession = React.useCallback(
+    (sessionId: string) => {
+      const ref = sessionDoc(sessionId);
+      if (!ref) return Promise.resolve();
+      return deleteDocumentNonBlocking(ref);
+    },
+    [sessionDoc],
+  );
+
+  return { createSession, updateSession, setMentionOverride, deleteSession };
 }
