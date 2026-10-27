@@ -12,7 +12,7 @@ import { CampaignManager } from '@/components/campaign-manager';
 import { MigrateDialog } from '@/components/migrate-dialog';
 import { needsMigration } from '@/lib/migrate';
 import { signOutUser, useAuth, useUser } from '@/firebase';
-import { ArrowUpCircle, BookOpen, Check, ChevronDown, LayoutGrid, LogOut, Palette, Upload } from 'lucide-react';
+import { ArrowUpCircle, BookOpen, Check, ChevronDown, LayoutGrid, LogOut, Palette, Upload, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Campaign } from '@/lib/types';
 
@@ -21,17 +21,19 @@ import type { Campaign } from '@/lib/types';
  * design arrives.
  *
  * It holds the jobs the Director's Cut header has no place for yet: naming
- * and switching campaigns, the campaign overview, Obsidian import, the data
+ * and switching campaigns, the campaign overview, Obsidian and roster import, the data
  * upgrade, and sign-out.
  */
 export function CampaignSwitcher({
-  campaigns, activeCampaignId, onSelect, onImportObsidian, onOverview, onArtDirection,
+  campaigns, activeCampaignId, onSelect, onImportObsidian, onImportRoster, onOverview, onArtDirection,
 }: {
   campaigns: Campaign[];
   activeCampaignId: string | null;
   onSelect: (id: string | null) => void;
   /** The Codex screen that held the import is gone; it waits here for the wordmark menu design. */
   onImportObsidian?: () => void;
+  /** Bulk NPCs / places / factions from spreadsheet rows. */
+  onImportRoster?: () => void;
   /** Story so far, session log and export: the v3 Forge Overview, waiting for the menu design. */
   onOverview?: () => void;
   /** House style for generated art. */
@@ -96,6 +98,12 @@ export function CampaignSwitcher({
             <DropdownMenuItem onSelect={onImportObsidian} className="gap-2">
               <Upload className="h-3.5 w-3.5" />
               Import Obsidian session…
+            </DropdownMenuItem>
+          )}
+          {active && onImportRoster && (
+            <DropdownMenuItem onSelect={onImportRoster} className="gap-2">
+              <Users className="h-3.5 w-3.5" />
+              Import NPCs, places &amp; factions…
             </DropdownMenuItem>
           )}
           {active && needsMigration(active) && (

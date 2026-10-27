@@ -52,7 +52,7 @@ export const MIN_DETECT_LENGTH = 3;
  * order. Auto-detection skips shared names entirely: a guess there would put
  * an issue on the wrong lane with nothing to show it was a guess.
  */
-const KIND_PRIORITY: MentionKind[] = ['npc', 'party', 'faction', 'place', 'item', 'thread'];
+export const KIND_PRIORITY: MentionKind[] =['npc', 'party', 'faction', 'place', 'item', 'thread'];
 
 export function refKey(ref: MentionRef): string {
   return `${ref.kind}:${ref.id}`;
