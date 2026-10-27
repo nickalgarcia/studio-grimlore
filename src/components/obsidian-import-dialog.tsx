@@ -12,7 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useFirestore, useUser, useMemoFirebase, idTokenFor, recapFields } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
-import type { Session } from '@/lib/types';
+import type { MentionKind, Session } from '@/lib/types';
+import { useCampaign } from '@/components/campaign/campaign-provider';
+import { mentionTargets, type MentionTarget } from '@/lib/mentions';
+import { nameKey, type ImportRow } from '@/lib/roster-import';
+import { applyImport } from '@/lib/roster-import-write';
 import { Loader2, Upload, FileText, CheckCircle2, RotateCcw, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,18 +31,51 @@ interface ObsidianImportDialogProps {
 
 type Step = 'input' | 'parsing' | 'review' | 'saving';
 
+const KIND_WORD: Record<MentionKind, string> = {
+  npc: 'NPC', party: 'party member', place: 'place', faction: 'faction', item: 'item', thread: 'thread',
+};
+
+/**
+ * The parser's "NPCs introduced", each matched against everything already in
+ * the campaign by name or alias. Unmatched names can be created as NPCs on
+ * save; until this existed the list was shown and then thrown away, which is
+ * how a campaign ends up with recaps naming NPCs the Loom has never heard of.
+ */
+function npcCandidates(names: readonly string[], targets: readonly MentionTarget[]) {
+  const byKey = new Map<string, MentionTarget>();
+  for (const t of targets) {
+    for (const n of [t.name, ...(t.aliases ?? [])]) {
+      const k = nameKey(n ?? '');
+      if (k && !byKey.has(k)) byKey.set(k, t);
+    }
+  }
+  const seen = new Set<string>();
+  const out: { name: string; key: string; match: MentionTarget | null }[] = [];
+  for (const raw of names) {
+    const name = raw.trim().replace(/\s+/g, ' ');
+    const key = nameKey(name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name, key, match: byKey.get(key) ?? null });
+  }
+  return out;
+}
+
 export function ObsidianImportDialog({
   open, onOpenChange, campaignId, campaignName, nextSessionNumber, onImported,
 }: ObsidianImportDialogProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const { codex, threads } = useCampaign();
 
   const [step, setStep] = React.useState<Step>('input');
   const [markdown, setMarkdown] = React.useState('');
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [parsed, setParsed] = React.useState<ParseObsidianSessionOutput | null>(null);
   const [dragOver, setDragOver] = React.useState(false);
+  /** Keys (nameKey) of introduced NPCs to create on save. */
+  const [npcPicks, setNpcPicks] = React.useState<Set<string>>(new Set());
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const sessionsRef = useMemoFirebase(() => {
@@ -52,12 +89,32 @@ export function ObsidianImportDialog({
     setFileName(null);
     setParsed(null);
     setDragOver(false);
+    setNpcPicks(new Set());
   };
 
   const handleClose = (open: boolean) => {
     if (!open) reset();
     onOpenChange(open);
   };
+
+  const { npcs, characters, locations, factions } = codex.raw;
+  const candidates = React.useMemo(
+    () => npcCandidates(
+      parsed?.npcsIntroduced ?? [],
+      mentionTargets({ npcs, characters, locations, factions, threads }),
+    ),
+    [parsed, npcs, characters, locations, factions, threads],
+  );
+
+  // Names still unmatched at this render: the codex can load or change while
+  // the review is open, so a ticked name may since have matched a page.
+  const picked = candidates.filter(c => !c.match && npcPicks.has(c.key));
+
+  const toggleNpc = (key: string) => setNpcPicks(prev => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
 
   // ── File handling ──
   const readFile = (file: File) => {
@@ -104,6 +161,11 @@ export function ObsidianImportDialog({
     }
 
     setParsed(data);
+    // Pre-tick every introduced name the campaign doesn't know yet. Computed
+    // here from the fresh result rather than from `candidates`, which still
+    // holds the previous parse until the next render.
+    const known = npcCandidates(data.npcsIntroduced, mentionTargets({ npcs, characters, locations, factions, threads }));
+    setNpcPicks(new Set(known.filter(c => !c.match).map(c => c.key)));
     setStep('review');
   };
 
@@ -119,13 +181,42 @@ export function ObsidianImportDialog({
         ...recapFields(parsed.summary),
         date: serverTimestamp(),
       });
-      toast({ title: `Session ${parsed.sessionNumber} imported!`, description: 'Added to your campaign logs.' });
-      onImported();
-      handleClose(false);
     } catch (e) {
       toast({ variant: 'destructive', title: 'Could not save session', description: 'Check your connection and try again.' });
       setStep('review');
+      return;
     }
+
+    // The session is saved first and on its own: if the NPCs fail, retrying the
+    // whole import would duplicate the session, so this only reports it.
+    let npcNote = '';
+    if (picked.length && user) {
+      const n = parsed.sessionNumber;
+      const rows: ImportRow[] = picked.map((c, i) => ({
+        line: i + 1,
+        name: c.name,
+        aliases: [],
+        fields: { name: c.name, description: `First appeared in Session ${n}.`, lastSeenSession: n },
+        action: { type: 'new' },
+        warnings: [],
+        // Only unmatched names get here, so nothing is shared.
+        sharedNames: [],
+      }));
+      try {
+        const { created } = await applyImport(firestore, user.uid, campaignId, 'npc', rows);
+        npcNote = ` ${created} new NPC${created === 1 ? '' : 's'} added.`;
+      } catch {
+        toast({
+          variant: 'destructive',
+          title: 'Session saved, NPCs not created',
+          description: 'Add them from the roster import or the Codex.',
+        });
+      }
+    }
+
+    toast({ title: `Session ${parsed.sessionNumber} imported!`, description: `Added to your campaign logs.${npcNote}` });
+    onImported();
+    handleClose(false);
   };
 
   return (
@@ -253,12 +344,33 @@ export function ObsidianImportDialog({
 
             {/* NPCs + threads in a grid */}
             <div className="grid grid-cols-2 gap-4">
-              {parsed.npcsIntroduced.length > 0 && (
+              {candidates.length > 0 && (
                 <div>
                   <p className="font-mono font-bold text-[11px] tracking-[0.16em] uppercase text-mute mb-2">NPCs Introduced</p>
-                  <ul className="space-y-1">
-                    {parsed.npcsIntroduced.map((n, i) => (
-                      <li key={i} className="text-sm text-muted-foreground font-body">{n}</li>
+                  <ul className="space-y-1.5">
+                    {candidates.map(c => (
+                      <li key={c.key} className="flex items-start gap-2 text-sm font-body">
+                        {c.match ? (
+                          <span className="text-muted-foreground">
+                            {c.name}
+                            <span className="block text-[12px] text-mute">Already in campaign as {KIND_WORD[c.match.ref.kind]}{c.match.name !== c.name ? ` (${c.match.name})` : ''}</span>
+                          </span>
+                        ) : (
+                          <>
+                            <input
+                              id={`obsidian-npc-${c.key}`}
+                              type="checkbox"
+                              checked={npcPicks.has(c.key)}
+                              onChange={() => toggleNpc(c.key)}
+                              className="mt-1 h-4 w-4 flex-none accent-[hsl(var(--spot))]"
+                            />
+                            <label htmlFor={`obsidian-npc-${c.key}`}>
+                              {c.name}
+                              <span className="block text-[12px] text-mute">Create as NPC</span>
+                            </label>
+                          </>
+                        )}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -280,6 +392,7 @@ export function ObsidianImportDialog({
               <Button onClick={handleSave}>
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Save Session {parsed.sessionNumber}
+                {picked.length > 0 && ` + ${picked.length} NPC${picked.length === 1 ? '' : 's'}`}
               </Button>
             </DialogFooter>
           </div>

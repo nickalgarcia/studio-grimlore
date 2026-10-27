@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useCampaign } from '@/components/campaign/campaign-provider';
 import { CampaignSwitcher } from '@/components/campaign-switcher';
 import { ObsidianImportDialog } from '@/components/obsidian-import-dialog';
+import { RosterImportDialog } from '@/components/roster-import-dialog';
 import { CampaignOverview } from '@/components/forge/campaign-overview';
 import { ArtDirectionDialog } from '@/components/art/art-direction-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -36,6 +37,7 @@ export function Header() {
   const section = sectionOf(pathname);
   const { campaigns, activeCampaign, setActiveCampaignId, nextIssueNumber, codex } = useCampaign();
   const [importOpen, setImportOpen] = React.useState(false);
+  const [rosterOpen, setRosterOpen] = React.useState(false);
   const [overviewOpen, setOverviewOpen] = React.useState(false);
   const [artOpen, setArtOpen] = React.useState(false);
 
@@ -67,6 +69,7 @@ export function Header() {
             activeCampaignId={activeCampaign?.id ?? null}
             onSelect={setActiveCampaignId}
             onImportObsidian={() => setImportOpen(true)}
+            onImportRoster={() => setRosterOpen(true)}
             onOverview={() => setOverviewOpen(true)}
             onArtDirection={() => setArtOpen(true)}
           />
@@ -106,6 +109,11 @@ export function Header() {
           nextSessionNumber={nextIssueNumber}
           onImported={() => setImportOpen(false)}
         />
+      )}
+      {activeCampaign && (
+        // Keyed by campaign so switching campaigns drops a half-finished preview
+        // that was matched against the other campaign's entities.
+        <RosterImportDialog key={activeCampaign.id} open={rosterOpen} onOpenChange={setRosterOpen} />
       )}
       {activeCampaign && (
         <Dialog open={overviewOpen} onOpenChange={setOverviewOpen}>
