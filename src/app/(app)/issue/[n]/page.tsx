@@ -2,12 +2,17 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCampaign } from '@/components/campaign/campaign-provider';
 import { GenerateArtDialog } from '@/components/art/generate-art-dialog';
 import { CodexEntryDialog } from '@/components/codex/codex-entry-dialog';
 import { RecapDraft } from '@/components/issue/recap-draft';
 import { RecapText } from '@/components/issue/recap-text';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { ImageSlot } from '@/components/shared/image-slot';
 import { MonoLabel, SectionHeader } from '@/components/shared/section-header';
 import { IssueStrip } from '@/components/story/panel-strip';
@@ -17,7 +22,7 @@ import { agoLabel, issueLabel, issueTitle, recapOf, sessionDate } from '@/lib/is
 import { refKey } from '@/lib/mentions';
 import { DISPLAY_KIND, GLYPH, issueHref, pageHref } from '@/lib/pages';
 import { cn } from '@/lib/utils';
-import type { Faction, MentionRef } from '@/lib/types';
+import type { Faction, MentionRef, Session } from '@/lib/types';
 
 const navButton = 'h-[34px] inline-flex items-center px-3 border-[1.5px] border-line2 font-mono font-bold text-[12px] tracking-[0.14em] hover:border-ink';
 
@@ -100,6 +105,7 @@ function Issue() {
           >
             EDIT
           </button>
+          <DeleteIssueButton issue={issue} />
           {prev
             ? <Link href={issueHref(prev.sessionNumber)} className={navButton}>← #{prev.sessionNumber}</Link>
             : <span aria-disabled="true" className={cn(navButton, 'opacity-35 pointer-events-none')}>← #{issue.sessionNumber}</span>}
@@ -226,5 +232,64 @@ function Issue() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Deletes an issue and the art only it uses. Lives next to EDIT until the
+ * inline-editing design gives page actions a home (same as Page's DELETE).
+ */
+function DeleteIssueButton({ issue }: { issue: Session }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { activeCampaign, issues, prep } = useCampaign();
+  const { deleteSession } = useSessionWriter(activeCampaign?.id);
+  const { remove } = useImageUpload(activeCampaign?.id);
+  const label = issueLabel(issue.sessionNumber);
+
+  const onDelete = async () => {
+    // Collected before leaving the screen. An image is kept if anything else
+    // still shows it: END SESSION copies Prep's cover onto the new issue, so
+    // the same file can sit on another issue or on Prep's next cover.
+    const inUseElsewhere = new Set<string>([
+      ...(prep?.coverUrl ? [prep.coverUrl] : []),
+      ...issues.filter(s => s.id !== issue.id).flatMap(s => [s.coverUrl, ...(s.beats ?? []).map(b => b.imageUrl)]),
+    ].filter((u): u is string => !!u));
+    const images = [issue.coverUrl, ...(issue.beats ?? []).map(b => b.imageUrl)]
+      .filter((u): u is string => !!u && !inUseElsewhere.has(u));
+
+    // Leave first: the listener drops the issue as soon as the delete is
+    // applied locally, which would flash "There is no Issue #N" here.
+    router.push('/');
+    try {
+      await deleteSession(issue.id);
+    } catch {
+      toast({ variant: 'destructive', title: `Could not delete ${label}`, description: 'Check your connection and try again.' });
+      return;
+    }
+    // Only once the issue is gone, so a failed delete never leaves it with missing art.
+    await Promise.all(images.map(u => remove(u)));
+    toast({ title: `${label} deleted` });
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <button type="button" className={navButton}>DELETE</button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {label}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {issueTitle(issue)} goes for good, with its recap, notes, cover and panel art. The pages it
+            mentions stay, and other issues keep their numbers.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
